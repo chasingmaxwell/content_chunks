@@ -6,22 +6,27 @@
  */
 
 /**
- * Implements hook_field_info().
+ * Load all chunk types defined by hook_chunk_types().
  */
-function chunks_field_info() {
-  return array(
-    'chunks' => array(
-      'label' => t('Chunks'),
-      'description' => t('Structured and reusable content chunks.'),
-      'default_widget' => 'chunks_field_widget_form',
-      'default_formatter' => 'chunks_default',
-    ),
-  );
+function chunk_types_load() {
+  $modules = module_implements('chunk_types');
+  $chunk_types = array();
+  foreach ($modules as $module) {
+    $function = $module . '_chunk_types';
+    $module_chunk_types = $function();
+    foreach ($module_chunk_types as $name) {
+      // @TODO: Add a check here to see if a chunk type of the same name already
+      // exists. If so, we should log it in watchdog.
+      $chunk_types[$name] = new ChunkType($name, $module);
+    }
+  }
+  return $chunk_types;
 }
 
 /**
- * Implements hook_field_is_empty().
+ * Load the configuration form for a given chunk type.
  */
-function chunks_field_is_empty($item, $field) {
+function chunk_type_get_form($chunk_type) {
+  return $chunk_type->getForm();
 }
 
