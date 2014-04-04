@@ -30,3 +30,12 @@ function chunk_type_get_form($chunk_type) {
   return $chunk_type->getForm();
 }
 
+/**
+ * Implements hook_form_alter().
+ */
+function chunk_form_alter(&$form, &$form_state, $form_id) {
+  if (substr($form_id, -10) == 'chunk_form') {
+    // @TODO: Provide common elements for chunk forms.
+  }
+}
+
