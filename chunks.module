@@ -35,7 +35,27 @@ function chunk_type_get_form($chunk_type) {
  */
 function chunk_form_alter(&$form, &$form_state, $form_id) {
   if (substr($form_id, -10) == 'chunk_form') {
-    // @TODO: Provide common elements for chunk forms.
+
+    // Check to make sure the chunk type exists.
+    if (empty($form['#chunk_type'])) {
+      watchdog('chunks', 'No chunk type provided when building chunk configuration form.', WATCHDOG_ERROR);
+      return;
+    }
+
+    // Check to make sure configuration fields exist.
+    if (!isset($form['configuration'])) {
+      watchdog('chunks', 'The configuration form for the %name chunk type is not properly formatted. No "configuration" array found.', array('%name' => $chunk_type->name), WATCHDOG_ERROR);
+      return;
+    }
+
+    $form['#submit'][] = 'chunk_form_submit';
   }
+}
+
+/**
+ * Submission function for chunk configuration forms.
+ */
+function chunk_form_submit($form, &$form_state) {
+
 }
 

@@ -16,7 +16,8 @@ function chunks_chunk_types() {
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
 function chunks_text_chunk_form($form, &$form_state) {
-  $form['text'] = array(
+  $form['#chunk_type'] = new ChunkType('text', 'chunks');
+  $form['configuration']['text'] = array(
     '#type' => 'textarea',
     '#default_value' => '',
   );
