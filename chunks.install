@@ -7,6 +7,7 @@
 
 /**
  * Implements hook_schema().
+ * @TODO: decide if we actually need this.
  */
 function chunks_schema() {
 
@@ -37,20 +38,29 @@ function chunks_schema() {
  */
 function chunks_field_schema($field) {
   if ($field['type'] == 'chunks') {
+    $schema = array();
     $schema['columns']['chunk_type'] = array(
       'type' => 'varchar',
       'length' => '32',
       'not null' => TRUE,
+      'default' => '',
+      'description' => "The name of the chunk's type.",
     );
     $schema['columns']['module'] = array(
       'type' => 'varchar',
       'length' => '32',
       'not null' => TRUE,
+      'default' => '',
+      'description' => "The name of the module which provided the chunk type."
     );
     $schema['columns']['data'] = array(
       'type' => 'blob',
       'not null' => TRUE,
+      'size' => 'big',
+      'serialize' => TRUE,
+      'description' => "A serialized array of chunk data.",
     );
   }
+  return $schema;
 }
 
