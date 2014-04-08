@@ -14,10 +14,10 @@ function chunk_types_load() {
   foreach ($modules as $module) {
     $function = $module . '_chunk_types';
     $module_chunk_types = $function();
-    foreach ($module_chunk_types as $name) {
+    foreach ($module_chunk_types as $name => $title) {
       // @TODO: Add a check here to see if a chunk type of the same name already
       // exists. If so, we should log it in watchdog.
-      $chunk_types[$name] = new ChunkType($name, $module);
+      $chunk_types[$name] = new ChunkType($name, $title, $module);
     }
   }
   return $chunk_types;
@@ -28,34 +28,5 @@ function chunk_types_load() {
  */
 function chunk_type_get_form($chunk_type) {
   return $chunk_type->getForm();
-}
-
-/**
- * Implements hook_form_alter().
- */
-function chunk_form_alter(&$form, &$form_state, $form_id) {
-  if (substr($form_id, -10) == 'chunk_form') {
-
-    // Check to make sure the chunk type exists.
-    if (empty($form['#chunk_type'])) {
-      watchdog('chunks', 'No chunk type provided when building chunk configuration form.', WATCHDOG_ERROR);
-      return;
-    }
-
-    // Check to make sure configuration fields exist.
-    if (!isset($form['configuration'])) {
-      watchdog('chunks', 'The configuration form for the %name chunk type is not properly formatted. No "configuration" array found.', array('%name' => $chunk_type->name), WATCHDOG_ERROR);
-      return;
-    }
-
-    $form['#submit'][] = 'chunk_form_submit';
-  }
-}
-
-/**
- * Submission function for chunk configuration forms.
- */
-function chunk_form_submit($form, &$form_state) {
-
 }
 

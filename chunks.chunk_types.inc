@@ -9,14 +9,13 @@
  * Implements hook_chunk_types() to provide a simple text chunk.
  */
 function chunks_chunk_types() {
-  return array('text');
+  return array('text' => t('Text'));
 }
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
 function chunks_text_chunk_form($form, &$form_state) {
-  $form['#chunk_type'] = new ChunkType('text', 'chunks');
   $form['configuration']['text'] = array(
     '#type' => 'textarea',
     '#default_value' => '',

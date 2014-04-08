@@ -9,16 +9,50 @@
  * Implements hook_field_info().
  */
 function chunks_field_info() {
-  return array(
+
+  // Provide the chunks field.
+  $fields = array(
     'chunks' => array(
       'label' => t('Chunks'),
       'description' => t('Structured and reusable content chunks.'),
-      // @TODO: add settings for restricting chunk types per instance.
-      'instance_settings' => array(),
       'default_widget' => 'chunks_default',
+      'instance_settings' => array('chunk_types' => array()),
       'default_formatter' => 'chunks_default',
     ),
   );
+
+  // Populate chunks field instance_settings.
+  $chunk_types = chunk_types_load();
+  foreach ($chunk_types as $chunk_type) {
+    $fields['chunks']['instance_settings']['chunk_types'][] = $chunk_type->name;
+  }
+
+  return $fields;
+}
+
+/**
+ * Implements hook_field_instance_settings_form().
+ */
+function chunks_field_instance_settings_form($field, $instance) {
+  $settings = $instance['settings'];
+
+  if ($field['type'] == 'chunks') {
+
+    $form['chunk_types'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Allowed chunk types'),
+      '#options' => array(),
+      '#default_value' => $settings['chunk_types'],
+      '#description' => t('Select the chunk types which can be added through this field instance.'),
+    );
+
+    $chunk_types = chunk_types_load();
+    foreach ($chunk_types as $chunk_type) {
+      $form['chunk_types']['#options'][$chunk_type->name] = $chunk_type->title;
+    }
+  }
+
+  return $form;
 }
 
 /**
