@@ -8,8 +8,8 @@
 class ChunkType {
   public $name;
   public $module;
-  public $form;
-  public $theme;
+  public $form_id;
+  public $theme_hook;
 
   function __contruct($name, $module) {
     $this->name = $name;
