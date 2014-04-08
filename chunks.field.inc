@@ -81,6 +81,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   //  - Load a checkboxes field with some chunk type choices.
   //  - When a chunk type is selected replace the checkboxes with the chunk
   //    type's configuration form.
+  //  - When chunk configuration form is completed, display the themed chunk.
+  //    (optional?)
+  //  - Add validation per chunk through #element_validate.
   //  - Somehow we need to get the "add a new chunk" button to appear in-between
   //    each chunk so that authors don't have to scroll down to the bottom of
   //    the field and rearrange chunks whenever they add a new one.
