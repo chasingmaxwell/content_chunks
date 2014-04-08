@@ -120,5 +120,13 @@ function chunks_field_widget_settings_form($field, $instance) {
  * Implements hook_field_is_empty().
  */
 function chunks_field_is_empty($item, $field) {
+  // @TODO: revisit this after chunks_field_widget_form() is built out to make
+  // sure it's still correct.
+  if ($field['type'] == 'chunks') {
+    if (empty($item['chunks'])) {
+      return TRUE;
+    }
+  }
+  return FALSE;
 }
 
