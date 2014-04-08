@@ -87,6 +87,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   //  - Somehow we need to get the "add a new chunk" button to appear in-between
   //    each chunk so that authors don't have to scroll down to the bottom of
   //    the field and rearrange chunks whenever they add a new one.
+  if ($instance['widget']['type'] == 'chunks_default') {
+    $widget = $instance['widget'];
+    $settings = $widget['settings'];
+
+    $element['chunk_wrapper'] = array();
+  }
+
+  return $element;
 }
 
 /**
