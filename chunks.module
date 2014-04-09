@@ -4,6 +4,8 @@
  * @file
  * Allow content to be edited in structured and reusable chunks.
  */
+module_load_include('inc', 'chunks', 'chunks.field');
+module_load_include('inc', 'chunks', 'chunks.chunk_types');
 
 /**
  * Load all chunk types defined by hook_chunk_types().

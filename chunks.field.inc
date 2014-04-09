@@ -16,6 +16,7 @@ function chunks_field_info() {
       'label' => t('Chunks'),
       'description' => t('Structured and reusable content chunks.'),
       'default_widget' => 'chunks_default',
+      'settings' => array(),
       'instance_settings' => array('chunk_types' => array()),
       'default_formatter' => 'chunks_default',
     ),
@@ -91,10 +92,112 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     $widget = $instance['widget'];
     $settings = $widget['settings'];
 
-    $element['chunk_wrapper'] = array();
+    $element['chunk_wrapper'] = array(
+      '#type' => 'container',
+      '#attributes' => array(
+        'id' => 'chunk-' . $delta,
+      ),
+    );
+
+    // @TODO: chunk data isn't moving with it's chunk when chunks are
+    // rearranged. Find a better way to store chunk data.
+    $chunk_data = $form_state["chunk-$delta"];
+
+    // Provide chunk type selection buttons if we don't have one for this chunk.
+    if (!isset($chunk_data['chunk_type'])) {
+      $chunk_types = chunk_types_load();
+      $element['chunk_wrapper']['chunk_types'] = array();
+      foreach ($chunk_types as $chunk_type) {
+        $element['chunk_wrapper']['chunk_types'][$chunk_type->name] = array(
+          '#type' => 'submit',
+          '#name' => $chunk_type->name,
+          '#value' => $chunk_type->title,
+          '#submit' => array('chunks_field_select_type'),
+          '#limit_validation_errors' => array(),
+          '#ajax' => array(
+            'callback' => 'chunks_field_type_selected',
+            'wrapper' => 'chunk-' . $delta,
+          ),
+          '#chunk_type' => $chunk_type,
+        );
+      }
+    }
+    // Provide the chunk configuration form once we know the type.
+    else if (!isset($chunk_data['configuration'])) {
+      $chunk_type = $form_state["chunk-$delta"]['chunk_type'];
+      $element['chunk_wrapper']['chunk_configuration'] = array(
+        '#prefix' => t('Insert %type chunk configuration form here.', array('%type' => $chunk_type->title)),
+        'chunk_config_submit' => array(
+          '#type' => 'submit',
+          '#value' => t('Create chunk'),
+          '#submit' => array('chunks_configuration_submit'),
+          // @TODO: validation isn't being limited correctly. Find out what I'm
+          // doing wrong.
+          '#limit_validation_errors' => array($form_state['field'][$field['field_name']][$langcode]['array_parents']),
+          '#ajax' => array(
+            'callback' => 'chunks_configuration_callback',
+            'wrapper' => 'chunk-' . $delta,
+          ),
+        ),
+      );
+    }
+    // Display the chunk preview now that we have a fully configured chunk.
+    else {
+      $chunk_type = $form_state["chunk-$delta"]['chunk_type'];
+      $element['chunk_wrapper']['chunk_preview'] = array(
+        '#markup' => t('Insert %type chunk preview here.', array('%type' => $chunk_type->title)),
+      );
+    }
   }
 
   return $element;
+}
+
+
+/**
+ * Ajax callback for chunk type selection.
+ */
+function chunks_field_type_selected($form, $form_state) {
+  $parents = $form_state['triggering_element']['#parents'];
+  $delta = $parents[2];
+  $chunk_wrapper = $form[$parents[0]][$parents[1]][$parents[2]][$parents[3]];
+  $form_state["chunk-$delta"] = array('chunk_type' => $form_state['triggering_element']['#chunk_type']);
+  return $form[$parents[0]][$parents[1]][$parents[2]][$parents[3]];
+}
+
+/**
+ * Submission handler for chunk type selection.
+ */
+function chunks_field_select_type($form, &$form_state) {
+  $parents = $form_state['triggering_element']['#parents'];
+  $delta = $parents[2];
+  $chunk_wrapper = $form[$parents[0]][$parents[1]][$parents[2]][$parents[3]];
+  $form_state["chunk-$delta"] = array('chunk_type' => $form_state['triggering_element']['#chunk_type']);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Ajax callback for chunk configuration.
+ */
+function chunks_configuration_callback($form, $form_state) {
+  $parents = $form_state['triggering_element']['#parents'];
+  $delta = $parents[2];
+  $chunk_wrapper = $form[$parents[0]][$parents[1]][$parents[2]][$parents[3]];
+  $configuration = array(); // @TODO: put the configuration values here.
+  $form_state["chunk-$delta"]['configuration'] = $configuration;
+  return $chunk_wrapper;
+}
+
+/**
+ * Submission handler for chunk configuration.
+ */
+function chunks_configuration_submit($form, &$form_state) {
+  $parents = $form_state['triggering_element']['#parents'];
+  $delta = $parents[2];
+  $chunk_wrapper = $form[$parents[0]][$parents[1]][$parents[2]][$parents[3]];
+  $configuration = array(); // @TODO: put the configuration values here.
+  $form_state["chunk-$delta"]['configuration'] = $configuration;
+  $form_state['rebuild'] = TRUE;
 }
 
 /**

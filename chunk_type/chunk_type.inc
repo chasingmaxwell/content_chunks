@@ -12,7 +12,7 @@ class ChunkType {
   public $form_id;
   public $theme_hook;
 
-  function __contruct($name, $title, $module) {
+  function __construct($name, $title, $module) {
     $this->name = $name;
     $this->title = $title;
     $this->module = $module;
