@@ -79,7 +79,6 @@ function chunks_field_widget_info() {
  */
 function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   // @TODO:
-  //  - Load a checkboxes field with some chunk type choices.
   //  - When a chunk type is selected replace the checkboxes with the chunk
   //    type's configuration form.
   //  - When chunk configuration form is completed, display the themed chunk.
@@ -109,18 +108,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           '#type' => 'hidden',
           '#value' => isset($chunk_state['data']['type']) ? $chunk_state['data']['type'] : '',
         ),
-        'module' => array(
-          '#type' => 'hidden',
-          '#value' => isset($chunk_state['data']['module']) ? $chunk_state['data']['module'] : '',
-        ),
         'configuration' => array(
           '#type' => 'hidden',
           '#value' => isset($chunk_state['data']['configuration']) ? $chunk_state['data']['configuration'] : '',
         ),
       ),
     );
-
-    $element['chunk_wrapper']['debug'] = array('#markup' => kpr($chunk_state, TRUE));
 
     // Provide chunk type selection buttons if we don't have one for this chunk.
     if (empty($chunk_state['data']['type'])) {
@@ -134,7 +127,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           '#chunk_module' => $chunk_type->module,
           '#value' => $chunk_type->title,
           '#submit' => array('chunks_field_select_type'),
-          '#limit_validation_errors' => array(array($field['field_name'])),
+          '#limit_validation_errors' => array(array($field['field_name'], $langcode, $delta)),
           '#ajax' => array(
             'callback' => 'chunks_field_type_selected',
             'wrapper' => 'chunk-' . $delta,
@@ -145,15 +138,13 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // Provide the chunk configuration form once we know the type.
     else if (empty($chunk_state['data']['configuration'])) {
       $element['chunk_wrapper']['chunk_configuration'] = array(
-        '#prefix' => t('Insert %type chunk configuration form here.', array('%type' => $chunk_type->title)),
+        '#prefix' => t('Insert %type chunk configuration form here.', array('%type' => $chunk_state['data']['type']->title)),
         'chunk_config_submit' => array(
           '#type' => 'submit',
           '#name' => 'chunk-' . $delta . '-config',
           '#value' => t('Create chunk'),
           '#submit' => array('chunks_configuration_submit'),
-          // @TODO: validation isn't being limited correctly. Find out what I'm
-          // doing wrong.
-          '#limit_validation_errors' => array(array($field['field_name'])),
+          '#limit_validation_errors' => array(array($field['field_name'], $langcode, $delta)),
           '#ajax' => array(
             'callback' => 'chunks_configuration_callback',
             'wrapper' => 'chunk-' . $delta,
@@ -164,7 +155,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // Display the chunk preview now that we have a fully configured chunk.
     else {
       $element['chunk_wrapper']['chunk_preview'] = array(
-        '#markup' => t('Insert %type chunk preview here.', array('%type' => $chunk_type->title)),
+        '#markup' => t('Insert %type chunk preview here.', array('%type' => $chunk_state['data']['type']->title)),
       );
     }
   }
@@ -186,12 +177,12 @@ function chunks_field_type_selected($form, $form_state) {
  * Submission handler for chunk type selection.
  */
 function chunks_field_select_type($form, &$form_state) {
-  $parents = $form_state['triggering_element']['#parents'];
+  $triggering_element = $form_state['triggering_element'];
+  $parents = $triggering_element['#parents'];
   $chunk_wrapper = $form[$parents[0]][$parents[1]][$parents[2]][$parents[3]];
   $chunk_state = &$form_state['values'][$parents[0]][$parents[1]][$parents[2]][$parents[3]];
   $chunk_state['data'] = array(
-    'type' => $form_state['triggering_element']['#chunk_name'],
-    'module' => $form_state['triggering_element']['#chunk_module'],
+    'type' => new ChunkType($triggering_element['#chunk_name'], $triggering_element['#value'], $triggering_element['#chunk_module']),
   );
   $form_state['rebuild'] = TRUE;
 }

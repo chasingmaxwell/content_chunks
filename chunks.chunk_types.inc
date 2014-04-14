@@ -9,7 +9,10 @@
  * Implements hook_chunk_types() to provide a simple text chunk.
  */
 function chunks_chunk_types() {
-  return array('text' => t('Text'));
+  return array(
+    'text' => t('Text'),
+    'block' => t('Drupal block'),
+  );
 }
 
 /**
