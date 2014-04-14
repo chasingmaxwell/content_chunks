@@ -26,9 +26,40 @@ function chunk_types_load() {
 }
 
 /**
- * Load the configuration form for a given chunk type.
+ * Implements hook_theme().
  */
-function chunk_type_get_form($chunk_type) {
-  return $chunk_type->getForm();
+function chunks_theme($existing, $type, $theme, $path) {
+  // @TODO: use chunk_types_load() to register theme implementations for all
+  // chunks from one place.
+  return array(
+    'chunk' => array(
+      'render element' => 'chunk',
+    ),
+    'chunks_text_chunk' => array(
+      'variables' => array(
+        'text' => '',
+      ),
+      'file' => 'chunks.chunk_types.inc',
+    ),
+  );
+}
+
+/**
+ * Preprocess variables for the theme_chunk().
+ */
+function template_preprocess_chunk($variables) {
+  // Add some chunk classes to the classes_array.
+  $classes = array('chunk', $variables['chunk']['chunk_type']->name . '-chunk');
+  $variables['classes_array'] = array_merge($variables['classes_array'], $classes);
+}
+
+/**
+ * Theme implementation for a single chunk.
+ */
+function theme_chunk($variables) {
+  $output = '<div class="' . implode($variables['classes_array']) . '">';
+  $output .= $variables['chunk']['#chunk_content'];
+  $output .= '</div>';
+  return $output;
 }
 
