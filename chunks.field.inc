@@ -84,14 +84,21 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   //    each chunk so that authors don't have to scroll down to the bottom of
   //    the field and rearrange chunks whenever they add a new one.
   //  - Use the instance settings and permissions to restrict chunk types.
-  //  - Add ability to go back to type selection from config.
-  //  - Add ability to go back to configuration from preview.
-  //  - Add ability to delete chunk from any step.
+  //  - Handle the multiple values ourselvse so that we can more easily add
+  //    chunks in between others and remove chunks. Look at these two examples:
+  //    - field_multiple_value_form() in modules/field/field.form.inc
+  //    - file_field_widget_form() in modules/file/file.field.inc
+  dpm(get_defined_vars());
   $widget = $instance['widget'];
   $settings = $widget['settings'];
 
-  if (isset($form_state['values'][$field['field_name']][$langcode][$delta]['chunk'])) {
-    $chunk_state = $form_state['values'][$field['field_name']][$langcode][$delta]['chunk'];
+  // Retrieve the state for the current chunk.
+  if (isset($form_state['values'])) {
+    $parents = $element['#field_parents'] + array($field['field_name'], $langcode, $delta, 'chunk');
+    $chunk_state = drupal_array_get_nested_value($form_state['values'], $parents);
+    if (is_null($chunk_state)) {
+      $chunk_state = array();
+    }
   }
   else {
     $chunk_state = array();
@@ -120,15 +127,22 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#weight' => 1,
       '#ajax' => array(
         'callback' => 'chunks_field_form_callback',
-        'wrapper' => 'chunk-' . $delta,
+        'wrapper' => 'edit-' . str_replace('_', '-', $field['field_name']),
       ),
     ),
+  );
+
+  // Track the chunk view persistently so the form can be rebuilt without
+  // affecting the view.
+  $element['chunk']['view'] = array(
+    '#type' => 'hidden',
+    '#value' => isset($chunk_state['view']) ? $chunk_state['view'] : 'type_selection',
   );
 
   /**
    * STEP 1: Provide chunk type selection buttons.
    */
-  if (empty($chunk_state['type']) || !is_a($chunk_state['type'], 'ChunkType')) {
+  if (empty($chunk_state['view']) || $chunk_state['view'] == 'type_selection') {
 
     // Provide a set of buttons which correspond to chunk types available on
     // this field and which the user has permission to use.
@@ -162,20 +176,20 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#value' => $chunk_state['type'],
     );
 
-    // Store whether or not we are configuring this field for the first time or
-    // reconfiguring.
-    $element['chunk']['reconfigure'] = array(
+    // Store old configuration if it exists so it can be restored if we "go
+    // back" to the preview view.
+    $element['chunk']['old_configuration'] = array(
       '#type' => 'hidden',
-      '#value' => isset($chunk_state['reconfigure']) ? $chunk_state['reconfigure'] : FALSE,
+      '#value' => isset($chunk_state['old_configuration']) ? $chunk_state['old_configuration'] : '',
     );
 
     // Provide the chunk configuration form once we know the type.
-    if (empty($chunk_state['configuration']) || !empty($chunk_state['reconfigure'])) {
+    if ($chunk_state['view'] == 'configuration') {
       $element['chunk']['configuration'] = $chunk_state['type']->getForm($form, $form_state, $chunk_state);
-      $element['chunk']['configuration_submit'] = array(
+      $element['chunk']['actions']['configuration_submit'] = array(
         '#type' => 'submit',
         '#name' => 'chunk-' . $delta . '-config',
-        '#value' => t('Create chunk'),
+        '#value' => t('Preview'),
         '#submit' => array('chunks_field_form_submit'),
         '#op' => 'configure',
         '#limit_validation_errors' => array(array($field['field_name'])),
@@ -192,15 +206,16 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       $element['chunk']['actions']['back'] = array(
         '#type' => 'submit',
         '#name' => 'chunk-' . $delta . '-config-back',
-        '#value' => t('Go back'),
+        '#value' => t('Cancel'),
         '#submit' => array('chunks_field_form_submit'),
-        '#op' => 'configure_back',
         '#limit_validation_errors' => array(array($field['field_name'])),
         '#ajax' => array(
           'callback' => 'chunks_field_form_callback',
           'wrapper' => 'chunk-' . $delta,
         ),
       );
+      // Set #op correctly depending on where "back" is.
+      $element['chunk']['actions']['back']['#op'] = empty($chunk_state['configuration']) ? 'back_to_type' : 'back_to_preview';
     }
 
     /**
@@ -224,9 +239,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       $element['chunk']['actions']['back'] = array(
         '#type' => 'submit',
         '#name' => 'chunk-' . $delta . '-config-back',
-        '#value' => t('Go back'),
+        '#value' => t('Configure'),
         '#submit' => array('chunks_field_form_submit'),
-        '#op' => 'preview_back',
+        '#op' => 'back_to_configuration',
         '#limit_validation_errors' => array(array($field['field_name'])),
         '#ajax' => array(
           'callback' => 'chunks_field_form_callback',
@@ -244,10 +259,15 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
  * Ajax callback for chunk configuration and type selection.
  */
 function chunks_field_form_callback($form, $form_state) {
-  // Retrieve and return the current chunk.
-  $parents = $form_state['triggering_element']['#parents'];
-  $chunk = $form[$parents[0]][$parents[1]][$parents[2]][$parents[3]];
-  return $chunk;
+  if ($form_state['triggering_element']['#op'] == 'remove') {
+    // Retrieve and return the current chunk.
+    $element = drupal_array_get_nested_value($form, array_slice($form_state['triggering_element']['#array_parents'], 0, -5));
+  }
+  else {
+    // Retrieve and return the current chunk.
+    $element = drupal_array_get_nested_value($form, array_slice($form_state['triggering_element']['#array_parents'], 0, -2));
+  }
+  return $element;
 }
 
 /**
@@ -255,25 +275,55 @@ function chunks_field_form_callback($form, $form_state) {
  */
 function chunks_field_form_submit($form, &$form_state) {
   $triggering_element = $form_state['triggering_element'];
-  $parents = $triggering_element['#parents'];
-  $chunk = $form[$parents[0]][$parents[1]][$parents[2]][$parents[3]];
-  $chunk_state = &$form_state['values'][$parents[0]][$parents[1]][$parents[2]][$parents[3]];
-
-  // By default, set reconfigure to TRUE so we don't submit the configuration
-  // form when we don't intend to.
-  $chunk_state['reconfigure'] = TRUE;
+  $parents = $triggering_element['#array_parents'];
+  $delta = $parents[count($parents)-4];
+  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -4));
+  $chunk_state = &$items[$delta]['chunk'];
 
   if (!empty($triggering_element['#op'])) {
     switch ($triggering_element['#op']) {
       case 'select_type':
+        // Set type to ChunkType object.
         $chunk_state['type'] = $triggering_element['#chunk_type'];
+        // Progress to the configuration view.
+        $chunk_state['view'] = 'configuration';
         break;
       case 'configure':
-        $chunk_state['reconfigure'] = FALSE;
+        // Progress to the preview view.
+        $chunk_state['view'] = 'preview';
         break;
-      // @TODO: Add cases for 'configure_back', 'preview_back', and 'remove'.
+      case 'back_to_type':
+        // Unset type and progress to the type selection view.
+        unset($chunk_state['type']);
+        $chunk_state['view'] = 'type_selection';
+        break;
+      case 'back_to_preview':
+        // Restore old configuration.
+        $chunk_state['configuration'] = $chunk_state['old_configuration'];
+        unset($chunk_state['old_configuration']);
+        // Go back to the preview view.
+        $chunk_state['view'] = 'preview';
+        break;
+      case 'back_to_configuration':
+        // Store old configuration.
+        $chunk_state['old_configuration'] = $chunk_state['configuration'];
+        // Go back to the configuration view.
+        $chunk_state['view'] = 'configuration';
+        break;
+      case 'remove':
+        unset($items[$delta]);
+        $items = array_values($items);
+        $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+        $field_state = field_form_get_state($element['#field_parents'], $element['#field_name'], $element['#language'], $form_state);
+        $field_state['items_count']--;
+        field_form_set_state($element['#field_parents'], $element['#field_name'], $element['#language'], $form_state, $field_state);
+        break;
     }
   }
+
+  // Save changes to the form state.
+  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -4), $items);
+  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -4), $items);
 
   $form_state['rebuild'] = TRUE;
 }
