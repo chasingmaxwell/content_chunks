@@ -35,6 +35,10 @@ function chunks_theme($existing, $type, $theme, $path) {
     'chunk' => array(
       'render element' => 'chunk',
     ),
+    'chunks_field_widget_form' => array(
+      'render element' => 'element',
+      'file' => 'chunks.field.inc',
+    ),
     'chunks_text_chunk' => array(
       'variables' => array(
         'text' => '',

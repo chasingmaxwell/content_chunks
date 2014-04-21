@@ -80,14 +80,7 @@ function chunks_field_widget_info() {
 function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   // @TODO:
   //  - Add validation per chunk through #element_validate.
-  //  - Somehow we need to get the "add a new chunk" button to appear in-between
-  //    each chunk so that authors don't have to scroll down to the bottom of
-  //    the field and rearrange chunks whenever they add a new one.
   //  - Use the instance settings and permissions to restrict chunk types.
-  //  - Handle the multiple values ourselvse so that we can more easily add
-  //    chunks in between others and remove chunks. Look at these two examples:
-  //    - field_multiple_value_form() in modules/field/field.form.inc
-  //    - file_field_widget_form() in modules/file/file.field.inc
   $widget = $instance['widget'];
   $settings = $widget['settings'];
 
@@ -112,7 +105,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   }
 
   $elements = array(
-    '#theme' => 'field_multiple_value_form',
+    '#theme' => 'chunks_field_widget_form',
     '#field_name' => $field_name,
     '#cardinality' => $field['cardinality'],
     '#title' => check_plain($instance['label']),
@@ -123,26 +116,49 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     '#suffix' => '</div>',
   );
 
+  if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+    $elements['add_before_action'] = array(
+      '#type' => 'actions',
+      '#attributes' => array(
+        'class' => array('chunk-actions', 'chunk-actions-before'),
+      ),
+      '_weight' => array(
+        '#type' => 'hidden',
+        '#value' => -1 - $max,
+      ),
+      'add_before' => array(
+        '#type' => 'submit',
+        '#name' => 'chunk-' . $delta . '-add-before',
+        '#value' => t('Add chunk here'),
+        '#submit' => array('chunks_field_form_submit'),
+        '#op' => 'add_before',
+        '#limit_validation_errors' => array(array($field_name)),
+        '#weight' => 2,
+        '#ajax' => array(
+          'callback' => 'chunks_field_form_callback',
+          'wrapper' => $wrapper_id,
+        ),
+      ),
+    );
+  }
+
   for ($delta = 0; $delta <= $max; $delta++) {
 
     // Make a copy of the base element so we can reuse it for each chunk.
-    $chunk = $element;
+    $row = $element;
 
     // Add input for reordering.
-    $chunk['#weight'] = $delta;
-    $chunk['_weight'] = array(
+    $row['_weight'] = array(
       '#type' => 'weight',
       '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
       '#delta' => $max,
-      // @TODO: figure out why weights are getting messed up when you remove an
-      // middle chunk.
-      '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta['_weight']] : $delta,
+      '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta]['_weight'] : $delta,
       '#weight' => 100,
     );
 
     // Retrieve the state for the current chunk.
     if (isset($form_state['values'])) {
-      $parents = $chunk['#field_parents'] + array($field_name, $langcode, $delta, 'chunk');
+      $parents = $row['#field_parents'] + array($field_name, $langcode, $delta, 'chunk');
       $chunk_state = drupal_array_get_nested_value($form_state['values'], $parents);
       if (is_null($chunk_state)) {
         $chunk_state = array();
@@ -152,15 +168,16 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       $chunk_state = array();
     }
 
-    $chunk['chunk'] = array(
+    $row['chunk'] = array(
       '#type' => 'container',
       '#attributes' => array(
-        'id' => 'chunk-' . $delta,
+        'id' => 'chunk-' . $delta . '-wrapper',
+        'class' => array('chunk-wrapper'),
       ),
     );
 
-    $chunk['chunk']['actions'] = array(
-      '#type' => 'container',
+    $row['chunk']['chunk_actions'] = array(
+      '#type' => 'actions',
       '#attributes' => array(
         'class' => array('chunk-actions'),
       ),
@@ -180,9 +197,60 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
     );
 
+    // If cardinality is unlimited, provide buttons for adding new chunks.
+    if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+
+      // If this is the first chunk, add a button for prepending a chunk.
+      if ($delta === 0) {
+        $row['chunk']['add_before_action'] = array(
+          '#type' => 'actions',
+          '#attributes' => array(
+            'class' => array('chunk-actions', 'chunk-actions-before'),
+          ),
+          '#weight' => -1,
+          'add_before' => array(
+            '#type' => 'submit',
+            '#name' => 'chunk-' . $delta . '-add-before',
+            '#value' => t('Add chunk here'),
+            '#submit' => array('chunks_field_form_submit'),
+            '#op' => 'add_before',
+            '#limit_validation_errors' => array(array($field_name)),
+            '#weight' => 2,
+            '#ajax' => array(
+              'callback' => 'chunks_field_form_callback',
+              'wrapper' => $wrapper_id,
+            ),
+          ),
+        );
+      }
+
+      // Add a button for adding a chunk after the current.
+      $row['chunk']['add_after_action'] = array(
+        '#type' => 'actions',
+        '#attributes' => array(
+          'class' => array('add-chunk-action', 'add-chunk-action-after'),
+        ),
+        '#weight' => 2,
+        'add_after' => array(
+          '#type' => 'submit',
+          '#name' => 'chunk-' . $delta . '-add-after',
+          '#value' => t('Add chunk here'),
+          '#submit' => array('chunks_field_form_submit'),
+          '#op' => 'add_after',
+          '#limit_validation_errors' => array(array($field_name)),
+          '#weight' => 2,
+          '#ajax' => array(
+            'callback' => 'chunks_field_form_callback',
+            'wrapper' => $wrapper_id,
+          ),
+        ),
+      );
+
+    }
+
     // Track the chunk view persistently so the form can be rebuilt without
     // affecting the view.
-    $chunk['chunk']['view'] = array(
+    $row['chunk']['view'] = array(
       '#type' => 'hidden',
       '#value' => isset($chunk_state['view']) ? $chunk_state['view'] : 'type_selection',
     );
@@ -195,9 +263,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       // Provide a set of buttons which correspond to chunk types available on
       // this field and which the user has permission to use.
       $chunk_types = chunk_types_load();
-      $chunk['chunk']['type'] = array();
+      $row['chunk']['type'] = array();
       foreach ($chunk_types as $chunk_type) {
-        $chunk['chunk']['type'][$chunk_type->name] = array(
+        $row['chunk']['type'][$chunk_type->name] = array(
           '#type' => 'submit',
           '#name' => 'chunk-' . $delta . '-' . $chunk_type->name,
           '#value' => $chunk_type->title,
@@ -219,22 +287,22 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     else {
 
       // Store the chunk type so it stays in the form state.
-      $chunk['chunk']['type'] = array(
+      $row['chunk']['type'] = array(
         '#type' => 'hidden',
         '#value' => $chunk_state['type'],
       );
 
       // Store old configuration if it exists so it can be restored if we "go
       // back" to the preview view.
-      $chunk['chunk']['old_configuration'] = array(
+      $row['chunk']['old_configuration'] = array(
         '#type' => 'hidden',
         '#value' => isset($chunk_state['old_configuration']) ? $chunk_state['old_configuration'] : '',
       );
 
       // Provide the chunk configuration form once we know the type.
       if ($chunk_state['view'] == 'configuration') {
-        $chunk['chunk']['configuration'] = $chunk_state['type']->getForm($form, $form_state, $chunk_state);
-        $chunk['chunk']['actions']['configuration_submit'] = array(
+        $row['chunk']['configuration'] = $chunk_state['type']->getForm($form, $form_state, $chunk_state);
+        $row['chunk']['chunk_actions']['configuration_submit'] = array(
           '#type' => 'submit',
           '#name' => 'chunk-' . $delta . '-config',
           '#value' => t('Preview'),
@@ -251,7 +319,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         // we already have configuration for this chunk, the back button should
         // take you to the preview, otherwise it should take you back to the type
         // selection step.
-        $chunk['chunk']['actions']['back'] = array(
+        $row['chunk']['chunk_actions']['back'] = array(
           '#type' => 'submit',
           '#name' => 'chunk-' . $delta . '-config-back',
           '#value' => t('Cancel'),
@@ -263,7 +331,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           ),
         );
         // Set #op correctly depending on where "back" is.
-        $chunk['chunk']['actions']['back']['#op'] = empty($chunk_state['configuration']) ? 'back_to_type' : 'back_to_preview';
+        $row['chunk']['chunk_actions']['back']['#op'] = empty($chunk_state['configuration']) ? 'back_to_type' : 'back_to_preview';
       }
 
       /**
@@ -272,19 +340,19 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       else {
 
         // Store the chunk configuration so it stays in the form state.
-        $chunk['chunk']['configuration'] = array(
+        $row['chunk']['configuration'] = array(
           '#type' => 'hidden',
           '#value' => $chunk_state['configuration'],
         );
 
         // Display the chunk preview now that we have a fully configured chunk.
-        $chunk['chunk']['preview'] = array(
+        $row['chunk']['preview'] = array(
           '#theme' => 'chunk',
           '#chunk_type' => $chunk_state['type'],
           '#chunk_content' => $chunk_state['type']->view($chunk_state['configuration']),
         );
 
-        $chunk['chunk']['actions']['back'] = array(
+        $row['chunk']['chunk_actions']['back'] = array(
           '#type' => 'submit',
           '#name' => 'chunk-' . $delta . '-config-back',
           '#value' => t('Configure'),
@@ -299,23 +367,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       }
     }
 
-    $elements[$delta] = $chunk;
-  }
-
-  if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
-    $elements['add_more'] = array(
-      '#type' => 'submit',
-      '#name' => strtr($id_prefix, '-', '_') . '_add_more',
-      '#op' => 'add',
-      '#value' => t('Add chunk'),
-      '#attributes' => array('class' => array('field-add-more-submit')),
-      '#limit_validation_errors' => array(array($field_name)),
-      '#submit' => array('chunks_field_add_more'),
-      '#ajax' => array(
-        'callback' => 'chunks_field_form_callback',
-        'wrapper' => $wrapper_id,
-      ),
-    );
+    $elements[$delta] = $row;
   }
 
   return $elements;
@@ -329,7 +381,7 @@ function chunks_field_form_callback($form, $form_state) {
   $parents = $form_state['triggering_element']['#array_parents'];
   // Retrieve and return the chunk field.
   switch ($form_state['triggering_element']['#op']) {
-    case 'add':
+    case 'add_here':
       $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -1));
       break;
     default:
@@ -345,8 +397,12 @@ function chunks_field_form_callback($form, $form_state) {
 function chunks_field_form_submit($form, &$form_state) {
   $triggering_element = $form_state['triggering_element'];
   $parents = $triggering_element['#array_parents'];
-  $delta = $parents[count($parents)-4];
+  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+  $field_name = $element['#field_name'];
+  $language = $element['#language'];
+  $element_parents = $element['#field_parents'];
   $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -4));
+  $delta = $parents[count($parents)-4];
   $chunk_state = &$items[$delta]['chunk'];
 
   if (!empty($triggering_element['#op'])) {
@@ -382,11 +438,85 @@ function chunks_field_form_submit($form, &$form_state) {
       case 'remove':
         unset($items[$delta]);
         $items = array_values($items);
-        $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
-        $field_state = field_form_get_state($element['#field_parents'], $element['#field_name'], $element['#language'], $form_state);
+        // Reset weights since the number of possible values (#delta) has
+        // changed and the current values might be out of scope.
+        usort($items, '_field_sort_items_helper');
+        foreach ($items as $delta => $item) {
+          if (is_array($items[$delta]) && isset($items[$delta]['_weight'])) {
+            $items[$delta]['_weight'] = $delta;
+          }
+        }
+        $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
         $field_state['items_count']--;
         $field_state['items'] = $items;
-        field_form_set_state($element['#field_parents'], $element['#field_name'], $element['#language'], $form_state, $field_state);
+        field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
+        break;
+      case 'add_before':
+
+        // Create empty chunk.
+        $new_chunk = array(
+          '_weight' => $items[$delta]['_weight'] - 1,
+          'chunk' => array(),
+        );
+
+        // Add empty chunk before the current.
+        if ($delta === 0) {
+          array_unshift($items, $new_chunk);
+        }
+        else {
+          array_splice($items, $delta - 1, 0, array($new_chunk));
+        }
+
+        // Reset weights since the number of possible values (#delta) has
+        // changed and the current values might be out of scope.
+        usort($items, '_field_sort_items_helper');
+        foreach ($items as $key => $item) {
+          if (is_array($items[$key]) && isset($items[$key]['_weight'])) {
+            $items[$key]['_weight'] = $key;
+          }
+        }
+
+        // Increment the items count.
+        $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
+        $field_state['items_count']++;
+        $field_state['items'] = $items;
+        field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
+        break;
+
+      case 'add_after':
+
+        // Create empty chunk.
+        $new_chunk = array(
+          '_weight' => $items[$delta]['_weight'] + 1,
+          'chunk' => array(),
+        );
+
+        // Increase weights for all items with a weight equal to or higher than
+        // the new chunk so the new chunk will have a unique weight.
+        foreach ($items as $key => $item) {
+          if ($items[$key]['_weight'] < $new_chunk['_weight']) {
+            continue;
+          }
+          $items[$key]['_weight']++;
+        }
+
+        // Add empty chunk now that it's weight is unique.
+        $items[] = $new_chunk;
+
+        // Reset weights since the number of possible values (#delta) has
+        // changed and the current values might be out of scope.
+        usort($items, '_field_sort_items_helper');
+        foreach ($items as $key => $item) {
+          if (is_array($items[$key]) && isset($items[$key]['_weight'])) {
+            $items[$key]['_weight'] = $key;
+          }
+        }
+
+        // Increment the items count.
+        $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
+        $field_state['items_count']++;
+        $field_state['items'] = $items;
+        field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
         break;
     }
   }
@@ -403,17 +533,33 @@ function chunks_field_form_submit($form, &$form_state) {
  */
 function chunks_field_add_more($form, &$form_state) {
   $triggering_element = $form_state['triggering_element'];
+  $parents = $triggering_element['#array_parents'];
+  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -1));
 
   // Go one level up in the form, to the widget's  container.
-  $element = drupal_array_get_nested_value($form, array_slice($triggering_element['#array_parents'], 0, -1));
+  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -1));
   $field_name = $element['#field_name'];
   $langcode = $element['#language'];
-  $parents = $element['#field_parents'];
+  $element_parents = $element['#field_parents'];
+
+
+  // Reset weights since the number of possible values (#delta) has
+  // changed and the current values might be out of scope.
+  foreach ($items as $delta => $item) {
+    if (is_array($items[$delta]) && isset($items[$delta]['_weight'])) {
+      $items[$delta]['_weight'] = $delta;
+    }
+  }
 
   // Increment the items count.
-  $field_state = field_form_get_state($parents, $field_name, $langcode, $form_state);
+  $field_state = field_form_get_state($element_parents, $field_name, $langcode, $form_state);
   $field_state['items_count']++;
-  field_form_set_state($parents, $field_name, $langcode, $form_state, $field_state);
+  $field_state['items'] = $items;
+  field_form_set_state($element_parents, $field_name, $langcode, $form_state, $field_state);
+
+  // Save changes to the form state.
+  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -1), $items);
+  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -1), $items);
 
   $form_state['rebuild'] = TRUE;
 }
@@ -460,5 +606,89 @@ function chunks_field_is_empty($item, $field) {
     }
   }
   return FALSE;
+}
+
+/**
+ * Returns HTML for an individual form element.
+ *
+ * Combine multiple chunks into a table with drag-n-drop reordering.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form element.
+ *
+ * @ingroup themeable
+ */
+function theme_chunks_field_widget_form($variables) {
+  $element = $variables['element'];
+  $output = '';
+
+  if ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+    $table_id = drupal_html_id($element['#field_name'] . '_values');
+    $order_class = $element['#field_name'] . '-delta-order';
+    $required = !empty($element['#required']) ? theme('form_required_marker', $variables) : '';
+
+    $header = array(
+      array(
+        'data' => '<label>' . t('!title !required', array('!title' => $element['#title'], '!required' => $required)) . "</label>",
+        'colspan' => 2,
+        'class' => array('field-label'),
+      ),
+      t('Order'),
+    );
+    $rows = array();
+
+    // Sort items according to '_weight' (needed when the form comes back after
+    // preview or failed validation)
+    $items = array();
+    foreach (element_children($element) as $key) {
+      if ($key === 'add_before_action') {
+        $add_before_action = &$element[$key];
+      }
+      else {
+        $items[] = &$element[$key];
+      }
+    }
+    usort($items, '_field_sort_items_value_helper');
+
+    // Add the add_before_action as a static row, always on top.
+    $cells = array(
+      array('data' => drupal_render($add_before_action), 'colspan' => 3),
+    );
+    $rows[] = array(
+      'data' => $cells,
+      'no_striping' => TRUE,
+      'class' => array('odd'),
+    );
+
+    // Add the items as table rows.
+    foreach ($items as $key => $item) {
+      $item['_weight']['#attributes']['class'] = array($order_class);
+      $delta_element = drupal_render($item['_weight']);
+      $cells = array(
+        array('data' => '', 'class' => array('field-multiple-drag')),
+        drupal_render($item),
+        array('data' => $delta_element, 'class' => array('delta-order')),
+      );
+      $rows[] = array(
+        'data' => $cells,
+        'class' => array('draggable'),
+      );
+    }
+
+    $output = '<div class="form-item">';
+    $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => $table_id, 'class' => array('field-multiple-table'))));
+    $output .= $element['#description'] ? '<div class="description">' . $element['#description'] . '</div>' : '';
+    $output .= '</div>';
+
+    drupal_add_tabledrag($table_id, 'order', 'sibling', $order_class);
+  }
+  else {
+    foreach (element_children($element) as $key) {
+      $output .= drupal_render($element[$key]);
+    }
+  }
+
+  return $output;
 }
 
