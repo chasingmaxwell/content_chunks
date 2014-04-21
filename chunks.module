@@ -47,17 +47,15 @@ function chunks_theme($existing, $type, $theme, $path) {
 /**
  * Preprocess variables for the theme_chunk().
  */
-function template_preprocess_chunk($variables) {
-  // Add some chunk classes to the classes_array.
-  $classes = array('chunk', $variables['chunk']['chunk_type']->name . '-chunk');
-  $variables['classes_array'] = array_merge($variables['classes_array'], $classes);
+function template_preprocess_chunk(&$variables) {
+  $variables['classes_array'] = array('chunk', $variables['chunk']['#chunk_type']->name . '-chunk');
 }
 
 /**
  * Theme implementation for a single chunk.
  */
 function theme_chunk($variables) {
-  $output = '<div class="' . implode($variables['classes_array']) . '">';
+  $output = '<div class="' . implode(' ', $variables['classes_array']) . '">';
   $output .= $variables['chunk']['#chunk_content'];
   $output .= '</div>';
   return $output;
