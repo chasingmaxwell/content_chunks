@@ -90,6 +90,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   $id_prefix = implode('-', array_merge($parents, array($field_name)));
   $wrapper_id = drupal_html_id($id_prefix . '-chunks-field');
 
+  // Retrieve items from the field state since they may not exist in the form
+  // state due to #limit_validation_errors.
   $field_state = field_form_get_state($parents, $field_name, $langcode, $form_state);
   if (isset($field_state['items'])) {
     $items = $field_state['items'];
@@ -124,7 +126,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
       'add_before' => array(
         '#type' => 'submit',
-        '#name' => 'chunk-' . $delta . '-add-before',
+        '#name' => $id_prefix . '-add-before',
         '#value' => t('Add chunk here'),
         '#submit' => array('chunks_field_add_before'),
         '#op' => 'add_before',
@@ -153,16 +155,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     );
 
     // Retrieve the state for the current chunk.
-    if (isset($form_state['values'])) {
-      $row_parents = $row['#field_parents'] + array($field_name, $langcode, $delta, 'chunk');
-      $chunk_state = drupal_array_get_nested_value($form_state['values'], $row_parents);
-      if (is_null($chunk_state)) {
-        $chunk_state = array();
-      }
-    }
-    else {
-      $chunk_state = array();
-    }
+    $chunk_state = isset($items[$delta]['chunk']) ? $items[$delta]['chunk'] : array();
 
     $row['chunk'] = array(
       '#type' => 'container',
@@ -180,7 +173,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#weight' => 1,
       'remove' => array(
         '#type' => 'submit',
-        '#name' => 'chunk-' . $delta . '-remove',
+        '#name' => $id_prefix . '-' . $delta . '-remove',
         '#value' => t('Remove'),
         '#submit' => array('chunks_field_form_submit'),
         '#op' => 'remove',
@@ -205,7 +198,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#weight' => 2,
         'add_after' => array(
           '#type' => 'submit',
-          '#name' => 'chunk-' . $delta . '-add-after',
+          '#name' => $id_prefix . '-' . $delta . '-add-after',
           '#value' => t('Add chunk here'),
           '#submit' => array('chunks_field_form_submit'),
           '#op' => 'add_after',
@@ -239,7 +232,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       foreach ($chunk_types as $chunk_type) {
         $row['chunk']['type'][$chunk_type->name] = array(
           '#type' => 'submit',
-          '#name' => 'chunk-' . $delta . '-' . $chunk_type->name,
+          '#name' => $id_prefix . '-' . $delta . '-' . $chunk_type->name,
           '#value' => $chunk_type->title,
           '#submit' => array('chunks_field_form_submit'),
           '#op' => 'select_type',
@@ -276,7 +269,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         $row['chunk']['configuration'] = $chunk_state['type']->getForm($form, $form_state, $chunk_state);
         $row['chunk']['chunk_actions']['configuration_submit'] = array(
           '#type' => 'submit',
-          '#name' => 'chunk-' . $delta . '-config',
+          '#name' => $id_prefix . '-' . $delta . '-config',
           '#value' => t('Preview'),
           '#submit' => array('chunks_field_form_submit'),
           '#op' => 'configure',
@@ -289,11 +282,11 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
         // Provide a "back" button when viewing the configuration page. If
         // we already have configuration for this chunk, the back button should
-        // take you to the preview, otherwise it should take you back to the type
-        // selection step.
+        // take you to the preview, otherwise it should take you back to the
+        // type selection step.
         $row['chunk']['chunk_actions']['back'] = array(
           '#type' => 'submit',
-          '#name' => 'chunk-' . $delta . '-config-back',
+          '#name' => $id_prefix . '-' . $delta . '-config-back',
           '#value' => t('Cancel'),
           '#submit' => array('chunks_field_form_submit'),
           '#limit_validation_errors' => array(array($field_name)),
@@ -326,8 +319,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
         $row['chunk']['chunk_actions']['back'] = array(
           '#type' => 'submit',
-          '#name' => 'chunk-' . $delta . '-config-back',
-          '#value' => t('Configure'),
+          '#name' => $id_prefix . '-' . $delta . '-config-back',
+          '#value' => t('Edit'),
           '#submit' => array('chunks_field_form_submit'),
           '#op' => 'back_to_configuration',
           '#limit_validation_errors' => array(array($field_name)),
@@ -377,6 +370,7 @@ function chunks_field_form_submit($form, &$form_state) {
   $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -4));
   $delta = $parents[count($parents)-4];
   $chunk_state = &$items[$delta]['chunk'];
+  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
 
   // Remove the add_before_action section from items since it does not contain
   // field values.
@@ -421,9 +415,11 @@ function chunks_field_form_submit($form, &$form_state) {
         break;
 
       case 'remove':
+
         // Remove the chunk.
         unset($items[$delta]);
         $items = array_values($items);
+
         // Reset weights since the number of possible values (#delta) has
         // changed and the current values might be out of scope.
         usort($items, '_field_sort_items_helper');
@@ -432,11 +428,9 @@ function chunks_field_form_submit($form, &$form_state) {
             $items[$delta]['_weight'] = $delta;
           }
         }
+
         // Decrement the items count and store the items in the field state.
-        $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
         $field_state['items_count']--;
-        $field_state['items'] = $items;
-        field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
         break;
 
       case 'add_after':
@@ -469,13 +463,14 @@ function chunks_field_form_submit($form, &$form_state) {
         }
 
         // Increment the items count and store the items in the field state.
-        $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
         $field_state['items_count']++;
-        $field_state['items'] = $items;
-        field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
         break;
     }
   }
+
+  // Store the items in the field state.
+  $field_state['items'] = $items;
+  field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
 
   // Save changes to the form state.
   drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -4), $items);
