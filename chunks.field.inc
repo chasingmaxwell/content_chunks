@@ -80,7 +80,6 @@ function chunks_field_widget_info() {
 function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   // @TODO:
   //  - Add validation per chunk through #element_validate.
-  //  - Use the instance settings and permissions to restrict chunk types.
 
   $field_name = $field['field_name'];
   $parents = $element['#field_parents'];

@@ -10,8 +10,12 @@
  */
 function chunks_chunk_types() {
   return array(
-    'text' => t('Text'),
-    //'block' => t('Drupal block'),
+    'text' => array(
+      'title' => t('Text'),
+      'default_configuration' => array(
+        'text' => '',
+      ),
+    ),
   );
 }
 

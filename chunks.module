@@ -16,10 +16,13 @@ function chunk_types_load() {
   foreach ($modules as $module) {
     $function = $module . '_chunk_types';
     $module_chunk_types = $function();
-    foreach ($module_chunk_types as $name => $title) {
-      // @TODO: Add a check here to see if a chunk type of the same name already
-      // exists. If so, we should log it in watchdog.
-      $chunk_types[$name] = new ChunkType($name, $title, $module);
+    foreach ($module_chunk_types as $name => $data) {
+      // @TODO:
+      //  - Add a check here to see if a chunk type of the same name already
+      //    exists. If so, we should log it in watchdog.
+      //  - Make sure $data contains what it should and log it in watchdog if it
+      //    does not.
+      $chunk_types[$name] = new ChunkType($name, $data, $module);
     }
   }
   return $chunk_types;
@@ -43,9 +46,7 @@ function chunks_permission() {
  * Implements hook_theme().
  */
 function chunks_theme($existing, $type, $theme, $path) {
-  // @TODO: use chunk_types_load() to register theme implementations for all
-  // chunks from one place.
-  return array(
+  $theme_hooks = array(
     'chunk' => array(
       'render element' => 'chunk',
     ),
@@ -53,13 +54,19 @@ function chunks_theme($existing, $type, $theme, $path) {
       'render element' => 'element',
       'file' => 'chunks.field.inc',
     ),
-    'chunks_text_chunk' => array(
-      'variables' => array(
-        'text' => '',
-      ),
-      'file' => 'chunks.chunk_types.inc',
-    ),
   );
+
+  // Load all chunk types and register corresponding theme hooks.
+  $chunk_types = chunk_types_load();
+  foreach ($chunk_types as $chunk_type) {
+    $theme_hooks['chunks_' . $chunk_type->name . '_chunk'] = array(
+      'variables' => $chunk_type->configuration,
+      'file' => $chunk_type->module . '.chunk_types.inc',
+      'path' => drupal_get_path('module', $chunk_type->module),
+    );
+  }
+
+  return $theme_hooks;
 }
 
 /**
