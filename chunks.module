@@ -26,6 +26,20 @@ function chunk_types_load() {
 }
 
 /**
+ * Implements hook_permission().
+ */
+function chunks_permission() {
+  $permissions = array();
+  $chunk_types = chunk_types_load();
+  foreach ($chunk_types as $chunk_type) {
+    $permissions['use_' . $chunk_type->name . '_chunk'] = array(
+      'title' => t('Use the %chunk_type chunk type.', array('%chunk_type' => $chunk_type->name)),
+    );
+  }
+  return $permissions;
+}
+
+/**
  * Implements hook_theme().
  */
 function chunks_theme($existing, $type, $theme, $path) {

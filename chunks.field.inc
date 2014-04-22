@@ -81,8 +81,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // @TODO:
   //  - Add validation per chunk through #element_validate.
   //  - Use the instance settings and permissions to restrict chunk types.
-  $widget = $instance['widget'];
-  $settings = $widget['settings'];
 
   $field_name = $field['field_name'];
   $parents = $element['#field_parents'];
@@ -229,7 +227,15 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       // this field and which the user has permission to use.
       $chunk_types = chunk_types_load();
       $row['chunk']['type'] = array();
-      foreach ($chunk_types as $chunk_type) {
+      foreach ($chunk_types as $name => $chunk_type) {
+
+        // Skip chunk types which aren't allowed on this instance or that the
+        // use does not have permission to use.
+        if (!isset($instance['settings']['chunk_types'][$name]) ||
+            !user_access('use_' . $chunk_type->name . '_chunk')) {
+          continue;
+        }
+
         $row['chunk']['type'][$chunk_type->name] = array(
           '#type' => 'submit',
           '#name' => $id_prefix . '-' . $delta . '-' . $chunk_type->name,
