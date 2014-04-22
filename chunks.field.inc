@@ -122,15 +122,11 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#attributes' => array(
         'class' => array('chunk-actions', 'chunk-actions-before'),
       ),
-      '_weight' => array(
-        '#type' => 'hidden',
-        '#value' => -1 - $max,
-      ),
       'add_before' => array(
         '#type' => 'submit',
         '#name' => 'chunk-' . $delta . '-add-before',
         '#value' => t('Add chunk here'),
-        '#submit' => array('chunks_field_form_submit'),
+        '#submit' => array('chunks_field_add_before'),
         '#op' => 'add_before',
         '#limit_validation_errors' => array(array($field_name)),
         '#weight' => 2,
@@ -158,8 +154,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
     // Retrieve the state for the current chunk.
     if (isset($form_state['values'])) {
-      $parents = $row['#field_parents'] + array($field_name, $langcode, $delta, 'chunk');
-      $chunk_state = drupal_array_get_nested_value($form_state['values'], $parents);
+      $row_parents = $row['#field_parents'] + array($field_name, $langcode, $delta, 'chunk');
+      $chunk_state = drupal_array_get_nested_value($form_state['values'], $row_parents);
       if (is_null($chunk_state)) {
         $chunk_state = array();
       }
@@ -199,30 +195,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
     // If cardinality is unlimited, provide buttons for adding new chunks.
     if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
-
-      // If this is the first chunk, add a button for prepending a chunk.
-      if ($delta === 0) {
-        $row['chunk']['add_before_action'] = array(
-          '#type' => 'actions',
-          '#attributes' => array(
-            'class' => array('chunk-actions', 'chunk-actions-before'),
-          ),
-          '#weight' => -1,
-          'add_before' => array(
-            '#type' => 'submit',
-            '#name' => 'chunk-' . $delta . '-add-before',
-            '#value' => t('Add chunk here'),
-            '#submit' => array('chunks_field_form_submit'),
-            '#op' => 'add_before',
-            '#limit_validation_errors' => array(array($field_name)),
-            '#weight' => 2,
-            '#ajax' => array(
-              'callback' => 'chunks_field_form_callback',
-              'wrapper' => $wrapper_id,
-            ),
-          ),
-        );
-      }
 
       // Add a button for adding a chunk after the current.
       $row['chunk']['add_after_action'] = array(
@@ -375,24 +347,25 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
 
 /**
- * Ajax callback for chunk configuration and type selection.
+ * Ajax callback for chunk operations.
  */
 function chunks_field_form_callback($form, $form_state) {
-  $parents = $form_state['triggering_element']['#array_parents'];
+  $triggering_element = $form_state['triggering_element'];
+  $parents = $triggering_element['#array_parents'];
   // Retrieve and return the chunk field.
-  switch ($form_state['triggering_element']['#op']) {
-    case 'add_here':
-      $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -1));
+  switch ($triggering_element['#op']) {
+    case 'add_before':
+      $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
       break;
     default:
-      $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -5));
+      $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -5));
       break;
   }
-  return $element;
+  return $field;
 }
 
 /**
- * Submission handler for chunk configuration and type selection.
+ * Submission handler for chunk operations.
  */
 function chunks_field_form_submit($form, &$form_state) {
   $triggering_element = $form_state['triggering_element'];
@@ -405,6 +378,13 @@ function chunks_field_form_submit($form, &$form_state) {
   $delta = $parents[count($parents)-4];
   $chunk_state = &$items[$delta]['chunk'];
 
+  // Remove the add_before_action section from items since it does not contain
+  // field values.
+  if (isset($items['add_before_action'])) {
+    unset($items['add_before_action']);
+  }
+
+  // Perform operations associated with the triggering_element.
   if (!empty($triggering_element['#op'])) {
     switch ($triggering_element['#op']) {
       case 'select_type':
@@ -413,15 +393,18 @@ function chunks_field_form_submit($form, &$form_state) {
         // Progress to the configuration view.
         $chunk_state['view'] = 'configuration';
         break;
+
       case 'configure':
         // Progress to the preview view.
         $chunk_state['view'] = 'preview';
         break;
+
       case 'back_to_type':
         // Unset type and progress to the type selection view.
         unset($chunk_state['type']);
         $chunk_state['view'] = 'type_selection';
         break;
+
       case 'back_to_preview':
         // Restore old configuration.
         $chunk_state['configuration'] = $chunk_state['old_configuration'];
@@ -429,13 +412,16 @@ function chunks_field_form_submit($form, &$form_state) {
         // Go back to the preview view.
         $chunk_state['view'] = 'preview';
         break;
+
       case 'back_to_configuration':
         // Store old configuration.
         $chunk_state['old_configuration'] = $chunk_state['configuration'];
         // Go back to the configuration view.
         $chunk_state['view'] = 'configuration';
         break;
+
       case 'remove':
+        // Remove the chunk.
         unset($items[$delta]);
         $items = array_values($items);
         // Reset weights since the number of possible values (#delta) has
@@ -446,62 +432,32 @@ function chunks_field_form_submit($form, &$form_state) {
             $items[$delta]['_weight'] = $delta;
           }
         }
+        // Decrement the items count and store the items in the field state.
         $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
         $field_state['items_count']--;
-        $field_state['items'] = $items;
-        field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
-        break;
-      case 'add_before':
-
-        // Create empty chunk.
-        $new_chunk = array(
-          '_weight' => $items[$delta]['_weight'] - 1,
-          'chunk' => array(),
-        );
-
-        // Add empty chunk before the current.
-        if ($delta === 0) {
-          array_unshift($items, $new_chunk);
-        }
-        else {
-          array_splice($items, $delta - 1, 0, array($new_chunk));
-        }
-
-        // Reset weights since the number of possible values (#delta) has
-        // changed and the current values might be out of scope.
-        usort($items, '_field_sort_items_helper');
-        foreach ($items as $key => $item) {
-          if (is_array($items[$key]) && isset($items[$key]['_weight'])) {
-            $items[$key]['_weight'] = $key;
-          }
-        }
-
-        // Increment the items count.
-        $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
-        $field_state['items_count']++;
         $field_state['items'] = $items;
         field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
         break;
 
       case 'add_after':
 
-        // Create empty chunk.
-        $new_chunk = array(
-          '_weight' => $items[$delta]['_weight'] + 1,
-          'chunk' => array(),
-        );
+        // Set weight for new chunk.
+        $weight = $items[$delta]['_weight'] + 1;
 
         // Increase weights for all items with a weight equal to or higher than
         // the new chunk so the new chunk will have a unique weight.
         foreach ($items as $key => $item) {
-          if ($items[$key]['_weight'] < $new_chunk['_weight']) {
+          if (!isset($items[$key]['_weight']) || $items[$key]['_weight'] < $weight) {
             continue;
           }
           $items[$key]['_weight']++;
         }
 
         // Add empty chunk now that it's weight is unique.
-        $items[] = $new_chunk;
+        $items[] = array(
+          '_weight' => $weight,
+          'chunk' => array(),
+        );
 
         // Reset weights since the number of possible values (#delta) has
         // changed and the current values might be out of scope.
@@ -512,7 +468,7 @@ function chunks_field_form_submit($form, &$form_state) {
           }
         }
 
-        // Increment the items count.
+        // Increment the items count and store the items in the field state.
         $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
         $field_state['items_count']++;
         $field_state['items'] = $items;
@@ -529,37 +485,57 @@ function chunks_field_form_submit($form, &$form_state) {
 }
 
 /**
- * Submission handler for adding chunks to chunk field.
+ * Submission handler for adding chunks to the beginning of a chunk field.
  */
-function chunks_field_add_more($form, &$form_state) {
+function chunks_field_add_before($form, &$form_state) {
   $triggering_element = $form_state['triggering_element'];
   $parents = $triggering_element['#array_parents'];
-  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -1));
+  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -2));
 
-  // Go one level up in the form, to the widget's  container.
-  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -1));
+  // Remove the add_before_action section from items since it does not contain
+  // field values.
+  if (isset($items['add_before_action'])) {
+    unset($items['add_before_action']);
+  }
+
+  // Go one level up in the form, to the widget's container.
+  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
   $field_name = $element['#field_name'];
-  $langcode = $element['#language'];
+  $language = $element['#language'];
   $element_parents = $element['#field_parents'];
 
+  // Retrieve the lowest weight.
+  $weight = 0;
+  foreach ($items as $key => $item) {
+    if (isset($item['_weight']) && $weight >= $item['_weight']) {
+      $weight = $item['_weight'] - 1;
+    }
+  }
+
+  // Create empty chunk with the lowest weight.
+  $items[] = array(
+    '_weight' => $weight,
+    'chunk' => array(),
+  );
 
   // Reset weights since the number of possible values (#delta) has
   // changed and the current values might be out of scope.
-  foreach ($items as $delta => $item) {
-    if (is_array($items[$delta]) && isset($items[$delta]['_weight'])) {
-      $items[$delta]['_weight'] = $delta;
+  usort($items, '_field_sort_items_helper');
+  foreach ($items as $key => $item) {
+    if (is_array($items[$key]) && isset($items[$key]['_weight'])) {
+      $items[$key]['_weight'] = $key;
     }
   }
 
   // Increment the items count.
-  $field_state = field_form_get_state($element_parents, $field_name, $langcode, $form_state);
+  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
   $field_state['items_count']++;
   $field_state['items'] = $items;
-  field_form_set_state($element_parents, $field_name, $langcode, $form_state, $field_state);
+  field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
 
   // Save changes to the form state.
-  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -1), $items);
-  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -1), $items);
+  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -2), $items);
+  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -2), $items);
 
   $form_state['rebuild'] = TRUE;
 }
@@ -653,7 +629,8 @@ function theme_chunks_field_widget_form($variables) {
 
     // Add the add_before_action as a static row, always on top.
     $cells = array(
-      array('data' => drupal_render($add_before_action), 'colspan' => 3),
+      array('data' => ''),
+      array('data' => drupal_render($add_before_action), 'colspan' => 2),
     );
     $rows[] = array(
       'data' => $cells,
