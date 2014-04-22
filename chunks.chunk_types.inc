@@ -2,22 +2,9 @@
 
 /**
  * @file
- * Provide default chunk types.
+ * Provide configuration forms and theme implementations for default chunk
+ * types.
  */
-
-/**
- * Implements hook_chunk_types() to provide a simple text chunk.
- */
-function chunks_chunk_types() {
-  return array(
-    'text' => array(
-      'title' => t('Text'),
-      'default_configuration' => array(
-        'text' => '',
-      ),
-    ),
-  );
-}
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().

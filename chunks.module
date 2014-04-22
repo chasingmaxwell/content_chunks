@@ -4,13 +4,15 @@
  * @file
  * Allow content to be edited in structured and reusable chunks.
  */
-module_load_include('inc', 'chunks', 'chunks.field');
-module_load_include('inc', 'chunks', 'chunks.chunk_types');
+
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
 
 /**
  * Load all chunk types defined by hook_chunk_types().
  */
 function chunk_types_load() {
+  // @TODO: Cache the output of this function so we can save time when it's run
+  // multiple times.
   $modules = module_implements('chunk_types');
   $chunk_types = array();
   foreach ($modules as $module) {
@@ -22,6 +24,9 @@ function chunk_types_load() {
       //    exists. If so, we should log it in watchdog.
       //  - Make sure $data contains what it should and log it in watchdog if it
       //    does not.
+      //  - Make sure the MODULE_NAME.chunk_types.inc file exists and log it if
+      //    it doesn't.
+
       $chunk_types[$name] = new ChunkType($name, $data, $module);
     }
   }
@@ -40,6 +45,20 @@ function chunks_permission() {
     );
   }
   return $permissions;
+}
+
+/**
+ * Implements hook_chunk_types() to provide a simple text chunk.
+ */
+function chunks_chunk_types() {
+  return array(
+    'text' => array(
+      'title' => t('Text'),
+      'default_configuration' => array(
+        'text' => '',
+      ),
+    ),
+  );
 }
 
 /**

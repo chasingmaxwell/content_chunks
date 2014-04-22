@@ -20,6 +20,9 @@ class ChunkType {
     $this->module = $module;
     $this->form_id = $module . '_' . $name . '_chunk_form';
     $this->theme_hook = $module . '_' . $name . '_chunk';
+
+    $this->file_include();
+
     if (!function_exists($this->form_id)) {
       watchdog('chunks', 'The %module module does not provide a configuration form for the %name chunk type.', array('%module' => $this->module, '%name' => $this->name), WATCHDOG_ERROR);
     }
@@ -29,12 +32,18 @@ class ChunkType {
   }
 
   public function getForm($form, &$form_state, &$chunk_state) {
+    $this->file_include();
     $function = $this->form_id;
     return $function($form, $form_state, $chunk_state);
   }
 
   public function view($configuration) {
+    $this->file_include();
     return theme($this->theme_hook, $configuration);
+  }
+
+  public function file_include() {
+    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', $this->module) . '/' . $this->module . '.chunk_types.inc';
   }
 }
 
