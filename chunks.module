@@ -66,8 +66,12 @@ function chunks_chunk_types() {
  */
 function chunks_theme($existing, $type, $theme, $path) {
   $theme_hooks = array(
+    // This base theme hook should never actually make it to the chunk.tpl.php
+    // template as it merely serves as a base for each chunk type's more
+    // specific theme hook.
     'chunk' => array(
       'render element' => 'chunk',
+      'template' => 'chunk',
     ),
     'chunks_field_widget_form' => array(
       'render element' => 'element',
@@ -78,11 +82,12 @@ function chunks_theme($existing, $type, $theme, $path) {
   // Load all chunk types and register corresponding theme hooks.
   $chunk_types = chunk_types_load();
   foreach ($chunk_types as $chunk_type) {
-    $theme_hooks['chunks_' . $chunk_type->name . '_chunk'] = array(
-      'variables' => $chunk_type->default_configuration,
-      'file' => $chunk_type->module . '.chunk_types.inc',
+    $theme_hooks['chunk__' . $chunk_type->name] = array(
+      'render element' => 'chunk',
+      'template' => 'chunk--' . str_replace('_', '-', $chunk_type->name),
       'path' => drupal_get_path('module', $chunk_type->module),
     );
+    // @TODO: log it in watchdog if the template file does not exist.
   }
 
   return $theme_hooks;
@@ -92,17 +97,13 @@ function chunks_theme($existing, $type, $theme, $path) {
  * Preprocess variables for the theme_chunk().
  */
 function template_preprocess_chunk(&$variables) {
-  $variables['classes_array'] = array('chunk', $variables['chunk']['#chunk_type']->name . '-chunk');
-  $variables['theme_hook_suggestions'][] = 'chunk__' . $variables['chunk']['#chunk_type']->name;
-}
+  // Add class with type name.
+  $variables['classes_array'][] = $variables['chunk']['#chunk_type']->name . '-chunk';
 
-/**
- * Theme implementation for a single chunk.
- */
-function theme_chunk($variables) {
-  $output = '<div class="' . implode(' ', $variables['classes_array']) . '">';
-  $output .= $variables['chunk']['#chunk_content'];
-  $output .= '</div>';
-  return $output;
+  // Make configuration a top-level variable.
+  $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
+
+  // Add theme hook suggestion based on type.
+  $variables['theme_hook_suggestions'][] = 'chunk__' . $variables['chunk']['#chunk_type']->name;
 }
 

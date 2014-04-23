@@ -383,7 +383,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         $row['chunk']['preview'] = array(
           '#theme' => 'chunk',
           '#chunk_type' => $chunk_state['type'],
-          '#chunk_content' => $chunk_state['type']->view($chunk_state['configuration']),
+          '#chunk_configuration' => $chunk_state['configuration'],
         );
 
         $row['chunk']['chunk_actions']['back'] = array(
