@@ -41,7 +41,7 @@
 function chunks_field_schema($field) {
   if ($field['type'] == 'chunks') {
     $schema = array();
-    $schema['columns']['chunk_type'] = array(
+    $schema['columns']['type'] = array(
       'type' => 'varchar',
       'length' => '32',
       'not null' => TRUE,

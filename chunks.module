@@ -79,7 +79,7 @@ function chunks_theme($existing, $type, $theme, $path) {
   $chunk_types = chunk_types_load();
   foreach ($chunk_types as $chunk_type) {
     $theme_hooks['chunks_' . $chunk_type->name . '_chunk'] = array(
-      'variables' => $chunk_type->configuration,
+      'variables' => $chunk_type->default_configuration,
       'file' => $chunk_type->module . '.chunk_types.inc',
       'path' => drupal_get_path('module', $chunk_type->module),
     );

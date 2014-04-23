@@ -156,8 +156,66 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#weight' => 100,
     );
 
-    // Retrieve the state for the current chunk.
-    $chunk_state = isset($items[$delta]['chunk']) ? $items[$delta]['chunk'] : array();
+    /**
+     * Retrieve chunk state.
+     */
+
+    // Always retrieve the chunk state from the values entered in the form if
+    // they exist.
+    if (isset($items[$delta]['chunk'])) {
+      $chunk_state = $items[$delta]['chunk'];
+    }
+    // If we do not have form values, but we do have chunk data, we are
+    // editing a field that has already been saved. Build the chunk state from
+    // the saved data.
+    else if (isset($items[$delta]['data'])) {
+      $chunk_data = unserialize($items[$delta]['data']);
+      $chunk_state = array(
+        'type' => $chunk_data['type'],
+        'configuration' => $chunk_data['configuration'],
+        'view' => 'preview',
+      );
+    }
+    // If we do not have form values or existing chunk data, this is a new chunk
+    // and it's state should be empty.
+    else {
+      $chunk_state = array();
+    }
+
+    /**
+     * Set field values.
+     */
+
+    // Set value for type column.
+    $row['type'] = array(
+      '#type' => 'hidden',
+      '#value' => isset($chunk_state['type']->name) ? $chunk_state['type']->name : '',
+    );
+
+    // Set value for module column.
+    $row['module'] = array(
+      '#type' => 'hidden',
+      '#value' => isset($chunk_state['type']->module) ? $chunk_state['type']->module : '',
+    );
+
+    // Set value for data column.
+    $chunk_data = array(
+      'configuration' => !empty($chunk_state['configuration']) ? $chunk_state['configuration'] : '',
+    );
+    if (isset($chunk_state['type']) && is_a($chunk_state['type'], 'ChunkType')) {
+      $chunk_data['type'] = $chunk_state['type'];
+    }
+    else {
+      $chunk_data['type'] = '';
+    }
+    $row['data'] = array(
+      '#type' => 'hidden',
+      '#value' => serialize($chunk_data),
+    );
+
+    /**
+     * Create visual widget.
+     */
 
     $row['chunk'] = array(
       '#type' => 'container',
@@ -586,10 +644,21 @@ function chunks_field_widget_settings_form($field, $instance) {
  * Implements hook_field_is_empty().
  */
 function chunks_field_is_empty($item, $field) {
-  // @TODO: revisit this after chunks_field_widget_form() is built out to make
-  // sure it's still correct.
   if ($field['type'] == 'chunks') {
-    if (empty($item['chunks'])) {
+
+    // Make sure we have values for each column.
+    if (empty($item['type']) ||
+        empty($item['module']) ||
+        empty($item['data'])) {
+
+      return TRUE;
+    }
+
+    // Make sure $data is complete.
+    $data = unserialize($item['data']);
+    if (empty($data['type']) ||
+        empty($data['configuration'])) {
+
       return TRUE;
     }
   }
