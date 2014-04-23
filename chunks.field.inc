@@ -170,6 +170,17 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // they exist.
     if (isset($items[$delta]['chunk'])) {
       $chunk_state = $items[$delta]['chunk'];
+
+      // Unserialize serialized data stored in form values.
+      if (isset($chunk_state['type']) && is_string($chunk_state['type'])) {
+        $chunk_state['type'] = unserialize($chunk_state['type']);
+      }
+      if (isset($chunk_state['old_configuration']) && is_string($chunk_state['old_configuration'])) {
+        $chunk_state['old_configuration'] = unserialize($chunk_state['old_configuration']);
+      }
+      if (isset($chunk_state['configuration']) && is_string($chunk_state['configuration'])) {
+        $chunk_state['configuration'] = unserialize($chunk_state['configuration']);
+      }
     }
     // If we do not have form values, but we do have chunk data, we are
     // editing a field that has already been saved. Build the chunk state from
@@ -323,14 +334,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       // Store the chunk type so it stays in the form state.
       $row['chunk']['type'] = array(
         '#type' => 'hidden',
-        '#value' => $chunk_state['type'],
+        '#value' => serialize($chunk_state['type']),
       );
 
       // Store old configuration if it exists so it can be restored if we "go
       // back" to the preview view.
       $row['chunk']['old_configuration'] = array(
         '#type' => 'hidden',
-        '#value' => isset($chunk_state['old_configuration']) ? $chunk_state['old_configuration'] : '',
+        '#value' => isset($chunk_state['old_configuration']) ? serialize($chunk_state['old_configuration']) : '',
       );
 
       // Provide the chunk configuration form once we know the type.
@@ -376,7 +387,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         // Store the chunk configuration so it stays in the form state.
         $row['chunk']['configuration'] = array(
           '#type' => 'hidden',
-          '#value' => $chunk_state['configuration'],
+          '#value' => isset($chunk_state['configuration']) ? serialize($chunk_state['configuration']) : '',
         );
 
         // Display the chunk preview now that we have a fully configured chunk.
@@ -614,6 +625,14 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
   $item = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
 
   $chunk_state = isset($item['chunk']) ? $item['chunk'] : array();
+
+  // Unserialize serialized data stored in form values.
+  if (isset($chunk_state['type']) && is_string($chunk_state['type'])) {
+    $chunk_state['type'] = unserialize($chunk_state['type']);
+  }
+  if (isset($chunk_state['configuration']) && is_string($chunk_state['configuration'])) {
+    $chunk_state['configuration'] = unserialize($chunk_state['configuration']);
+  }
 
   $item['type'] = isset($chunk_state['type']->name) ? $chunk_state['type']->name : '';
   $item['module'] = isset($chunk_state['type']->module) ? $chunk_state['type']->module : '';
