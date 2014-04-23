@@ -10,6 +10,11 @@
   margin: 0;
   height: 24px;
   line-height: 24px;
+  text-align: center;
+}
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-before .ajax-progress {
+  position: relative;
+  z-index: 1;
 }
 
 .field-widget-chunks-default .field-unlimited-table tr.draggable {
@@ -28,6 +33,11 @@
   width: 100%;
   height: 24px;
   margin: 0;
+  text-align: center;
+}
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-after .ajax-progress {
+  position: relative;
+  z-index: 1;
 }
 
 .field-widget-chunks-default .field-unlimited-table .add-chunk-action-before input.form-submit,
