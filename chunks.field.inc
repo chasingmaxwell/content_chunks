@@ -79,7 +79,8 @@ function chunks_field_widget_info() {
  */
 function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   // @TODO:
-  //  - Add validation per chunk through #element_validate.
+  //  - Add validation for each chunk's configuration through #element_validate.
+  //  - Add hook to check if field is empty based on the configuration.
 
   $field_name = $field['field_name'];
   $parents = $element['#field_parents'];
@@ -147,6 +148,11 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // Make a copy of the base element so we can reuse it for each chunk.
     $row = $element;
 
+    // Add custom validation function to build field values.
+    $row += array(
+      '#element_validate' => array('chunks_field_widget_values_validate'),
+    );
+
     // Add input for reordering.
     $row['_weight'] = array(
       '#type' => 'weight',
@@ -186,31 +192,19 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
      * Set field values.
      */
 
-    // Set value for type column.
+    // Track field values. The values are replaced with values from the chunk
+    // state in the validation step.
     $row['type'] = array(
       '#type' => 'hidden',
-      '#value' => isset($chunk_state['type']->name) ? $chunk_state['type']->name : '',
+      '#value' => isset($items[$delta]['type']) ? $items[$delta]['type'] : '',
     );
-
-    // Set value for module column.
     $row['module'] = array(
       '#type' => 'hidden',
-      '#value' => isset($chunk_state['type']->module) ? $chunk_state['type']->module : '',
+      '#value' => isset($items[$delta]['module']) ? $items[$delta]['module'] : '',
     );
-
-    // Set value for data column.
-    $chunk_data = array(
-      'configuration' => !empty($chunk_state['configuration']) ? $chunk_state['configuration'] : '',
-    );
-    if (isset($chunk_state['type']) && is_a($chunk_state['type'], 'ChunkType')) {
-      $chunk_data['type'] = $chunk_state['type'];
-    }
-    else {
-      $chunk_data['type'] = '';
-    }
     $row['data'] = array(
       '#type' => 'hidden',
-      '#value' => serialize($chunk_data),
+      '#value' => isset($items[$delta]['data']) ? $items[$delta]['data'] : serialize(array()),
     );
 
     /**
@@ -608,6 +602,36 @@ function chunks_field_add_before($form, &$form_state) {
   drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -2), $items);
 
   $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Custom validation for field values in the chunks field widget.
+ */
+function chunks_field_widget_values_validate($element, &$form_state, $form) {
+  // Build chunk field values from chunk state in the validation step.
+  // This is necessary if, for instance, you submit the form before previewing
+  // the chunk.
+  $item = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
+
+  $chunk_state = isset($item['chunk']) ? $item['chunk'] : array();
+
+  $item['type'] = isset($chunk_state['type']->name) ? $chunk_state['type']->name : '';
+  $item['module'] = isset($chunk_state['type']->module) ? $chunk_state['type']->module : '';
+
+  $chunk_data = array(
+    'configuration' => !empty($chunk_state['configuration']) ? $chunk_state['configuration'] : '',
+  );
+  if (isset($chunk_state['type']) && is_a($chunk_state['type'], 'ChunkType')) {
+    $chunk_data['type'] = $chunk_state['type'];
+  }
+  else {
+    $chunk_data['type'] = '';
+  }
+  $item['data'] = serialize($chunk_data);
+
+  // Save changes to the form state.
+  drupal_array_set_nested_value($form_state['values'], $element['#array_parents'], $item);
+  drupal_array_set_nested_value($form_state['input'], $element['#array_parents'], $item);
 }
 
 /**
