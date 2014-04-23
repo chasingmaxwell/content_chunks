@@ -113,18 +113,23 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     '#max_delta' => $max,
     '#prefix' => '<div id="' . $wrapper_id . '">',
     '#suffix' => '</div>',
+    '#attached' => array(
+      'css' => array(
+        drupal_get_path('module', 'chunks') . '/chunks.css',
+      ),
+    ),
   );
 
   if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
     $elements['add_before_action'] = array(
       '#type' => 'actions',
       '#attributes' => array(
-        'class' => array('chunk-actions', 'chunk-actions-before'),
+        'class' => array('add-chunk-action', 'add-chunk-action-before'),
       ),
       'add_before' => array(
         '#type' => 'submit',
         '#name' => $id_prefix . '-add-before',
-        '#value' => t('Add chunk here'),
+        '#value' => t('+ Add chunk here'),
         '#submit' => array('chunks_field_add_before'),
         '#op' => 'add_before',
         '#limit_validation_errors' => array(array($field_name)),
@@ -196,7 +201,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'add_after' => array(
           '#type' => 'submit',
           '#name' => $id_prefix . '-' . $delta . '-add-after',
-          '#value' => t('Add chunk here'),
+          '#value' => t('+ Add chunk here'),
           '#submit' => array('chunks_field_form_submit'),
           '#op' => 'add_after',
           '#limit_validation_errors' => array(array($field_name)),
@@ -224,8 +229,15 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
       // Provide a set of buttons which correspond to chunk types available on
       // this field and which the user has permission to use.
+      $row['chunk']['type'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Select a chunk type:'),
+        '#attributes' => array(
+          'class' => array('chunk-type-selection'),
+        ),
+      );
+
       $chunk_types = chunk_types_load();
-      $row['chunk']['type'] = array();
       foreach ($chunk_types as $name => $chunk_type) {
 
         // Skip chunk types which aren't allowed on this instance or that the
@@ -601,6 +613,10 @@ function theme_chunks_field_widget_form($variables) {
 
   if ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
     $table_id = drupal_html_id($element['#field_name'] . '_values');
+    $table_class = array('field-multiple-table');
+    if ($element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+      $table_class[] = 'field-unlimited-table';
+    }
     $order_class = $element['#field_name'] . '-delta-order';
     $required = !empty($element['#required']) ? theme('form_required_marker', $variables) : '';
 
@@ -627,16 +643,17 @@ function theme_chunks_field_widget_form($variables) {
     }
     usort($items, '_field_sort_items_value_helper');
 
-    // Add the add_before_action as a static row, always on top.
-    $cells = array(
-      array('data' => ''),
-      array('data' => drupal_render($add_before_action), 'colspan' => 2),
-    );
-    $rows[] = array(
-      'data' => $cells,
-      'no_striping' => TRUE,
-      'class' => array('odd'),
-    );
+    if (isset($add_before_action)) {
+      // Add the add_before_action as a static row, always on top.
+      $cells = array(
+        array('data' => drupal_render($add_before_action), 'colspan' => 3),
+      );
+      $rows[] = array(
+        'data' => $cells,
+        'no_striping' => TRUE,
+        'class' => array('odd', 'add-chunk-action-before-row'),
+      );
+    }
 
     // Add the items as table rows.
     foreach ($items as $key => $item) {
@@ -644,7 +661,7 @@ function theme_chunks_field_widget_form($variables) {
       $delta_element = drupal_render($item['_weight']);
       $cells = array(
         array('data' => '', 'class' => array('field-multiple-drag')),
-        drupal_render($item),
+        array('data' => drupal_render($item), 'class' => array('item')),
         array('data' => $delta_element, 'class' => array('delta-order')),
       );
       $rows[] = array(
@@ -654,7 +671,7 @@ function theme_chunks_field_widget_form($variables) {
     }
 
     $output = '<div class="form-item">';
-    $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => $table_id, 'class' => array('field-multiple-table'))));
+    $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => $table_id, 'class' => $table_class)));
     $output .= $element['#description'] ? '<div class="description">' . $element['#description'] . '</div>' : '';
     $output .= '</div>';
 
