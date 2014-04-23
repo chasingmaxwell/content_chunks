@@ -185,7 +185,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // If we do not have form values, but we do have chunk data, we are
     // editing a field that has already been saved. Build the chunk state from
     // the saved data.
-    else if (isset($items[$delta]['data'])) {
+    elseif (isset($items[$delta]['data'])) {
       $chunk_data = unserialize($items[$delta]['data']);
       $chunk_state = array(
         'type' => $chunk_data['type'],
