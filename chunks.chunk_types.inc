@@ -9,14 +9,14 @@
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_text_chunk_form($form, &$form_state, &$chunk_state) {
-  $configuration = array();
-  $configuration['text'] = array(
+function chunks_text_chunk_form($form, &$form_state, &$configuration) {
+  $config_form = array();
+  $config_form['text'] = array(
     '#type' => 'textarea',
     '#title' => t('Text'),
-    '#default_value' => isset($chunk_state['configuration']['text']) ? $chunk_state['configuration']['text'] : '',
+    '#default_value' => isset($configuration['text']) ? $configuration['text'] : '',
     '#description' => t('Enter some plain text.'),
   );
-  return $configuration;
+  return $config_form;
 }
 

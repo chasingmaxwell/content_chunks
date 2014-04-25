@@ -88,6 +88,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   $id_prefix = implode('-', array_merge($parents, array($field_name)));
   $wrapper_id = drupal_html_id($id_prefix . '-chunks-field');
 
+  // Retrieve all chunk_types for use later.
+  $chunk_types = chunk_types_load();
+
   // Retrieve items from the field state since they may not exist in the form
   // state due to #limit_validation_errors.
   $field_state = field_form_get_state($parents, $field_name, $langcode, $form_state);
@@ -95,6 +98,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     $items = $field_state['items'];
   }
 
+  // Set maximum number of items to display.
   switch ($field['cardinality']) {
     case FIELD_CARDINALITY_UNLIMITED:
       $max = $field_state['items_count'];
@@ -104,6 +108,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       break;
   }
 
+  // Create wrapper element.
   $elements = array(
     '#theme' => 'chunks_field_widget_form',
     '#field_name' => $field_name,
@@ -112,15 +117,20 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     '#required' => $instance['required'],
     '#description' => field_filter_xss($instance['description']),
     '#max_delta' => $max,
-    '#prefix' => '<div id="' . $wrapper_id . '">',
+    '#prefix' => '<div class="chunks-field" field_name="' . $field_name . '" langcode="' . $langcode . '" id="' . $wrapper_id . '">',
     '#suffix' => '</div>',
     '#attached' => array(
       'css' => array(
-        drupal_get_path('module', 'chunks') . '/chunks.css',
+        drupal_get_path('module', 'chunks') . '/chunks-widget.css',
+      ),
+      'js' => array(
+        drupal_get_path('module', 'chunks') . '/chunks-widget.js',
       ),
     ),
   );
 
+  // If cardinality is unlimited, provide a button at the beginning for
+  // prepending chunks.
   if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
     $elements['add_before_action'] = array(
       '#type' => 'actions',
@@ -143,12 +153,13 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     );
   }
 
+  // Loop through $items and create their interface.
   for ($delta = 0; $delta <= $max; $delta++) {
 
     // Make a copy of the base element so we can reuse it for each chunk.
     $row = $element;
 
-    // Add custom validation function to build field values.
+    // Add custom validation function for each chunk.
     $row += array(
       '#element_validate' => array('chunks_field_widget_values_validate'),
     );
@@ -162,80 +173,148 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#weight' => 100,
     );
 
-    /**
-     * Retrieve chunk state.
-     */
-
-    // Always retrieve the chunk state from the values entered in the form if
-    // they exist.
-    if (isset($items[$delta]['chunk'])) {
-      $chunk_state = $items[$delta]['chunk'];
-
-      // Unserialize serialized data stored in form values.
-      if (isset($chunk_state['type']) && is_string($chunk_state['type'])) {
-        $chunk_state['type'] = unserialize($chunk_state['type']);
-      }
-      if (isset($chunk_state['old_configuration']) && is_string($chunk_state['old_configuration'])) {
-        $chunk_state['old_configuration'] = unserialize($chunk_state['old_configuration']);
-      }
-      if (isset($chunk_state['configuration']) && is_string($chunk_state['configuration'])) {
-        $chunk_state['configuration'] = unserialize($chunk_state['configuration']);
+    // Retrieve the chunk state from $items.
+    if (isset($items[$delta])) {
+      $chunk_state = $items[$delta];
+      // Retrieve the configuration from $chunk_state['data'] if we're
+      // displaying field values which have already been saved.
+      if (!isset($form_state['values']) && isset($chunk_state['data'])) {
+        $data = unserialize($chunk_state['data']);
+        $chunk_state['configuration'][$chunk_state['type']] = $data['configuration'];
       }
     }
-    // If we do not have form values, but we do have chunk data, we are
-    // editing a field that has already been saved. Build the chunk state from
-    // the saved data.
-    elseif (isset($items[$delta]['data'])) {
-      $chunk_data = unserialize($items[$delta]['data']);
-      $chunk_state = array(
-        'type' => $chunk_data['type'],
-        'configuration' => $chunk_data['configuration'],
-        'view' => 'preview',
-      );
-    }
-    // If we do not have form values or existing chunk data, this is a new chunk
-    // and it's state should be empty.
     else {
       $chunk_state = array();
     }
 
-    /**
-     * Set field values.
-     */
+    // Save chunk types in the form so they can be accessed easily later.
+    $form['#chunk_types'] = array();
 
-    // Track field values. The values are replaced with values from the chunk
-    // state in the validation step.
+    // Filter chunk types by permissions and instance settings.
+    foreach ($chunk_types as $name => $chunk_type) {
+      if (!isset($instance['settings']['chunk_types'][$name]) ||
+        !user_access('use_' . $chunk_type->name . '_chunk')) {
+          continue;
+      }
+
+      $options[$chunk_type->name] = $chunk_type->title;
+
+      $form['#chunk_types'][$chunk_type->name] = $chunk_type;
+    }
+
+    // @TODO: this is just here to test the states functionality because we need
+    // more than one option for it to work. Remove this.
+    $options += array(
+      'test_type' => t('Test type'),
+    );
+
     $row['type'] = array(
-      '#type' => 'hidden',
-      '#value' => isset($items[$delta]['type']) ? $items[$delta]['type'] : '',
-    );
-    $row['module'] = array(
-      '#type' => 'hidden',
-      '#value' => isset($items[$delta]['module']) ? $items[$delta]['module'] : '',
-    );
-    $row['data'] = array(
-      '#type' => 'hidden',
-      '#value' => isset($items[$delta]['data']) ? $items[$delta]['data'] : serialize(array()),
-    );
-
-    /**
-     * Create visual widget.
-     */
-
-    $row['chunk'] = array(
-      '#type' => 'container',
+      '#type' => 'radios',
+      '#title' => t('Select a chunk type:'),
       '#attributes' => array(
-        'id' => 'chunk-' . $delta . '-wrapper',
-        'class' => array('chunk-wrapper'),
+        'class' => array('chunk-type-selection'),
+      ),
+      '#options' => $options,
+      '#default_value' => isset($chunk_state['type']) ? $chunk_state['type'] : NULL,
+      '#states' => array(
+        'visible' => array(
+          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][type]"]' => array('value' => false),
+        ),
       ),
     );
 
-    $row['chunk']['chunk_actions'] = array(
+    $row['module'] = array(
+      '#type' => 'hidden',
+      '#value' => isset($chunk_state['type']) ? $chunk_types[$chunk_state['type']]->module : '',
+    );
+
+    $row['configuration'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Configuration'),
+      '#attributes' => array(
+        'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-configuration'),
+      ),
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][type]"]' => array('value' => false),
+        ),
+        'visible' => array(
+          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][module]"]' => array('value' => false),
+        ),
+      ),
+    );
+
+    foreach ($chunk_types as $name => $chunk_type) {
+      $configuration = isset($chunk_state['configuration']) ? $chunk_state['configuration'][$chunk_state['type']] : array();
+      $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration);
+      $row['configuration'][$chunk_type->name] += array(
+        '#type' => 'container',
+        '#states' => array(
+          'visible' => array(
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][type]"]' => array('value' => $chunk_type->name),
+          ),
+        ),
+      );
+    }
+
+    $row['preview'] = array(
+      '#prefix' => '<div id="' . $field_name . '-' . $delta . '-preview">',
+      '#suffix' => '</div>',
+    );
+
+    if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
+      $row['preview'] += array(
+        '#theme' => 'chunk',
+        '#chunk_type' => $chunk_types[$chunk_state['type']],
+        '#chunk_configuration' => $chunk_state['configuration'][$chunk_state['type']],
+      );
+    }
+
+    $row['chunk_actions'] = array(
       '#type' => 'actions',
       '#attributes' => array(
         'class' => array('chunk-actions'),
       ),
       '#weight' => 1,
+      'edit' => array(
+        '#type' => 'submit',
+        '#name' => $id_prefix . '-' . $delta . '-edit',
+        '#value' => t('Edit'),
+        '#submit' => array('chunks_field_form_submit'),
+        '#op' => 'edit',
+        '#limit_validation_errors' => array(array($field_name)),
+        '#attributes' => array(
+          'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-edit-button'),
+        ),
+        '#states' => array(
+          'invisible' => array(
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][module]"]' => array('empty' => true),
+          ),
+        ),
+      ),
+      'preview' => array(
+        '#type' => 'submit',
+        '#name' => $id_prefix . '-' . $delta . '-preview',
+        '#value' => t('Preview'),
+        '#submit' => array('chunks_field_form_submit'),
+        '#op' => 'preview',
+        '#limit_validation_errors' => array(array($field_name)),
+        '#attributes' => array(
+          'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-preview-button'),
+        ),
+        '#ajax' => array(
+          'callback' => 'chunks_field_preview_callback',
+          'wrapper' => $id_prefix . '-' . $delta . '-preview',
+        ),
+        '#states' => array(
+          'invisible' => array(
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][type]"]' => array('value' => false),
+          ),
+          'visible' => array(
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][module]"]' => array('value' => false),
+          ),
+        ),
+      ),
       'remove' => array(
         '#type' => 'submit',
         '#name' => $id_prefix . '-' . $delta . '-remove',
@@ -243,7 +322,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#submit' => array('chunks_field_form_submit'),
         '#op' => 'remove',
         '#limit_validation_errors' => array(array($field_name)),
-        '#weight' => 1,
         '#ajax' => array(
           'callback' => 'chunks_field_form_callback',
           'wrapper' => $wrapper_id,
@@ -251,11 +329,10 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
     );
 
-    // If cardinality is unlimited, provide buttons for adding new chunks.
+    // If cardinality is unlimited, provide buttons for adding new chunks
+    // directly after the current chunk.
     if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
-
-      // Add a button for adding a chunk after the current.
-      $row['chunk']['add_after_action'] = array(
+      $row['add_after_action'] = array(
         '#type' => 'actions',
         '#attributes' => array(
           'class' => array('add-chunk-action', 'add-chunk-action-after'),
@@ -275,141 +352,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           ),
         ),
       );
-
-    }
-
-    // Track the chunk view persistently so the form can be rebuilt without
-    // affecting the view.
-    $row['chunk']['view'] = array(
-      '#type' => 'hidden',
-      '#value' => isset($chunk_state['view']) ? $chunk_state['view'] : 'type_selection',
-    );
-
-    /**
-     * STEP 1: Provide chunk type selection buttons.
-     */
-    if (empty($chunk_state['view']) || $chunk_state['view'] == 'type_selection') {
-
-      // Provide a set of buttons which correspond to chunk types available on
-      // this field and which the user has permission to use.
-      $row['chunk']['type'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Select a chunk type:'),
-        '#attributes' => array(
-          'class' => array('chunk-type-selection'),
-        ),
-      );
-
-      $chunk_types = chunk_types_load();
-      foreach ($chunk_types as $name => $chunk_type) {
-
-        // Skip chunk types which aren't allowed on this instance or that the
-        // use does not have permission to use.
-        if (!isset($instance['settings']['chunk_types'][$name]) ||
-            !user_access('use_' . $chunk_type->name . '_chunk')) {
-          continue;
-        }
-
-        $row['chunk']['type'][$chunk_type->name] = array(
-          '#type' => 'submit',
-          '#name' => $id_prefix . '-' . $delta . '-' . $chunk_type->name,
-          '#value' => $chunk_type->title,
-          '#submit' => array('chunks_field_form_submit'),
-          '#op' => 'select_type',
-          '#limit_validation_errors' => array(array($field_name)),
-          '#ajax' => array(
-            'callback' => 'chunks_field_form_callback',
-            'wrapper' => $wrapper_id,
-          ),
-          '#chunk_type' => $chunk_type,
-        );
-      }
-    }
-
-    /**
-     * STEP 2: Provide chunk configuration form.
-     */
-    else {
-
-      // Store the chunk type so it stays in the form state.
-      $row['chunk']['type'] = array(
-        '#type' => 'hidden',
-        '#value' => serialize($chunk_state['type']),
-      );
-
-      // Store old configuration if it exists so it can be restored if we "go
-      // back" to the preview view.
-      $row['chunk']['old_configuration'] = array(
-        '#type' => 'hidden',
-        '#value' => isset($chunk_state['old_configuration']) ? serialize($chunk_state['old_configuration']) : '',
-      );
-
-      // Provide the chunk configuration form once we know the type.
-      if ($chunk_state['view'] == 'configuration') {
-        $row['chunk']['configuration'] = $chunk_state['type']->getForm($form, $form_state, $chunk_state);
-        $row['chunk']['chunk_actions']['configuration_submit'] = array(
-          '#type' => 'submit',
-          '#name' => $id_prefix . '-' . $delta . '-config',
-          '#value' => t('Preview'),
-          '#submit' => array('chunks_field_form_submit'),
-          '#op' => 'configure',
-          '#limit_validation_errors' => array(array($field_name)),
-          '#ajax' => array(
-            'callback' => 'chunks_field_form_callback',
-            'wrapper' => $wrapper_id,
-          ),
-        );
-
-        // Provide a "back" button when viewing the configuration page. If
-        // we already have configuration for this chunk, the back button should
-        // take you to the preview, otherwise it should take you back to the
-        // type selection step.
-        $row['chunk']['chunk_actions']['back'] = array(
-          '#type' => 'submit',
-          '#name' => $id_prefix . '-' . $delta . '-config-back',
-          '#value' => t('Cancel'),
-          '#submit' => array('chunks_field_form_submit'),
-          '#limit_validation_errors' => array(array($field_name)),
-          '#ajax' => array(
-            'callback' => 'chunks_field_form_callback',
-            'wrapper' => $wrapper_id,
-          ),
-        );
-        // Set #op correctly depending on where "back" is.
-        $row['chunk']['chunk_actions']['back']['#op'] = empty($chunk_state['configuration']) ? 'back_to_type' : 'back_to_preview';
-      }
-
-      /**
-       * STEP 3: Display chunk preview.
-       */
-      else {
-
-        // Store the chunk configuration so it stays in the form state.
-        $row['chunk']['configuration'] = array(
-          '#type' => 'hidden',
-          '#value' => isset($chunk_state['configuration']) ? serialize($chunk_state['configuration']) : '',
-        );
-
-        // Display the chunk preview now that we have a fully configured chunk.
-        $row['chunk']['preview'] = array(
-          '#theme' => 'chunk',
-          '#chunk_type' => $chunk_state['type'],
-          '#chunk_configuration' => $chunk_state['configuration'],
-        );
-
-        $row['chunk']['chunk_actions']['back'] = array(
-          '#type' => 'submit',
-          '#name' => $id_prefix . '-' . $delta . '-config-back',
-          '#value' => t('Edit'),
-          '#submit' => array('chunks_field_form_submit'),
-          '#op' => 'back_to_configuration',
-          '#limit_validation_errors' => array(array($field_name)),
-          '#ajax' => array(
-            'callback' => 'chunks_field_form_callback',
-            'wrapper' => $wrapper_id,
-          ),
-        );
-      }
     }
 
     $elements[$delta] = $row;
@@ -428,13 +370,34 @@ function chunks_field_form_callback($form, $form_state) {
   // Retrieve and return the chunk field.
   switch ($triggering_element['#op']) {
     case 'add_before':
-      $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+      $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
       break;
     default:
-      $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -5));
+      $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
       break;
   }
   return $field;
+}
+
+/**
+ * Ajax callback for chunk preview.
+ */
+function chunks_field_preview_callback($form, $form_state) {
+  $triggering_element = $form_state['triggering_element'];
+  $parents = $triggering_element['#array_parents'];
+  $delta = $parents[count($parents)-3];
+  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
+  $item = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -2));
+
+  $preview = array(
+    '#theme' => 'chunk',
+    '#chunk_type' => $form['#chunk_types'][$item['type']],
+    '#chunk_configuration' => $item['configuration'][$item['type']],
+    '#prefix' => '<div id="' . $element['#field_name'] . '-' . $delta . '-preview">',
+    '#suffix' => '</div>',
+  );
+
+  return $preview;
 }
 
 /**
@@ -443,14 +406,14 @@ function chunks_field_form_callback($form, $form_state) {
 function chunks_field_form_submit($form, &$form_state) {
   $triggering_element = $form_state['triggering_element'];
   $parents = $triggering_element['#array_parents'];
-  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
   $field_name = $element['#field_name'];
   $language = $element['#language'];
   $element_parents = $element['#field_parents'];
-  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -4));
-  $delta = $parents[count($parents)-4];
-  $chunk_state = &$items[$delta]['chunk'];
+  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -3));
+  $delta = $parents[count($parents)-3];
   $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
+  $form_rebuild = TRUE;
 
   // Remove the add_before_action section from items since it does not contain
   // field values.
@@ -460,42 +423,14 @@ function chunks_field_form_submit($form, &$form_state) {
 
   // Perform operations associated with the triggering_element.
   if (!empty($triggering_element['#op'])) {
+
     switch ($triggering_element['#op']) {
-      case 'select_type':
-        // Set type to ChunkType object.
-        $chunk_state['type'] = $triggering_element['#chunk_type'];
-        // Progress to the configuration view.
-        $chunk_state['view'] = 'configuration';
-        break;
 
-      case 'configure':
-        // Progress to the preview view.
-        $chunk_state['view'] = 'preview';
-        break;
-
-      case 'back_to_type':
-        // Unset type and progress to the type selection view.
-        unset($chunk_state['type']);
-        $chunk_state['view'] = 'type_selection';
-        break;
-
-      case 'back_to_preview':
-        // Restore old configuration.
-        $chunk_state['configuration'] = $chunk_state['old_configuration'];
-        unset($chunk_state['old_configuration']);
-        // Go back to the preview view.
-        $chunk_state['view'] = 'preview';
-        break;
-
-      case 'back_to_configuration':
-        // Store old configuration.
-        $chunk_state['old_configuration'] = $chunk_state['configuration'];
-        // Go back to the configuration view.
-        $chunk_state['view'] = 'configuration';
+      case 'preview':
+        $form_rebuild = FALSE;
         break;
 
       case 'remove':
-
         // Remove the chunk.
         unset($items[$delta]);
         $items = array_values($items);
@@ -514,7 +449,6 @@ function chunks_field_form_submit($form, &$form_state) {
         break;
 
       case 'add_after':
-
         // Set weight for new chunk.
         $weight = $items[$delta]['_weight'] + 1;
 
@@ -553,10 +487,12 @@ function chunks_field_form_submit($form, &$form_state) {
   field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
 
   // Save changes to the form state.
-  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -4), $items);
-  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -4), $items);
+  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -3), $items);
+  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -3), $items);
 
-  $form_state['rebuild'] = TRUE;
+  if ($form_rebuild) {
+    $form_state['rebuild'] = TRUE;
+  }
 }
 
 /**
@@ -619,38 +555,22 @@ function chunks_field_add_before($form, &$form_state) {
  * Custom validation for field values in the chunks field widget.
  */
 function chunks_field_widget_values_validate($element, &$form_state, $form) {
-  // Build chunk field values from chunk state in the validation step.
-  // This is necessary if, for instance, you submit the form before previewing
-  // the chunk.
   $item = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
 
-  $chunk_state = isset($item['chunk']) ? $item['chunk'] : array();
+  // Create and save the data field value since it does not have a corresponding
+  // field element.
+  if (isset($item['type'])) {
+    $data = array(
+      'type' => $form['#chunk_types'][$item['type']],
+      'configuration' => $item['configuration'][$item['type']],
+    );
+    $item['data'] = serialize($data);
+    $item['module'] = $form['#chunk_types'][$item['type']]->module;
 
-  // Unserialize serialized data stored in form values.
-  if (isset($chunk_state['type']) && is_string($chunk_state['type'])) {
-    $chunk_state['type'] = unserialize($chunk_state['type']);
+    // Save changes to the form state.
+    drupal_array_set_nested_value($form_state['values'], $element['#array_parents'], $item);
+    drupal_array_set_nested_value($form_state['input'], $element['#array_parents'], $item);
   }
-  if (isset($chunk_state['configuration']) && is_string($chunk_state['configuration'])) {
-    $chunk_state['configuration'] = unserialize($chunk_state['configuration']);
-  }
-
-  $item['type'] = isset($chunk_state['type']->name) ? $chunk_state['type']->name : '';
-  $item['module'] = isset($chunk_state['type']->module) ? $chunk_state['type']->module : '';
-
-  $chunk_data = array(
-    'configuration' => !empty($chunk_state['configuration']) ? $chunk_state['configuration'] : '',
-  );
-  if (isset($chunk_state['type']) && is_a($chunk_state['type'], 'ChunkType')) {
-    $chunk_data['type'] = $chunk_state['type'];
-  }
-  else {
-    $chunk_data['type'] = '';
-  }
-  $item['data'] = serialize($chunk_data);
-
-  // Save changes to the form state.
-  drupal_array_set_nested_value($form_state['values'], $element['#array_parents'], $item);
-  drupal_array_set_nested_value($form_state['input'], $element['#array_parents'], $item);
 }
 
 /**
@@ -671,16 +591,6 @@ function chunks_field_formatter_info() {
 function chunks_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
   // @TODO: Run each chunk configuration through its module's own validation.
   // Should hook_field_widget_error() be used for this (or #element_validate)?
-}
-
-/**
- * Implements hook_field_widget_settings_form().
- * @TODO: decide whether we should control the chunk types available here or
- * through hook_field_instance_settings_form().
- */
-function chunks_field_widget_settings_form($field, $instance) {
-  $widget = $instance['widget'];
-  $settings = $widget['settings'];
 }
 
 /**

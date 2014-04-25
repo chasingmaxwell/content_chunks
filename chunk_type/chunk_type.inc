@@ -26,10 +26,10 @@ class ChunkType {
     }
   }
 
-  public function getForm($form, &$form_state, &$chunk_state) {
+  public function getForm($form, &$form_state, &$configuration) {
     $this->file_include();
     $function = $this->form_id;
-    return $function($form, $form_state, $chunk_state);
+    return $function($form, $form_state, $configuration);
   }
 
   public function file_include() {
