@@ -28,12 +28,17 @@
 
         $('.item', $(this)).each(function(delta, element) {
           var classPrepend = '.' + fieldName + '-' + delta + '-';
+
+          // Show the preview for a Chunk when the user presses Preview.
           $(classPrepend + 'preview-button', element).bind('mousedown.chunkPreview', function(e) {
             $(classPrepend + 'configuration').hide();
             $(classPrepend + 'edit-button').show();
             $(this).hide();
             removeActiveState(this);
           });
+
+          // Automatically display the content entry form when the user selects
+          // a chunk type.
           $(classPrepend + 'edit-button', element).bind('mousedown.chunkEdit', function(e) {
             $(classPrepend + 'configuration').show();
             $(classPrepend + 'preview-button').show();
