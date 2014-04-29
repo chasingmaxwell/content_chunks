@@ -402,7 +402,7 @@ function chunks_field_preview_callback($form, $form_state) {
   unset($element['_weight']);
 
   // Add active class to chunk wrapper.
-  $element['#prefix'] = '<div id="' . $field_name . '-' . $delta . '-chunk' . '" class="chunk-wrapper active">';
+  $element['#prefix'] = '<div id="' . $element['#field_name'] . '-' . $delta . '-chunk' . '" class="chunk-wrapper active">';
 
   return drupal_render($element);
 }
@@ -564,6 +564,7 @@ function chunks_field_add_before($form, &$form_state) {
  */
 function chunks_field_widget_values_validate($element, &$form_state, $form) {
   $item = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
+  $triggering_element = $form_state['triggering_element'];
 
   if (isset($item['type'])) {
 
@@ -578,8 +579,27 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
     $item['data'] = serialize($data);
     $item['module'] = $chunk_type->module;
 
+    // Do not validate chunk configuration when it is unnecessary, like in the
+    // case of removing a chunk or adding a new chunk.
+    $validate_configuration = TRUE;
+
+    if (isset($triggering_element['#op'])) {
+      switch ($triggering_element['#op']) {
+        case 'remove':
+        case 'add_after':
+        case 'add_before':
+          $validate_configuration = FALSE;
+          break;
+        case 'preview':
+          if ($triggering_element['#name'] != $element['chunk_actions']['preview']['#name']) {
+            $validate_configuration = FALSE;
+          }
+          break;
+      }
+    }
+
     // Validation for chunk type's configuration values.
-    if ($chunk_validation = $chunk_type->getValidation()) {
+    if ($validate_configuration && $chunk_validation = $chunk_type->getValidation()) {
       $valid = $chunk_validation($element['configuration'][$chunk_type->name], $form_state, $form);
       if (!$valid) {
         $item['view'] = 'configuration';
