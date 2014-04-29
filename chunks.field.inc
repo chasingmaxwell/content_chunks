@@ -331,9 +331,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#submit' => array('chunks_field_form_submit'),
         '#op' => 'remove',
         '#limit_validation_errors' => array(array($field_name)),
-        '#ajax' => array(
-          'callback' => 'chunks_field_form_callback',
-          'wrapper' => $wrapper_id,
+        '#attributes' => array(
+          'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-remove-button'),
         ),
       ),
     );
@@ -419,6 +418,7 @@ function chunks_field_form_submit($form, &$form_state) {
   $element_parents = $element['#field_parents'];
   $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -3));
   $delta = $parents[count($parents)-3];
+  $chunk_state = &$items[$delta];
   $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
 
   // Remove the add_before_action section from items since it does not contain
@@ -433,34 +433,54 @@ function chunks_field_form_submit($form, &$form_state) {
     switch ($triggering_element['#op']) {
 
       case 'edit':
-        $items[$delta]['view'] = 'configuration';
+        $chunk_state['view'] = 'configuration';
         break;
 
       case 'preview':
-        $items[$delta]['view'] = 'preview';
+        $chunk_state['view'] = 'preview';
         break;
 
       case 'remove':
-        // Remove the chunk.
+        // Remove the chunk. Should only be run when javascript is disabled.
         unset($items[$delta]);
         $items = array_values($items);
 
         // Reset weights since the number of possible values (#delta) has
         // changed and the current values might be out of scope.
         usort($items, '_field_sort_items_helper');
-        foreach ($items as $delta => $item) {
-          if (is_array($items[$delta]) && isset($items[$delta]['_weight'])) {
-            $items[$delta]['_weight'] = $delta;
+        foreach ($items as $key => $item) {
+          if (is_array($items[$key]) && isset($items[$key]['_weight'])) {
+            $items[$key]['_weight'] = $key;
           }
         }
 
-        // Decrement the items count and store the items in the field state.
+        // decrement the items count and store the items in the field state.
         $field_state['items_count']--;
         break;
 
       case 'add_after':
+
+        // Remove any chunks from the form_state which have been removed on the
+        // client side through javascript.
+        $items_copy = $items;
+        $removed = FALSE;
+        foreach ($items_copy as $key => $item) {
+          if ($item['view'] == 'removed') {
+            // remove the chunk.
+            unset($items[$key]);
+            $removed = TRUE;
+
+            // decrement the items count and store the items in the field state.
+            $field_state['items_count']--;
+          }
+        }
+        if ($removed) {
+          $items = array_values($items);
+        }
+
+
         // Set weight for new chunk.
-        $weight = $items[$delta]['_weight'] + 1;
+        $weight = $chunk_state['_weight'] + 1;
 
         // Increase weights for all items with a weight equal to or higher than
         // the new chunk so the new chunk will have a unique weight.
@@ -509,6 +529,11 @@ function chunks_field_form_submit($form, &$form_state) {
 function chunks_field_add_before($form, &$form_state) {
   $triggering_element = $form_state['triggering_element'];
   $parents = $triggering_element['#array_parents'];
+  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
+  $field_name = $element['#field_name'];
+  $language = $element['#language'];
+  $element_parents = $element['#field_parents'];
+  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
   $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -2));
 
   // Remove the add_before_action section from items since it does not contain
@@ -517,11 +542,23 @@ function chunks_field_add_before($form, &$form_state) {
     unset($items['add_before_action']);
   }
 
-  // Go one level up in the form, to the widget's container.
-  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
-  $field_name = $element['#field_name'];
-  $language = $element['#language'];
-  $element_parents = $element['#field_parents'];
+  // Remove any chunks from the form_state which have been removed on the
+  // client side.
+  $items_copy = $items;
+  $removed = FALSE;
+  foreach ($items_copy as $key => $item) {
+    if ($item['view'] == 'removed') {
+      // remove the chunk.
+      unset($items[$key]);
+      $removed = TRUE;
+
+      // decrement the items count and store the items in the field state.
+      $field_state['items_count']--;
+    }
+  }
+  if ($removed) {
+    $items = array_values($items);
+  }
 
   // Retrieve the lowest weight.
   $weight = 0;
@@ -547,7 +584,6 @@ function chunks_field_add_before($form, &$form_state) {
   }
 
   // Increment the items count.
-  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
   $field_state['items_count']++;
   $field_state['items'] = $items;
   field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
@@ -641,7 +677,8 @@ function chunks_field_is_empty($item, $field) {
     // Make sure we have values for each column.
     if (empty($item['type']) ||
         empty($item['module']) ||
-        empty($item['data'])) {
+        empty($item['data']) ||
+        $item['view'] == 'removed') {
 
       return TRUE;
     }
@@ -728,6 +765,7 @@ function theme_chunks_field_widget_form($variables) {
       $rows[] = array(
         'data' => $cells,
         'class' => array('draggable'),
+        'id' => $element['#field_name'] . '-' .  $key . '-chunk-row',
       );
     }
 
