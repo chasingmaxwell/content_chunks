@@ -86,7 +86,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   $parents = $element['#field_parents'];
 
   $id_prefix = implode('-', array_merge($parents, array($field_name)));
-  $wrapper_id = drupal_html_id($id_prefix . '-chunks-field');
+  $wrapper_id = $id_prefix . '-chunks-field';
 
   // Retrieve all chunk_types for use later.
   $chunk_types = chunk_types_load();
@@ -159,9 +159,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // Make a copy of the base element so we can reuse it for each chunk.
     $row = $element;
 
-    // Add custom validation function for each chunk.
+    // Add custom validation function for each chunk and wrapper for ajax
+    // callback.
     $row += array(
       '#element_validate' => array('chunks_field_widget_values_validate'),
+      '#prefix' => '<div id="' . $field_name . '-' . $delta . '-chunk' . '">',
+      '#suffix' => '</div>'
     );
 
     // Add input for reordering.
@@ -208,6 +211,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       'test_type' => t('Test type'),
     );
 
+
+    // Include hidden field value for the view to display. This will give us
+    // better control over our #states.
+    $row['view'] = array(
+      '#type' => 'hidden',
+      '#value' => isset($chunk_state['view']) ? $chunk_state['view'] : 'type_selection',
+    );
+
     $row['type'] = array(
       '#type' => 'radios',
       '#title' => t('Select a chunk type:'),
@@ -218,7 +229,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#default_value' => isset($chunk_state['type']) ? $chunk_state['type'] : NULL,
       '#states' => array(
         'visible' => array(
-          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][type]"]' => array('value' => false),
+          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'type_selection'),
         ),
       ),
     );
@@ -236,10 +247,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
       '#states' => array(
         'invisible' => array(
-          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][type]"]' => array('value' => false),
-        ),
-        'visible' => array(
-          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][module]"]' => array('value' => false),
+          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('!value' => 'configuration'),
         ),
       ),
     );
@@ -258,8 +266,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     }
 
     $row['preview'] = array(
-      '#prefix' => '<div id="' . $field_name . '-' . $delta . '-preview">',
-      '#suffix' => '</div>',
+      '#type' => 'container',
+      '#states' => array(
+        'visible' => array(
+          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'preview'),
+        ),
+      ),
     );
 
     if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
@@ -287,8 +299,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-edit-button'),
         ),
         '#states' => array(
-          'invisible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][module]"]' => array('empty' => true),
+          'visible' => array(
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'preview'),
           ),
         ),
       ),
@@ -304,14 +316,11 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         ),
         '#ajax' => array(
           'callback' => 'chunks_field_preview_callback',
-          'wrapper' => $id_prefix . '-' . $delta . '-preview',
+          'wrapper' => $field_name . '-' . $delta . '-chunk',
         ),
         '#states' => array(
-          'invisible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][type]"]' => array('value' => false),
-          ),
           'visible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][module]"]' => array('value' => false),
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'configuration'),
           ),
         ),
       ),
@@ -389,15 +398,9 @@ function chunks_field_preview_callback($form, $form_state) {
   $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
   $item = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -2));
 
-  $preview = array(
-    '#theme' => 'chunk',
-    '#chunk_type' => $form['#chunk_types'][$item['type']],
-    '#chunk_configuration' => $item['configuration'][$item['type']],
-    '#prefix' => '<div id="' . $element['#field_name'] . '-' . $delta . '-preview">',
-    '#suffix' => '</div>',
-  );
+  unset($element['_weight']);
 
-  return $preview;
+  return drupal_render($element);
 }
 
 /**
@@ -413,7 +416,6 @@ function chunks_field_form_submit($form, &$form_state) {
   $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -3));
   $delta = $parents[count($parents)-3];
   $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
-  $form_rebuild = TRUE;
 
   // Remove the add_before_action section from items since it does not contain
   // field values.
@@ -427,7 +429,7 @@ function chunks_field_form_submit($form, &$form_state) {
     switch ($triggering_element['#op']) {
 
       case 'preview':
-        $form_rebuild = FALSE;
+        $items[$delta]['view'] = 'preview';
         break;
 
       case 'remove':
@@ -490,9 +492,7 @@ function chunks_field_form_submit($form, &$form_state) {
   drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -3), $items);
   drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -3), $items);
 
-  if ($form_rebuild) {
-    $form_state['rebuild'] = TRUE;
-  }
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
@@ -557,15 +557,26 @@ function chunks_field_add_before($form, &$form_state) {
 function chunks_field_widget_values_validate($element, &$form_state, $form) {
   $item = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
 
-  // Create and save the data field value since it does not have a corresponding
-  // field element.
   if (isset($item['type'])) {
+
+    $chunk_type = $form['#chunk_types'][$item['type']];
+
+    // Create and save the data field value since it does not have a corresponding
+    // field element.
     $data = array(
-      'type' => $form['#chunk_types'][$item['type']],
+      'type' => $chunk_type,
       'configuration' => $item['configuration'][$item['type']],
     );
     $item['data'] = serialize($data);
-    $item['module'] = $form['#chunk_types'][$item['type']]->module;
+    $item['module'] = $chunk_type->module;
+
+    // Validation for chunk type's configuration values.
+    if ($chunk_validation = $chunk_type->getValidation()) {
+      $valid = $chunk_validation($element['configuration'][$chunk_type->name], $form_state, $form);
+      if (!$valid) {
+        $item['view'] = 'configuration';
+      }
+    }
 
     // Save changes to the form state.
     drupal_array_set_nested_value($form_state['values'], $element['#array_parents'], $item);

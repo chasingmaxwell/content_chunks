@@ -20,3 +20,14 @@ function chunks_text_chunk_form($form, &$form_state, &$configuration) {
   return $config_form;
 }
 
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form_validate().
+ */
+function chunks_text_chunk_form_validate($configuration, &$form_state, $form) {
+  if ($configuration['text']['#value'] == 'chunks') {
+    form_error($configuration['text'], t('Enough chunks!'));
+    return FALSE;
+  }
+  return TRUE;
+}
+

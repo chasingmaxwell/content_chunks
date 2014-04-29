@@ -32,6 +32,15 @@ class ChunkType {
     return $function($form, $form_state, $configuration);
   }
 
+  public function getValidation() {
+    $this->file_include();
+    $function = $this->module . '_' . $this->name . '_chunk_form_validate';
+    if (function_exists($function)) {
+      return $function;
+    }
+    return FALSE;
+  }
+
   public function file_include() {
     require_once DRUPAL_ROOT . '/' . drupal_get_path('module', $this->module) . '/' . $this->module . '.chunk_types.inc';
   }
