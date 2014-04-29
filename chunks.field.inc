@@ -163,7 +163,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // callback.
     $row += array(
       '#element_validate' => array('chunks_field_widget_values_validate'),
-      '#prefix' => '<div id="' . $field_name . '-' . $delta . '-chunk' . '">',
+      '#prefix' => '<div id="' . $field_name . '-' . $delta . '-chunk' . '" class="chunk-wrapper">',
       '#suffix' => '</div>'
     );
 
@@ -216,7 +216,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // better control over our #states.
     $row['view'] = array(
       '#type' => 'hidden',
-      '#value' => isset($chunk_state['view']) ? $chunk_state['view'] : 'type_selection',
+      '#default_value' => isset($chunk_state['view']) ? $chunk_state['view'] : 'type_selection',
     );
 
     $row['type'] = array(
@@ -398,7 +398,11 @@ function chunks_field_preview_callback($form, $form_state) {
   $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
   $item = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -2));
 
+  // Unset weight since it is not being replaced in the markup.
   unset($element['_weight']);
+
+  // Add active class to chunk wrapper.
+  $element['#prefix'] = '<div id="' . $field_name . '-' . $delta . '-chunk' . '" class="chunk-wrapper active">';
 
   return drupal_render($element);
 }
@@ -427,6 +431,10 @@ function chunks_field_form_submit($form, &$form_state) {
   if (!empty($triggering_element['#op'])) {
 
     switch ($triggering_element['#op']) {
+
+      case 'edit':
+        $items[$delta]['view'] = 'configuration';
+        break;
 
       case 'preview':
         $items[$delta]['view'] = 'preview';
