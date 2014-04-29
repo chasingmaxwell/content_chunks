@@ -210,7 +210,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
     $row['type'] = array(
       '#type' => 'radios',
-      '#title' => t('Select a chunk type:'),
+      '#title' => t('I\'m adding'),
       '#attributes' => array(
         'class' => array('chunk-type-selection'),
       ),
