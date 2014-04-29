@@ -45,7 +45,7 @@
             viewElement.trigger('change');
           });
 
-          // Switch to preview view when "Edit" button is selected.
+          // Switch to preview view when "Preview" button is selected.
           $(classPrepend + 'preview-button', element).bind('mousedown.chunkPreview', function(e) {
             viewElement.val('preview');
             viewElement.trigger('change');
