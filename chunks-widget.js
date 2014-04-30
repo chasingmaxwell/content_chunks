@@ -21,12 +21,13 @@
     attach: function(context, settings) {
       // Do some stuff
       $('.chunks-field', context).each(function() {
-        var fieldName, classFieldName, langcode, chunks, setActiveChunk, showStagedChunk;
+        var field, fieldName, classFieldName, langcode, chunks, setActiveChunk, showStagedChunk, resetStripes;
 
-        fieldName = $(this).attr('field_name');
-        classFieldName = $(this).attr('field_name').replace(/_/g, '-');
-        langcode = $(this).attr('langcode');
-        chunks = $('.chunk-wrapper', $(this));
+        field = $(this);
+        fieldName = field.attr('field_name');
+        classFieldName = field.attr('field_name').replace(/_/g, '-');
+        langcode = field.attr('langcode');
+        chunks = $('.chunk-wrapper', field);
 
         // Helper function to set "active" class on a specific chunk.
         setActiveChunk = function(chunk) {
@@ -37,7 +38,7 @@
         // Helper function to show a staged chunk.
         showStagedChunk = function(prevSibling) {
           var stagedRow, stagedChunk, stagedDelta, stagedViewElement;
-          stagedRow = $('tr.staged', context);
+          stagedRow = $('tr.staged', field);
           stagedChunk = $('.chunk-wrapper', stagedRow);
           stagedDelta = stagedChunk.attr('delta');
           stagedViewElement = $(':input[name="' + fieldName + '[' + langcode + '][' + stagedDelta + '][view]"]');
@@ -47,7 +48,25 @@
           stagedRow.insertAfter(prevSibling);
           stagedRow.show();
           // @TODO: reset weights.
-          // @TODO: reset odd/even classes.
+          resetStripes();
+        };
+
+        // Helper function to reset odd/even striping on visible chunk rows.
+        resetStripes = function() {
+          var visibleChunks = $('.chunk-wrapper:visible', field);
+          visibleChunks.each(function(i, element) {
+            var delta, parentRow;
+
+            delta = $(element).attr('delta');
+            parentRow = $('#' + fieldName + '-' + delta + '-chunk-row');
+
+            if (((i + 1) % 2) == 1) {
+              parentRow.removeClass('even').addClass('odd');
+            }
+            else {
+              parentRow.removeClass('odd').addClass('even');
+            }
+          });
         };
 
         chunks.each(function(index, element) {
@@ -124,7 +143,7 @@
               viewElement.val('removed');
               viewElement.trigger('change');
               $('#' + fieldName + '-' + delta + '-chunk-row').hide();
-              // @TODO: reset odd/even classes.
+              resetStripes();
             }
           });
 
@@ -145,7 +164,7 @@
 
         // Switch to type_selection view for staged chunk when add before
         // button is pressed.
-        $(':input[name="' + fieldName + '-add-before"]', context).bind('keyup.chunkAdd mousedown.chunkAdd', function(e) {
+        $(':input[name="' + fieldName + '-add-before"]', field).bind('keyup.chunkAdd mousedown.chunkAdd', function(e) {
           if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
             showStagedChunk('#' + fieldName + '-chunks-field .add-chunk-action-before-row');
           }

@@ -785,7 +785,7 @@ function theme_chunks_field_widget_form($variables) {
       $rows[] = array(
         'data' => $cells,
         'no_striping' => TRUE,
-        'class' => array('odd', 'add-chunk-action-before-row'),
+        'class' => array('add-chunk-action-before-row'),
       );
     }
 
