@@ -179,11 +179,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // Retrieve the chunk state from $items.
     if (isset($items[$delta])) {
       $chunk_state = $items[$delta];
-      // Retrieve the configuration from $chunk_state['data'] if we're
-      // displaying field values which have already been saved.
+      // Make some changes to the chunk's state if we're dealing with field
+      // values from the database.
       if (!isset($form_state['values']) && isset($chunk_state['data'])) {
+        // Retrieve the configuration from $chunk_state['data'].
         $data = unserialize($chunk_state['data']);
         $chunk_state['configuration'][$chunk_state['type']] = $data['configuration'];
+        // Set view to preview.
+        $chunk_state['view'] = 'preview';
       }
     }
     else {
