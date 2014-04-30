@@ -50,34 +50,41 @@
           }
 
           // Switch to configuration view upon type selection.
-          $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]', element).bind('click.chunkTypeSelected', function(e) {
-            viewElement.val('configuration');
-            viewElement.trigger('change');
-            // Set active class on the last chunk with user interaction.
-            setActiveChunk($(element));
+          $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]', element).bind('keyup.chunkTypeSelected click.chunkTypeSelected', function(e) {
+            if (e.type === 'click' || e.type === 'keyup' && e.charCode === '13') {
+              viewElement.val('configuration');
+              viewElement.trigger('change');
+              // Set active class on the last chunk with user interaction.
+              setActiveChunk($(element));
+            }
           });
 
           // Switch to preview view when "Preview" button is selected.
-          $(classPrepend + 'preview-button', element).bind('mousedown.chunkPreview', function(e) {
-            viewElement.val('preview');
-            viewElement.trigger('change');
-            // Set active class on the last chunk with user interaction.
-            setActiveChunk($(element));
-            addButton.focus();
+          $(classPrepend + 'preview-button', element).bind('keyup.chunkPreview click.chunkPreview', function(e) {
+            if (e.type === 'click' || e.type === 'keyup' && e.charCode === '13') {
+              viewElement.val('preview');
+              viewElement.trigger('change');
+              // Set active class on the last chunk with user interaction.
+              setActiveChunk($(element));
+              addButton.focus();
+            }
           });
 
           // Switch to configuration view when "Edit" button is selected.
-          $(classPrepend + 'edit-button', element).bind('mousedown.chunkEdit', function(e) {
-            viewElement.val('configuration');
-            viewElement.trigger('change');
-            // Set active class on the last chunk with user interaction.
-            setActiveChunk($(element));
+          $(classPrepend + 'edit-button', element).bind('keyup.chunkEdit click.chunkEdit', function(e) {
+            if (e.type === 'mousedown' || e.type === 'keyup' && e.charCode === '13') {
+              viewElement.val('configuration');
+              viewElement.trigger('change');
+              // Set active class on the last chunk with user interaction.
+              setActiveChunk($(element));
+            }
           });
 
           // Always set focus to the active chunk's button.
           if (active) {
             addButton.focus();
           }
+
         });
 
       });
