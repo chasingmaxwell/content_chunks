@@ -31,3 +31,13 @@ function chunks_text_chunk_form_validate($configuration, &$form_state, $form) {
   return TRUE;
 }
 
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_empty().
+ */
+function chunks_text_chunk_is_empty($configuration, $item, $field) {
+  if (empty($configuration['text'])) {
+    return TRUE;
+  }
+  return FALSE;
+}
+

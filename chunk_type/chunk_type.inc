@@ -41,6 +41,15 @@ class ChunkType {
     return FALSE;
   }
 
+  public function getEmptyCheck() {
+    $this->file_include();
+    $function = $this->module . '_' . $this->name . '_chunk_is_empty';
+    if (function_exists($function)) {
+      return $function;
+    }
+    return FALSE;
+  }
+
   public function file_include() {
     require_once DRUPAL_ROOT . '/' . drupal_get_path('module', $this->module) . '/' . $this->module . '.chunk_types.inc';
   }
