@@ -262,7 +262,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     );
 
     foreach ($chunk_types as $name => $chunk_type) {
-      $configuration = isset($chunk_state['configuration']) ? $chunk_state['configuration'][$chunk_state['type']] : array();
+      $configuration = isset($chunk_state['type']) && isset($chunk_state['configuration']) ? $chunk_state['configuration'][$chunk_state['type']] : array();
       $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration);
       $row['configuration'][$chunk_type->name] += array(
         '#type' => 'container',
@@ -471,6 +471,7 @@ function chunks_field_form_submit($form, &$form_state) {
         $chunk_state['view'] = 'configuration';
         break;
 
+      case 'cancel':
       case 'preview':
         $chunk_state['view'] = 'preview';
         break;

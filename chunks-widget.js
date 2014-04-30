@@ -43,6 +43,7 @@
           stagedViewElement = $(':input[name="' + fieldName + '[' + langcode + '][' + stagedDelta + '][view]"]');
           stagedViewElement.val('type_selection');
           stagedViewElement.trigger('change');
+          stagedRow.removeClass('staged');
           stagedRow.insertAfter(prevSibling);
           stagedRow.show();
           // @TODO: reset weights.
@@ -72,7 +73,7 @@
 
           // Switch to configuration view upon type selection.
           $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]', element).bind('keyup.chunkTypeSelected click.chunkTypeSelected', function(e) {
-            if (e.type === 'click' || e.type === 'keyup' && e.charCode === '13') {
+            if (e.type === 'click' || e.type === 'keyup' && e.keyCode === 13) {
               viewElement.val('configuration');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
@@ -82,20 +83,18 @@
 
           // Switch to preview view when "Preview" button is pressed.
           $(classPrepend + 'preview-button', element).bind('keyup.chunkPreview mousedown.chunkPreview', function(e) {
-            if (e.type === 'click' || e.type === 'keyup' && e.charCode === '13') {
+            if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
               viewElement.val('preview');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
               setActiveChunk($(element));
               addButton.focus();
-              // Remove active state on button.
-              removeActiveState(this);
             }
           });
 
           // Switch to configuration view when "Edit" button is pressed.
           $(classPrepend + 'edit-button', element).bind('keyup.chunkEdit mousedown.chunkEdit', function(e) {
-            if (e.type === 'mousedown' || e.type === 'keyup' && e.charCode === '13') {
+            if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
               viewElement.val('configuration');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
@@ -106,29 +105,35 @@
           });
 
           // Swith to preview view with "Cancel" button is pressed.
-          $(classPrepend + 'cancel-button', element).bind('keyup.chunkEdit mousedown.chunkEditCancel', function(e) {
-            if (e.type === 'mousedown' || e.type === 'keyup' && e.charCode === '13') {
+          $(classPrepend + 'cancel-button', element).bind('keyup.chunkEditCancel mousedown.chunkEditCancel', function(e) {
+            if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
               viewElement.val('preview');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
               setActiveChunk($(element));
               // Remove active state on button.
               removeActiveState(this);
+              // @TODO: put old configuration back.
             }
           });
 
           // Switch to removed view when "Remove" button is pressed.
-          $(classPrepend + 'remove-button', element).bind('mousedown.chunkEdit', function(e) {
-            viewElement.val('removed');
-            viewElement.trigger('change');
-            $('#' + fieldName + '-' + delta + '-chunk-row').hide();
-            // @TODO: reset odd/even classes.
+          $(classPrepend + 'remove-button', element).bind('keyup.chunkRemove mousedown.chunkRemove', function(e) {
+            if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+              e.preventDefault();
+              viewElement.val('removed');
+              viewElement.trigger('change');
+              $('#' + fieldName + '-' + delta + '-chunk-row').hide();
+              // @TODO: reset odd/even classes.
+            }
           });
 
           // Switch to type_selection view for staged chunk when add after
           // button is pressed.
-          $(classPrepend + 'add-after-button', element).bind('mousedown.chunkAdd', function(e) {
-            showStagedChunk('#' + fieldName + '-' + delta + '-chunk-row');
+          $(classPrepend + 'add-after-button', element).bind('keyup.chunkAdd mousedown.chunkAdd', function(e) {
+            if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+              showStagedChunk('#' + fieldName + '-' + delta + '-chunk-row');
+            }
           });
 
           // Always set focus to the active chunk's button.
@@ -140,8 +145,10 @@
 
         // Switch to type_selection view for staged chunk when add before
         // button is pressed.
-        $(':input[name="' + fieldName + '-add-before"]', context).bind('mousedown.chunkAdd', function(e) {
-          showStagedChunk('#' + fieldName + '-chunks-field .add-chunk-action-before-row');
+        $(':input[name="' + fieldName + '-add-before"]', context).bind('keyup.chunkAdd mousedown.chunkAdd', function(e) {
+          if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+            showStagedChunk('#' + fieldName + '-chunks-field .add-chunk-action-before-row');
+          }
         });
 
       });
