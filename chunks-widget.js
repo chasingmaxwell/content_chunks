@@ -71,42 +71,50 @@
           }
 
           // Switch to configuration view upon type selection.
-          $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]', element).bind('click.chunkTypeSelected', function(e) {
-            viewElement.val('configuration');
-            viewElement.trigger('change');
-            // Set active class on the last chunk with user interaction.
-            setActiveChunk($(element));
+          $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]', element).bind('keyup.chunkTypeSelected click.chunkTypeSelected', function(e) {
+            if (e.type === 'click' || e.type === 'keyup' && e.charCode === '13') {
+              viewElement.val('configuration');
+              viewElement.trigger('change');
+              // Set active class on the last chunk with user interaction.
+              setActiveChunk($(element));
+            }
           });
 
           // Switch to preview view when "Preview" button is pressed.
-          $(classPrepend + 'preview-button', element).bind('mousedown.chunkPreview', function(e) {
-            viewElement.val('preview');
-            viewElement.trigger('change');
-            // Set active class on the last chunk with user interaction.
-            setActiveChunk($(element));
-            addButton.focus();
-            // Remove active state on button.
-            removeActiveState(this);
+          $(classPrepend + 'preview-button', element).bind('keyup.chunkPreview mousedown.chunkPreview', function(e) {
+            if (e.type === 'click' || e.type === 'keyup' && e.charCode === '13') {
+              viewElement.val('preview');
+              viewElement.trigger('change');
+              // Set active class on the last chunk with user interaction.
+              setActiveChunk($(element));
+              addButton.focus();
+              // Remove active state on button.
+              removeActiveState(this);
+            }
           });
 
           // Switch to configuration view when "Edit" button is pressed.
-          $(classPrepend + 'edit-button', element).bind('mousedown.chunkEdit', function(e) {
-            viewElement.val('configuration');
-            viewElement.trigger('change');
-            // Set active class on the last chunk with user interaction.
-            setActiveChunk($(element));
-            // Remove active state on button.
-            removeActiveState(this);
+          $(classPrepend + 'edit-button', element).bind('keyup.chunkEdit mousedown.chunkEdit', function(e) {
+            if (e.type === 'mousedown' || e.type === 'keyup' && e.charCode === '13') {
+              viewElement.val('configuration');
+              viewElement.trigger('change');
+              // Set active class on the last chunk with user interaction.
+              setActiveChunk($(element));
+              // Remove active state on button.
+              removeActiveState(this);
+            }
           });
 
           // Swith to preview view with "Cancel" button is pressed.
-          $(classPrepend + 'cancel-button', element).bind('mousedown.chunkEditCancel', function(e) {
-            viewElement.val('preview');
-            viewElement.trigger('change');
-            // Set active class on the last chunk with user interaction.
-            setActiveChunk($(element));
-            // Remove active state on button.
-            removeActiveState(this);
+          $(classPrepend + 'cancel-button', element).bind('keyup.chunkEdit mousedown.chunkEditCancel', function(e) {
+            if (e.type === 'mousedown' || e.type === 'keyup' && e.charCode === '13') {
+              viewElement.val('preview');
+              viewElement.trigger('change');
+              // Set active class on the last chunk with user interaction.
+              setActiveChunk($(element));
+              // Remove active state on button.
+              removeActiveState(this);
+            }
           });
 
           // Switch to removed view when "Remove" button is pressed.
@@ -127,6 +135,7 @@
           if (active) {
             addButton.focus();
           }
+
         });
 
         // Switch to type_selection view for staged chunk when add before
