@@ -62,3 +62,8 @@
   padding: 10px 13px 0 15px;
 }
 
+.field-widget-chunks-default .chunk-edit-button,
+.field-widget-chunks-default .chunk-cancel-button {
+  display: none;
+}
+

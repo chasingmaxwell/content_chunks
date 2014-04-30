@@ -101,7 +101,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // Set maximum number of items to display.
   switch ($field['cardinality']) {
     case FIELD_CARDINALITY_UNLIMITED:
-      $max = $field_state['items_count'];
+      $max = $field_state['items_count'] + 1;
       break;
     default:
       $max = $field['cardinality'] - 1;
@@ -139,7 +139,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
       'add_before' => array(
         '#type' => 'submit',
-        '#name' => $id_prefix . '-add-before',
+        '#name' => $field_name . '-add-before',
         '#value' => t('+ Add chunk here'),
         '#submit' => array('chunks_field_add_before'),
         '#op' => 'add_before',
@@ -163,7 +163,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // callback.
     $row += array(
       '#element_validate' => array('chunks_field_widget_values_validate'),
-      '#prefix' => '<div id="' . $field_name . '-' . $delta . '-chunk' . '" class="chunk-wrapper">',
+      '#prefix' => '<div id="' . $field_name . '-' . $delta . '-chunk' . '" class="chunk-wrapper" delta="' . $delta . '">',
       '#suffix' => '</div>'
     );
 
@@ -191,6 +191,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     }
     else {
       $chunk_state = array();
+    }
+
+    if ($delta == $max) {
+      // The last chunk should be hidden. It will appear when adding a new chunk
+      // so that the editor will see an immediate response.
+      $chunk_state['view'] = 'staged';
     }
 
     // Save chunk types in the form so they can be accessed easily later.
@@ -299,13 +305,15 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#op' => 'edit',
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-edit-button'),
+          'class' => array('chunk-edit-button', str_replace('_', '-', $field_name) . '-' . $delta . '-edit-button'),
         ),
         '#states' => array(
           'visible' => array(
             ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'preview'),
           ),
         ),
+      ),
+      'cancel' => array(
       ),
       'preview' => array(
         '#type' => 'submit',
@@ -340,6 +348,27 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
     );
 
+    // Once we have a preview, display a cancel button.
+    if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
+      $row['chunk_actions']['cancel'] = array(
+        '#type' => 'submit',
+        '#name' => $id_prefix . '-' . $delta . '-cancel',
+        '#value' => t('Cancel'),
+        '#submit' => array('chunks_field_form_submit'),
+        '#op' => 'cancel',
+        '#weight' => -1,
+        '#limit_validation_errors' => array(array($field_name)),
+        '#attributes' => array(
+          'class' => array('chunk-cancel-button', str_replace('_', '-', $field_name) . '-' . $delta . '-cancel-button'),
+        ),
+        '#states' => array(
+          'visible' => array(
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'configuration'),
+          ),
+        ),
+      );
+    }
+
     // If cardinality is unlimited, provide buttons for adding new chunks
     // directly after the current chunk.
     if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
@@ -351,11 +380,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#weight' => 2,
         'add_after' => array(
           '#type' => 'submit',
-          '#name' => $id_prefix . '-' . $delta . '-add-after',
+          '#name' => $field_name . '-' . $delta . '-add-after',
           '#value' => t('+ Add chunk here'),
           '#submit' => array('chunks_field_form_submit'),
           '#op' => 'add_after',
           '#limit_validation_errors' => array(array($field_name)),
+          '#attributes' => array(
+            'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-add-after-button'),
+          ),
           '#weight' => 2,
           '#ajax' => array(
             'callback' => 'chunks_field_form_callback',
@@ -404,7 +436,7 @@ function chunks_field_preview_callback($form, $form_state) {
   unset($element['_weight']);
 
   // Add active class to chunk wrapper.
-  $element['#prefix'] = '<div id="' . $element['#field_name'] . '-' . $delta . '-chunk' . '" class="chunk-wrapper active">';
+  $element['#prefix'] = '<div id="' . $element['#field_name'] . '-' . $delta . '-chunk' . '" class="chunk-wrapper active" delta="' . $delta . '">';
 
   return drupal_render($element);
 }
@@ -765,9 +797,13 @@ function theme_chunks_field_widget_form($variables) {
         array('data' => drupal_render($item), 'class' => array('item')),
         array('data' => $delta_element, 'class' => array('delta-order')),
       );
+      $row_class = array('draggable');
+      if ($item['view']['#value'] == 'staged') {
+        $row_class[] = 'staged';
+      }
       $rows[] = array(
         'data' => $cells,
-        'class' => array('draggable'),
+        'class' => $row_class,
         'id' => $element['#field_name'] . '-' .  $key . '-chunk-row',
       );
     }
