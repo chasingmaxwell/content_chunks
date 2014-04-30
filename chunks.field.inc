@@ -78,10 +78,6 @@ function chunks_field_widget_info() {
  * Implements hook_field_widget_form().
  */
 function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-  // @TODO:
-  //  - Add validation for each chunk's configuration through #element_validate.
-  //  - Add hook to check if field is empty based on the configuration.
-
   $field_name = $field['field_name'];
   $parents = $element['#field_parents'];
 
@@ -694,14 +690,6 @@ function chunks_field_formatter_info() {
       'field types' => array('chunks'),
     ),
   );
-}
-
-/**
- * Implements hook_field_validate().
- */
-function chunks_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
-  // @TODO: Run each chunk configuration through its module's own validation.
-  // Should hook_field_widget_error() be used for this (or #element_validate)?
 }
 
 /**
