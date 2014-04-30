@@ -37,11 +37,18 @@
         chunks.each(function(delta, element) {
           var classPrepend, viewElement, view, active, addButton;
 
-          classPrepend = '.' + classFieldName + '-' + delta + '-';
           viewElement = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][view]"]');
           view = viewElement.val();
+          classPrepend = '.' + classFieldName + '-' + delta + '-';
           active = $(element).hasClass('active');
           addButton = $(':input[name="' + fieldName + '-' + delta + '-add-after"]');
+
+          // If this chunk has been removed, do not display it and stop all
+          // other processing.
+          if (view == 'removed') {
+            $(element).parents('#' + fieldName + '-' + delta + '-chunk-row').hide();
+            return;
+          }
 
           // Switch to configuration view when errors are detected.
           if ($(classPrepend + 'configuration .error', element).length > 0) {
@@ -78,6 +85,13 @@
               // Set active class on the last chunk with user interaction.
               setActiveChunk($(element));
             }
+          });
+
+          // Switch to removed view when "Remove" button is selected.
+          $(classPrepend + 'remove-button', element).bind('mousedown.chunkEdit', function(e) {
+            viewElement.val('removed');
+            viewElement.trigger('change');
+            $(element).parents('#' + fieldName + '-' + delta + '-chunk-row').hide();
           });
 
           // Always set focus to the active chunk's button.
