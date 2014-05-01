@@ -105,12 +105,23 @@ function chunks_theme($existing, $type, $theme, $path) {
   // Load all chunk types and register corresponding theme hooks.
   $chunk_types = chunk_types_load();
   foreach ($chunk_types as $chunk_type) {
-    $theme_hooks['chunk__' . $chunk_type->name] = array(
+
+    // Build the chunk type's theme hook.
+    $hook =  array(
       'render element' => 'chunk',
       'template' => 'chunk--' . str_replace('_', '-', $chunk_type->name),
       'path' => drupal_get_path('module', $chunk_type->module),
     );
-    // @TODO: log it in watchdog if the template file does not exist.
+
+    // Only register the theme hook if the template file exists.
+    if (file_exists(DRUPAL_ROOT . '/' . $hook['path'] . '/' . $hook['template'] . '.tpl.php')) {
+      $theme_hooks['chunk__' . $chunk_type->name] = $hook;
+    }
+    else {
+      $message = 'The module %module did not provide a properly named template file for the chunk type %type.';
+      $variables = array('%module' => $chunk_type->module, '%type' => $chunk_type->name);
+      watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+    }
   }
 
   return $theme_hooks;
@@ -126,7 +137,8 @@ function template_preprocess_chunk(&$variables) {
   // Make configuration a top-level variable.
   $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
 
-  // Add theme hook suggestion based on type.
+  // Add theme hook suggestions.
+  $variables['theme_hook_suggestions'][] = 'chunk';
   $variables['theme_hook_suggestions'][] = 'chunk__' . $variables['chunk']['#chunk_type']->name;
 }
 

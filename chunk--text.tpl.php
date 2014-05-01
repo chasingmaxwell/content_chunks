@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Default chunk template.
+ * Text chunk template.
  */
 
 /**
