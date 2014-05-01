@@ -35,6 +35,36 @@
   margin: 0;
   text-align: center;
 }
+.field-widget-chunks-default table,
+.field-widget-chunks-default thead,
+.field-widget-chunks-default tbody,
+.field-widget-chunks-default tr,
+.field-widget-chunks-default .add-chunk-action-before-row td {
+  display: block;
+  width: 100%;
+}
+.field-widget-chunks-default tr td:last-child {
+  border-right: 0;
+}
+.field-widget-chunks-default thead {
+  background: #e1e2dc;
+}
+.field-widget-chunks-default thead:after {
+  content: '.';
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+.field-widget-chunks-default th {
+  border: 0;
+  float: left;
+}
+.field-widget-chunks-default th.tabledrag-hide {
+  float: right;
+  border-left: 1px solid #bebfb9;
+  min-width: 100px;
+}
 .field-widget-chunks-default .field-unlimited-table .add-chunk-action-after .ajax-progress {
   position: relative;
   z-index: 1;

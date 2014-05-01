@@ -177,15 +177,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#suffix' => '</div>'
     );
 
-    // Add input for reordering.
-    $row['_weight'] = array(
-      '#type' => 'weight',
-      '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
-      '#delta' => $max,
-      '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta]['_weight'] : $delta,
-      '#weight' => 100,
-    );
-
     // Retrieve the chunk state from $items.
     if (isset($items[$delta])) {
       $chunk_state = $items[$delta];
@@ -217,6 +208,16 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       // so that the editor will see an immediate response.
       $chunk_state['view'] = 'staged';
     }
+
+    // Add input for reordering.
+    $row['_weight'] = array(
+      '#type' => 'weight',
+      '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
+      '#delta' => $max,
+      '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta]['_weight'] : $delta,
+        '#disabled' => isset($chunk_state['view']) && $chunk_state['view'] == 'staged',
+      '#weight' => 100,
+    );
 
     // Include hidden field value for the view to display. This will give us
     // better control over our #states.
