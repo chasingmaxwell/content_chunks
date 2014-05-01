@@ -232,6 +232,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
       '#options' => $options,
       '#default_value' => isset($chunk_state['type']) ? $chunk_state['type'] : NULL,
+      '#disabled' => isset($chunk_state['view']) && $chunk_state['view'] == 'staged',
       '#states' => array(
         'visible' => array(
           ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'type_selection'),
