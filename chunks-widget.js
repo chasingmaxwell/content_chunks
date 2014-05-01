@@ -21,13 +21,14 @@
     attach: function(context, settings) {
       // Do some stuff
       $('.chunks-field', context).each(function() {
-        var field, fieldName, classFieldName, langcode, chunks, setActiveChunk, showStagedChunk, resetStripes;
+        var field, fieldName, classFieldName, langcode, chunks, setActiveChunk, showStagedChunk, resetStripes, config, saveConfig, restoreConfig;
 
         field = $(this);
         fieldName = field.attr('field_name');
         classFieldName = field.attr('field_name').replace(/_/g, '-');
         langcode = field.attr('langcode');
         chunks = $('.chunk-wrapper', field);
+        config = {};
 
         // Helper function to set "active" class on a specific chunk.
         setActiveChunk = function(chunk) {
@@ -67,6 +68,26 @@
               parentRow.removeClass('odd').addClass('even');
             }
           });
+        };
+
+        // Helper function to save configuration.
+        saveConfig = function(delta) {
+          config[delta] = {};
+
+          $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').each(function(i, element) {
+            var name = $(element).attr('name');
+            config[delta][name] = $(element).val();
+          });
+        };
+
+        // Helper function to restore configuration.
+        restoreConfig = function(delta) {
+          $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').each(function(i, element) {
+            var name = $(element).attr('name');
+             $(element).val(config[delta][name]);
+          });
+
+          delete config[delta];
         };
 
         chunks.each(function(index, element) {
@@ -120,6 +141,8 @@
               setActiveChunk($(element));
               // Remove active state on button.
               removeActiveState(this);
+              // Save configuration so we can restore it if we cancel.
+              saveConfig(delta);
             }
           });
 
@@ -132,7 +155,8 @@
               setActiveChunk($(element));
               // Remove active state on button.
               removeActiveState(this);
-              // @TODO: put old configuration back.
+              // Restore configuration.
+              restoreConfig(delta);
             }
           });
 
