@@ -19,15 +19,37 @@ function chunk_types_load() {
       $function = $module . '_chunk_types';
       $module_chunk_types = $function();
       foreach ($module_chunk_types as $name => $data) {
-        // @TODO:
-        //  - Add a check here to see if a chunk type of the same name already
-        //    exists. If so, we should log it in watchdog.
-        //  - Make sure $data contains what it should and log it in watchdog if it
-        //    does not.
-        //  - Make sure the MODULE_NAME.chunk_types.inc file exists and log it if
-        //    it doesn't.
 
-        $chunk_types[$name] = new ChunkType($name, $data, $module);
+        // Check if multiple modules define a chunk type with the same name.
+        if (isset($chunk_types[$name])) {
+          $message = 'The chunk type %type was provided by the %first_module module but has been overridden by the %second_module module which provided a chunk type of the same name.';
+          $variables = array('%type' => $name, '%first_module' => $chunk_types[$name]->module, '%second_module' => $module);
+          watchdog('chunks', $message, $variables, WATCHDOG_WARNING);
+        }
+
+        // Run validation to make sure the chunk type is properly defined.
+        $valid = TRUE;
+
+        // Check if required properties are present.
+        if (!isset($data['title']) || !isset($data['default_configuration'])) {
+          $message = 'The chunk type %type is not properly defined in %module_chunk_types(). It must contain both a title and a default_configuration';
+          $variables = array('%type' => $name, '%module' => $module);
+          watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+          $valid = FALSE;
+        }
+
+        // Check if the MODULE_NAME.chunk_types.inc file exists.
+        if (!file_exists(DRUPAL_ROOT . '/' . drupal_get_path('module', $module) . '/' . $module . '.chunk_types.inc')) {
+          $message = 'The module %module does not provide a %module.chunk_types.inc file. The chunk type %type will not be loaded';
+          $variables = array('%module' => $module, '%type' => $name);
+          watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+          $valid = FALSE;
+        }
+
+        // If the chunk type is valid, add it.
+        if ($valid) {
+          $chunk_types[$name] = new ChunkType($name, $data, $module);
+        }
       }
     }
   }
