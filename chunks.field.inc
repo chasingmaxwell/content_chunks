@@ -87,6 +87,20 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // Retrieve all chunk_types for use later.
   $chunk_types = chunk_types_load();
 
+  // Save chunk types in the form so they can be accessed easily later.
+  $form['#chunk_types'] = $chunk_types;
+
+  // Filter allowed chunk types by permissions and instance settings.
+  $form['#allowed_chunk_types'] = array();
+  foreach ($chunk_types as $name => $chunk_type) {
+    if ((!isset($instance['settings']['chunk_types'][$name]) || !$instance['settings']['chunk_types'][$name]) ||
+      !user_access('use_' . $chunk_type->name . '_chunk')) {
+        continue;
+      }
+
+    $form['#allowed_chunk_types'][$chunk_type->name] = $chunk_type;
+  }
+
   // Retrieve items from the field state since they may not exist in the form
   // state due to #limit_validation_errors.
   $field_state = field_form_get_state($parents, $field_name, $langcode, $form_state);
@@ -189,33 +203,20 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       $chunk_state = array();
     }
 
+    // Determine whether this chunk is editable by the current user.
+    if (!isset($chunk_state['type']) ||
+        (isset($chunk_state['type']) && isset($form['#allowed_chunk_types'][$chunk_state['type']]))) {
+      $chunk_state['allowed'] = TRUE;
+    }
+    else {
+      $chunk_state['allowed'] = FALSE;
+    }
+
     if ($delta == $max) {
       // The last chunk should be hidden. It will appear when adding a new chunk
       // so that the editor will see an immediate response.
       $chunk_state['view'] = 'staged';
     }
-
-    // Save chunk types in the form so they can be accessed easily later.
-    $form['#chunk_types'] = array();
-
-    // Filter chunk types by permissions and instance settings.
-    foreach ($chunk_types as $name => $chunk_type) {
-      if (!isset($instance['settings']['chunk_types'][$name]) ||
-        !user_access('use_' . $chunk_type->name . '_chunk')) {
-          continue;
-      }
-
-      $options[$chunk_type->name] = $chunk_type->title;
-
-      $form['#chunk_types'][$chunk_type->name] = $chunk_type;
-    }
-
-    // @TODO: this is just here to test the states functionality because we need
-    // more than one option for it to work. Remove this.
-    $options += array(
-      'test_type' => t('Test type'),
-    );
-
 
     // Include hidden field value for the view to display. This will give us
     // better control over our #states.
@@ -224,21 +225,45 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#default_value' => isset($chunk_state['view']) ? $chunk_state['view'] : 'type_selection',
     );
 
-    $row['type'] = array(
-      '#type' => 'radios',
-      '#title' => t('I\'m adding'),
-      '#attributes' => array(
-        'class' => array('chunk-type-selection'),
-      ),
-      '#options' => $options,
-      '#default_value' => isset($chunk_state['type']) ? $chunk_state['type'] : NULL,
-      '#disabled' => isset($chunk_state['view']) && $chunk_state['view'] == 'staged',
-      '#states' => array(
-        'visible' => array(
-          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'type_selection'),
+    // If this chunk is editable by the current user, build the type selection
+    // form element.
+    if ($chunk_state['allowed']) {
+      // Filter available chunk types by allowed chunk types.
+      $options = array();
+      foreach ($form['#allowed_chunk_types'] as $chunk_type) {
+        $options[$chunk_type->name] = $chunk_type->title;
+      }
+
+      // @TODO: this is just here to test the states functionality because we need
+      // more than one option for it to work. Remove this.
+      $options += array(
+        'test_type' => t('Test type'),
+      );
+
+      $row['type'] = array(
+        '#type' => 'radios',
+        '#title' => t('I\'m adding'),
+        '#attributes' => array(
+          'class' => array('chunk-type-selection'),
         ),
-      ),
-    );
+        '#options' => $options,
+        '#default_value' => isset($chunk_state['type']) ? $chunk_state['type'] : NULL,
+        '#disabled' => isset($chunk_state['view']) && $chunk_state['view'] == 'staged',
+        '#states' => array(
+          'visible' => array(
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'type_selection'),
+          ),
+        ),
+      );
+    }
+    // If this chunk is not editable by the current user, store the type in a
+    // hidden form element.
+    else {
+      $row['type'] = array(
+        '#type' => 'hidden',
+        '#value' => $chunk_state['type'],
+      );
+    }
 
     $row['module'] = array(
       '#type' => 'hidden',
@@ -294,7 +319,25 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'class' => array('chunk-actions'),
       ),
       '#weight' => 1,
-      'edit' => array(
+      'remove' => array(
+        '#type' => 'submit',
+        '#name' => $id_prefix . '-' . $delta . '-remove',
+        '#value' => t('Remove'),
+        '#submit' => array('chunks_field_form_submit'),
+        '#op' => 'remove',
+        '#weight' => 1,
+        '#disabled' => isset($chunk_state['view']) && $chunk_state['view'] == 'staged',
+        '#limit_validation_errors' => array(array($field_name)),
+        '#attributes' => array(
+          'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-remove-button'),
+        ),
+      ),
+    );
+
+    // Display chunk editing actions if the current chunk is of an allowed type.
+    if ($chunk_state['allowed']) {
+
+      $row['chunk_actions']['edit'] = array(
         '#type' => 'submit',
         '#name' => $id_prefix . '-' . $delta . '-edit',
         '#value' => t('Edit'),
@@ -309,10 +352,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
             ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'preview'),
           ),
         ),
-      ),
-      'cancel' => array(
-      ),
-      'preview' => array(
+      );
+
+      $row['chunk_actions']['preview'] = array(
         '#type' => 'submit',
         '#name' => $id_prefix . '-' . $delta . '-preview',
         '#value' => t('Preview'),
@@ -331,39 +373,28 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
             ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'configuration'),
           ),
         ),
-      ),
-      'remove' => array(
-        '#type' => 'submit',
-        '#name' => $id_prefix . '-' . $delta . '-remove',
-        '#value' => t('Remove'),
-        '#submit' => array('chunks_field_form_submit'),
-        '#op' => 'remove',
-        '#limit_validation_errors' => array(array($field_name)),
-        '#attributes' => array(
-          'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-remove-button'),
-        ),
-      ),
-    );
-
-    // Once we have a preview, display a cancel button.
-    if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
-      $row['chunk_actions']['cancel'] = array(
-        '#type' => 'submit',
-        '#name' => $id_prefix . '-' . $delta . '-cancel',
-        '#value' => t('Cancel'),
-        '#submit' => array('chunks_field_form_submit'),
-        '#op' => 'cancel',
-        '#weight' => -1,
-        '#limit_validation_errors' => array(array($field_name)),
-        '#attributes' => array(
-          'class' => array('chunk-cancel-button', str_replace('_', '-', $field_name) . '-' . $delta . '-cancel-button'),
-        ),
-        '#states' => array(
-          'visible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'configuration'),
-          ),
-        ),
       );
+
+      // Once we have a preview, display a cancel button.
+      if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
+        $row['chunk_actions']['cancel'] = array(
+          '#type' => 'submit',
+          '#name' => $id_prefix . '-' . $delta . '-cancel',
+          '#value' => t('Cancel'),
+          '#submit' => array('chunks_field_form_submit'),
+          '#op' => 'cancel',
+          '#weight' => -1,
+          '#limit_validation_errors' => array(array($field_name)),
+          '#attributes' => array(
+            'class' => array('chunk-cancel-button', str_replace('_', '-', $field_name) . '-' . $delta . '-cancel-button'),
+          ),
+          '#states' => array(
+            'visible' => array(
+              ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'configuration'),
+            ),
+          ),
+        );
+      }
     }
 
     // If cardinality is unlimited, provide buttons for adding new chunks
