@@ -716,7 +716,39 @@ function chunks_field_formatter_info() {
       'label' => t('Chunks'),
       'field types' => array('chunks'),
     ),
+    'chunks_p' => array(
+      'label' => t('Paragraph'),
+      'field types' => array('chunks'),
+    ),
   );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $elements = array();
+  foreach ($items as $delta => $item) {
+    $elements[$delta] = array(
+      '#markup' => theme('chunks_formatter_chunks_default', array('element' => $item, 'field' => $instance)),
+    );
+  }
+  return $elements;
+}
+
+/**
+ * Theme function to generate Chunks.
+ */
+function theme_chunks_formatter_chunks_default($element) {
+  $output = 'begin chunk output --';
+  if (!empty($element)) {
+    foreach($element as $key => $value) {
+      kpr($element);
+      $output .= 'chunk loop';
+    }
+  }
+  $output .= "--end chunk output";
+  return $output;
 }
 
 /**
