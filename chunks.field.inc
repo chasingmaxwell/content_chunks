@@ -716,10 +716,6 @@ function chunks_field_formatter_info() {
       'label' => t('Chunks'),
       'field types' => array('chunks'),
     ),
-    'chunks_p' => array(
-      'label' => t('Paragraph'),
-      'field types' => array('chunks'),
-    ),
   );
 }
 
