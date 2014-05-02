@@ -1,0 +1,99 @@
+/**
+ * @file
+ * Styles for chunks administration.
+ */
+
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-before-row td {
+  padding: 0;
+}
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-before {
+  margin: 0;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+}
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-before .ajax-progress {
+  position: relative;
+  z-index: 1;
+}
+
+.field-widget-chunks-default .field-unlimited-table tr.draggable {
+  display: block;
+  position: relative;
+  border-left: 0;
+  padding: 10px 0 24px;
+}
+.field-widget-chunks-default .field-unlimited-table tr.draggable td.item {
+  width: 100%;
+}
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  text-align: center;
+}
+.field-widget-chunks-default table,
+.field-widget-chunks-default thead,
+.field-widget-chunks-default tbody,
+.field-widget-chunks-default tr,
+.field-widget-chunks-default .add-chunk-action-before-row td {
+  display: block;
+  width: 100%;
+}
+.field-widget-chunks-default tr td:last-child {
+  border-right: 0;
+}
+.field-widget-chunks-default thead {
+  background: #e1e2dc;
+}
+.field-widget-chunks-default thead:after {
+  content: '.';
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+.field-widget-chunks-default th {
+  border: 0;
+  float: left;
+}
+.field-widget-chunks-default th.tabledrag-hide {
+  float: right;
+  border-left: 1px solid #bebfb9;
+  min-width: 100px;
+}
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-after .ajax-progress {
+  position: relative;
+  z-index: 1;
+}
+
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-before input.form-submit,
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-after input.form-submit {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  -moz-border-radius: 0;
+  -webkit-border-radius: 0;
+  border-radius: 0;
+  margin: 0;
+  background: #ccc;
+  color: #fff;
+}
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-before input.form-submit:hover,
+.field-widget-chunks-default .field-unlimited-table .add-chunk-action-after input.form-submit:hover {
+  background: #bbb;
+}
+
+.field-widget-chunks-default .chunk-type-selection .fieldset-wrapper {
+  padding: 10px 13px 0 15px;
+}
+
+.field-widget-chunks-default .chunk-edit-button,
+.field-widget-chunks-default .chunk-cancel-button {
+  display: none;
+}
+
