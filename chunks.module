@@ -84,7 +84,7 @@ function chunks_chunk_types() {
     'p' => array(
       'title' => t('Paragraph'),
       'default_configuration' => array(
-        'text' => '',
+        'p' => '',
       ),
     ),
   );
