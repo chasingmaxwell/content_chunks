@@ -733,21 +733,6 @@ function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $
 }
 
 /**
- * Theme function to generate Chunks.
- */
-function theme_chunks_formatter_chunks_default($element) {
-  $output = 'begin chunk output --';
-  if (!empty($element)) {
-    foreach($element as $key => $value) {
-      kpr($element);
-      $output .= 'chunk loop';
-    }
-  }
-  $output .= "--end chunk output";
-  return $output;
-}
-
-/**
  * Implements hook_field_is_empty().
  */
 function chunks_field_is_empty($item, $field) {
