@@ -235,12 +235,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         $options[$chunk_type->name] = $chunk_type->title;
       }
 
-      // @TODO: this is just here to test the states functionality because we need
-      // more than one option for it to work. Remove this.
-      $options += array(
-        'test_type' => t('Test type'),
-      );
-
       $row['type'] = array(
         '#type' => 'radios',
         '#title' => t('I\'m adding'),

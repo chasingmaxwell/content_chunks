@@ -81,6 +81,12 @@ function chunks_chunk_types() {
         'text' => '',
       ),
     ),
+    'p' => array(
+      'title' => t('Paragraph'),
+      'default_configuration' => array(
+        'text' => '',
+      ),
+    ),
   );
 }
 
@@ -118,7 +124,7 @@ function chunks_theme($existing, $type, $theme, $path) {
       $theme_hooks['chunk__' . $chunk_type->name] = $hook;
     }
     else {
-      $message = 'The module %module did not provide a properly named template file for the chunk type %type.';
+      $message = 'The %module module did not provide a properly named template file for the chunk type %type.';
       $variables = array('%module' => $chunk_type->module, '%type' => $chunk_type->name);
       watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
     }
