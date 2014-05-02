@@ -114,10 +114,14 @@
           // Switch to configuration view upon type selection.
           $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]', element).bind('keyup.chunkTypeSelected click.chunkTypeSelected', function(e) {
             if (e.type === 'click' || e.type === 'keyup' && e.keyCode === 13) {
+              this.checked = true;
+              $(this).trigger('change');
               viewElement.val('configuration');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
               setActiveChunk($(element));
+              // Add focus to first form item.
+              $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').first().focus();
             }
           });
 
