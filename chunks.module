@@ -8,7 +8,11 @@
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
 
 /**
- * Load all chunk types defined by hook_chunk_types().
+ * Validate and load all chunk types defined by hook_chunk_types().
+ *
+ * @return
+ *   An associative array of ChunkType objects keyed by the ChunkType's
+ *   machine-readable name.
  */
 function chunk_types_load() {
   $chunk_types = &drupal_static(__FUNCTION__);

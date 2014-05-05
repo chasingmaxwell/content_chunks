@@ -671,8 +671,8 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     $chunk_type = $form['#chunk_types'][$item['type']];
 
-    // Create and save the data field value since it does not have a corresponding
-    // field element.
+    // Create and save the data field value since it does not have a
+    // corresponding field element.
     $data = array(
       'type' => $chunk_type,
       'configuration' => $item['configuration'][$item['type']],
