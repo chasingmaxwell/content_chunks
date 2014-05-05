@@ -686,11 +686,15 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     if (isset($triggering_element['#op'])) {
       switch ($triggering_element['#op']) {
+        // When removing or adding chunks, configuration validation is not
+        // necessary.
         case 'remove':
         case 'add_after':
         case 'add_before':
           $validate_configuration = FALSE;
           break;
+        // Do not validate configuration if the chunk currenty being validated
+        // is not the chunk being previewed.
         case 'preview':
           if ($triggering_element['#name'] != $element['chunk_actions']['preview']['#name']) {
             $validate_configuration = FALSE;
@@ -700,11 +704,8 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
     }
 
     // Validation for chunk type's configuration values.
-    if ($validate_configuration && $chunk_validation = $chunk_type->getValidation()) {
-      $valid = $chunk_validation($element['configuration'][$chunk_type->name], $form_state, $form);
-      if (!$valid) {
-        $item['view'] = 'configuration';
-      }
+    if ($validate_configuration) {
+      $chunk_type->validateConfiguration($element['configuration'][$chunk_type->name], $form_state, $form);
     }
 
     // Save changes to the form state.

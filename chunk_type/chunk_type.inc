@@ -36,13 +36,16 @@ class ChunkType {
     return $function($form, $form_state, $configuration);
   }
 
-  public function getValidation() {
+  public function validateConfiguration($configuration, &$form_state, $form) {
     $this->file_include();
     $function = $this->module . '_' . $this->name . '_chunk_form_validate';
     if (function_exists($function)) {
-      return $function;
+      $valid = $function($configuration, $form_state, $form);
+      if (!$valid) {
+        return FALSE;
+      }
     }
-    return FALSE;
+    return TRUE;
   }
 
   public function getEmptyCheck() {
