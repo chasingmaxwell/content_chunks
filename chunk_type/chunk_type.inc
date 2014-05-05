@@ -15,9 +15,13 @@ class ChunkType {
   function __construct($name, $data, $module) {
     $this->name = $name;
     $this->title = $data['title'];
-    $this->default_configuration = $data['default_configuration'];
+    $this->default_configuration = $data['default configuration'];
     $this->module = $module;
     $this->form_id = $module . '_' . $name . '_chunk_form';
+    $this->file = $data['file'];
+    $this->file_path = $data['file path'];
+    $this->template = $data['template'];
+    $this->template_path = $data['template path'];
 
     $this->file_include();
 
@@ -51,7 +55,7 @@ class ChunkType {
   }
 
   public function file_include() {
-    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', $this->module) . '/' . $this->module . '.chunk_types.inc';
+    require_once DRUPAL_ROOT . '/' . $this->file_path . '/' . $this->file;
   }
 }
 
