@@ -162,6 +162,9 @@ function template_preprocess_chunk(&$variables) {
   // Make configuration a top-level variable.
   $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
 
+  // Make the chunk's type a top-level variable.
+  $variables['chunk_type'] = $variables['chunk']['#chunk_type'];
+
   // Add theme hook suggestions.
   $variables['theme_hook_suggestions'][] = 'chunk';
   $variables['theme_hook_suggestions'][] = 'chunk__' . $variables['chunk']['#chunk_type']->name;
