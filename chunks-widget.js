@@ -21,7 +21,7 @@
 
   Drupal.behaviors.chunksWidget = {
     attach: function(context, settings) {
-      // Do some stuff
+      // Perform actions on each chunk field.
       $('.chunks-field', context).each(function() {
         var field, fieldName, classFieldName, langcode, chunks, setActiveChunk, showStagedChunk, resetStripes, config, saveConfig, restoreConfig;
 
@@ -153,7 +153,9 @@
               // Save configuration so we can restore it if we cancel.
               saveConfig(delta);
               // Add focus to first configuration item.
-              $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').first().focus();
+              setTimeout(function() {
+                $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').first().focus();
+              }, 0);
             }
           });
 
@@ -169,7 +171,9 @@
               // Restore configuration.
               restoreConfig(delta);
               // Set focus to add chunk button.
-              addButton.focus();
+              setTimeout(function() {
+                addButton.focus();
+              }, 0);
             }
           });
 
@@ -183,10 +187,14 @@
               visibleChunks.each(function(vi, ve) {
                 if ($(ve).attr('delta') === $(element).attr('delta')) {
                   if (vi === 0) {
-                    $(':input[name="' + fieldName + '-add-before"]', field).focus();
+                    setTimeout(function() {
+                      $(':input[name="' + fieldName + '-add-before"]', field).focus();
+                    }, 0);
                   }
                   else {
-                    $(visibleChunks[vi - 1]).find('.add-chunk-action-after input').focus();
+                    setTimeout(function() {
+                      $(visibleChunks[vi - 1]).find('.add-chunk-action-after input').focus();
+                    }, 0);
                   }
                   return false;
                 }
