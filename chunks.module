@@ -38,6 +38,9 @@ function chunk_types_load() {
         }
 
         // Check if required properties are present.
+        // @TODO: Make it possible for chunk types to be created without any
+        // configuration. In this case the widget should be altered to go
+        // straight from the type selection view to the preview view.
         if (!isset($data['title']) || !isset($data['default configuration'])) {
           $message = 'The %type chunk type is not properly defined in %module_chunk_types(). It must contain both a title and a default configuration.';
           $variables = array('%type' => $name, '%module' => $module);

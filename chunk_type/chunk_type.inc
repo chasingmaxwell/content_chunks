@@ -161,6 +161,11 @@ class ChunkType {
 
   /**
    * Include the file which provides the necessary hooks for this chunk type.
+   *
+   * @TODO: we should only run this function if the file property was provided
+   * instead of defaulting to MODULE_NAME.chunk_types.inc. If the file property
+   * was not provided, we should assume that all necessary hooks have been
+   * included in the MODULE_NAME.module file.
    */
   protected function file_include() {
     require_once DRUPAL_ROOT . '/' . $this->file_path . '/' . $this->file;
