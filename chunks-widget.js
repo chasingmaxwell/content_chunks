@@ -50,7 +50,6 @@
           stagedRow.removeClass('staged');
           stagedRow.insertAfter(prevSibling);
           stagedRow.show();
-          // @TODO: reset weights.
           resetStripes();
         };
 

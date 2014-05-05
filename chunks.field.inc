@@ -65,7 +65,7 @@ function chunks_field_widget_info() {
       'label' => t('Chunks'),
       'description' => t('Add and rearrange structured chunks of content.'),
       'field types' => array('chunks'),
-      'settings' => array(), // @TODO: Figure out what should go here.
+      'settings' => array(),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_CUSTOM,
         'default value' => FIELD_BEHAVIOR_NONE,
