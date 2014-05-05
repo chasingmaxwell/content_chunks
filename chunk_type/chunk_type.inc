@@ -48,11 +48,11 @@ class ChunkType {
     return TRUE;
   }
 
-  public function getEmptyCheck() {
+  public function configurationIsEmpty($configuration, $item, $field) {
     $this->file_include();
     $function = $this->module . '_' . $this->name . '_chunk_is_empty';
     if (function_exists($function)) {
-      return $function;
+      return $function($configuration, $item, $field);
     }
     return FALSE;
   }

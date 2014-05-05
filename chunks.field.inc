@@ -773,10 +773,8 @@ function chunks_field_is_empty($item, $field) {
 
     // Allow modules to check their chunk type's configuration and determine
     // whether or not it should be considered empty.
-    if ($empty_check = $data['type']->getEmptyCheck()) {
-      if ($empty_check($data['configuration'], $item, $field)) {
-        return TRUE;
-      }
+    if ($data['type']->configurationIsEmpty($data['configuration'], $item, $field)) {
+      return TRUE;
     }
   }
   return FALSE;
