@@ -6,12 +6,45 @@
  */
 
 class ChunkType {
+
+  // The machine-readable name.
   public $name;
+
+  // The human-readable name.
   public $title;
+
+  // The default values for the chunk type's configuration. This will populate
+  // the variables available to the chunk type's theme hook.
   public $default_configuration;
+
+  // The implementing module's name.
   public $module;
+
+  // The form_id and function name for loading the the chunk type's
+  // configuration form.
   public $form_id;
 
+  /**
+   * Create a new ChunkType.
+   *
+   * @param $name
+   *   The new chunk type's machine-readable name.
+   * @param $data
+   *   An associative array containing:
+   *     - title: The chunk type's human-readable name.
+   *     - default configuration: An associative array containing the default
+   *       configuration values.
+   *     - file: The file which should be included before performing actions on
+   *       this CunkType.
+   *     - file path: The path in which to look for the above file, relative to
+   *       DRUPAL_ROOT.
+   *     - template: The file name for the chunk type's template excluding the
+   *       extension.
+   *     - template path: The directory path in which to look for the above
+   *       template file, relative to DRUPAL_ROOT.
+   * @param $module
+   *   The chunk type's module name.
+   */
   function __construct($name, $data, $module) {
     $this->name = $name;
     $this->title = $data['title'];
@@ -30,12 +63,41 @@ class ChunkType {
     }
   }
 
+  /**
+   * Retrieve the chunk type's configuration form.
+   *
+   * @param $form
+   *   The edit form for the entity in which the chunks field exists.
+   * @param $form_state
+   *   An associative array representing the current state of the entity's edit
+   *   form.
+   * @param $configuration
+   *   An associative array representing the current state of the chunk's
+   *   configuration.
+   *
+   * @return
+   *   A renderable array to be inserted into the field's widget form.
+   */
   public function getForm($form, &$form_state, &$configuration) {
     $this->file_include();
     $function = $this->form_id;
     return $function($form, $form_state, $configuration);
   }
 
+  /**
+   * Validate the chunk type's configuration as it exists the form state.
+   *
+   * @param $configuration
+   *   The chunk type's configuration form as a renderable array with #values.
+   * @param $form_state
+   *   An associative array representing the current state of the entity's edit
+   *   form.
+   * @param $form
+   *   The edit form for the entity in which the chunks field exists.
+   *
+   * @return
+   *   TRUE if the configuration is valid. Otherwise, FALSE.
+   */
   public function validateConfiguration($configuration, &$form_state, $form) {
     $this->file_include();
     $function = $this->module . '_' . $this->name . '_chunk_form_validate';
@@ -48,6 +110,21 @@ class ChunkType {
     return TRUE;
   }
 
+  /**
+   * Validate the chunk type's configuration as it exists the form state.
+   *
+   * @param $configuration
+   *   An associative array representing the current state of the chunk's
+   *   configuration.
+   * @param $form_state
+   *   An associative array representing the current state of the entity's edit
+   *   form.
+   * @param $form
+   *   The edit form for the entity in which the chunks field exists.
+   *
+   * @return
+   *   TRUE if the configuration should be considered empty. Otherwise, FALSE.
+   */
   public function configurationIsEmpty($configuration, $item, $field) {
     $this->file_include();
     $function = $this->module . '_' . $this->name . '_chunk_is_empty';
@@ -57,7 +134,10 @@ class ChunkType {
     return FALSE;
   }
 
-  public function file_include() {
+  /**
+   * Include the file which provides the necessary hooks for this chunk type.
+   */
+  protected function file_include() {
     require_once DRUPAL_ROOT . '/' . $this->file_path . '/' . $this->file;
   }
 }
