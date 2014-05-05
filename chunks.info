@@ -1,5 +1,6 @@
 name = Chunks
 description = Allows content to be edited in structured and reusable chunks.
 core = 7.x
+dependencies[] = field
 files[] = chunk_type/chunk_type.inc
 
