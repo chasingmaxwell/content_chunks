@@ -723,13 +723,21 @@ function chunks_field_formatter_info() {
  * Implements hook_field_formatter_view().
  */
 function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
-  $elements = array();
+  $element = array();
+
   foreach ($items as $delta => $item) {
-    $elements[$delta] = array(
-      '#markup' => theme('chunks_formatter_chunks_default', array('element' => $item, 'field' => $instance)),
+
+    // Prepare chunk data.
+    $item['data'] = unserialize($item['data']);
+
+    $element[0][$delta] = array(
+      '#theme' => 'chunk',
+      '#chunk_type' => $item['data']['type'],
+      '#chunk_configuration' => $item['data']['configuration'],
     );
   }
-  return $elements;
+
+  return $element;
 }
 
 /**
