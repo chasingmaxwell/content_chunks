@@ -13,8 +13,8 @@ class ChunkType {
   // The human-readable name.
   public $title;
 
-  // The default values for the chunk type's configuration. This will populate
-  // the variables available to the chunk type's theme hook.
+  // An array of default configuration values to be used when populating the
+  // default values in the chunk type's configuration form.
   public $default_configuration;
 
   // The implementing module's name.
@@ -22,7 +22,22 @@ class ChunkType {
 
   // The form_id and function name for loading the the chunk type's
   // configuration form.
-  public $form_id;
+  protected $form_id;
+
+  // The file which must be included before performing actions on this
+  // ChunkType object.
+  protected $file;
+
+  // The directory path in which to look for the above file, relative to
+  // DRUPAL_ROOT.
+  protected $file_path;
+
+  // The file name for the chunk type's template, excluding the extension.
+  protected $template;
+
+  // The directory path in which to look for the above template file, relative
+  // to DRUPAL_ROOT.
+  protected $template_path;
 
   /**
    * Create a new ChunkType.
@@ -35,9 +50,9 @@ class ChunkType {
    *     - default configuration: An associative array containing the default
    *       configuration values.
    *     - file: The file which should be included before performing actions on
-   *       this CunkType.
-   *     - file path: The path in which to look for the above file, relative to
-   *       DRUPAL_ROOT.
+   *       this CunkType object.
+   *     - file path: The directory path in which to look for the above file,
+   *       relative to DRUPAL_ROOT.
    *     - template: The file name for the chunk type's template excluding the
    *       extension.
    *     - template path: The directory path in which to look for the above
@@ -77,6 +92,8 @@ class ChunkType {
    *
    * @return
    *   A renderable array to be inserted into the field's widget form.
+   *
+   * @see chunks_field_widget_form().
    */
   public function getForm($form, &$form_state, &$configuration) {
     $this->file_include();
@@ -85,7 +102,8 @@ class ChunkType {
   }
 
   /**
-   * Validate the chunk type's configuration as it exists the form state.
+   * Validate the chunk type's configuration as it exists in the field widget
+   * form.
    *
    * @param $configuration
    *   The chunk type's configuration form as a renderable array with #values.
@@ -97,6 +115,8 @@ class ChunkType {
    *
    * @return
    *   TRUE if the configuration is valid. Otherwise, FALSE.
+   *
+   * @see chunks_field_widget_values_validate().
    */
   public function validateConfiguration($configuration, &$form_state, $form) {
     $this->file_include();
@@ -111,7 +131,9 @@ class ChunkType {
   }
 
   /**
-   * Validate the chunk type's configuration as it exists the form state.
+   * Determine whether the chunk type's configuration is empty.
+   *
+   * This will determine whether the field item contains data.
    *
    * @param $configuration
    *   An associative array representing the current state of the chunk's
@@ -124,6 +146,9 @@ class ChunkType {
    *
    * @return
    *   TRUE if the configuration should be considered empty. Otherwise, FALSE.
+   *
+   * @see hook_field_is_empty().
+   * @see chunks_field_is_empty().
    */
   public function configurationIsEmpty($configuration, $item, $field) {
     $this->file_include();
