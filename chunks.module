@@ -50,26 +50,27 @@ function chunk_types_load() {
         }
 
         // Populate defaults for optional variables if they are not set.
-        if (!isset($data['file path'])) {
-          $data['file path'] = drupal_get_path('module', $module);
+        if (isset($data['file'])) {
+
+          if (!isset($data['file path'])) {
+            $data['file path'] = drupal_get_path('module', $module);
+          }
+
+          // Check if the file exists.
+          if (!file_exists(DRUPAL_ROOT . '/' . $data['file path'] . '/' . $data['file'])) {
+            $message = 'The %module module does not provide the %file file. The %type chunk type will not be available.';
+            $variables = array('%module' => $module, '%file' => $data['file'], '%type' => $name);
+            watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+            // Do not register this chunk type.
+            continue;
+          }
         }
-        if (!isset($data['file'])) {
-          $data['file'] = $module . '.chunk_types.inc';
-        }
+
         if (!isset($data['template path'])) {
           $data['template path'] = drupal_get_path('module', $module);
         }
         if (!isset($data['template'])) {
           $data['template'] = 'chunk--' . str_replace('_', '-', $name);
-        }
-
-        // Check if the file exists.
-        if (!file_exists(DRUPAL_ROOT . '/' . $data['file path'] . '/' . $data['file'])) {
-          $message = 'The %module module does not provide a %module.chunk_types.inc file. The %type chunk type will not be available.';
-          $variables = array('%module' => $module, '%type' => $name);
-          watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
-          // Do not register this chunk type.
-          continue;
         }
 
         // Check if the template file exists.
@@ -81,8 +82,24 @@ function chunk_types_load() {
           continue;
         }
 
+        // Create new ChunkType so we can continue validation.
+        $chunk_type = new ChunkType($name, $data, $module);
+
+        if (isset($data['file'])) {
+          $chunk_type->file_include();
+        }
+
+        // Check if the configuration form exists.
+        if (!function_exists($module . '_' . $name . '_chunk_form')) {
+          $message = 'The %module module does not provide a configuration form for the %name chunk type.';
+          $variables = array('%module' => $module, '%name' => $name);
+          watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+          // Do not register this chunk type.
+          continue;
+        }
+
         // This chunk type is valid, register it.
-        $chunk_types[$name] = new ChunkType($name, $data, $module);
+        $chunk_types[$name] = $chunk_type;
       }
     }
   }

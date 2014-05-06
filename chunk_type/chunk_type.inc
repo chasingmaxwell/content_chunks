@@ -20,9 +20,12 @@ class ChunkType {
   // The implementing module's name.
   public $module;
 
-  // The form_id and function name for loading the the chunk type's
-  // configuration form.
-  protected $form_id;
+  // The file name for the chunk type's template, excluding the extension.
+  public $template;
+
+  // The directory path in which to look for the above template file, relative
+  // to DRUPAL_ROOT.
+  public $template_path;
 
   // The file which must be included before performing actions on this
   // ChunkType object.
@@ -32,12 +35,9 @@ class ChunkType {
   // DRUPAL_ROOT.
   protected $file_path;
 
-  // The file name for the chunk type's template, excluding the extension.
-  protected $template;
-
-  // The directory path in which to look for the above template file, relative
-  // to DRUPAL_ROOT.
-  protected $template_path;
+  // The form_id and function name for loading the the chunk type's
+  // configuration form.
+  protected $form_id;
 
   /**
    * Create a new ChunkType.
@@ -66,16 +66,14 @@ class ChunkType {
     $this->default_configuration = $data['default configuration'];
     $this->module = $module;
     $this->form_id = $module . '_' . $name . '_chunk_form';
-    $this->file = $data['file'];
-    $this->file_path = $data['file path'];
+    if (isset($data['file'])) {
+      $this->file = $data['file'];
+    }
+    if (isset($data['file path'])) {
+      $this->file_path = $data['file path'];
+    }
     $this->template = $data['template'];
     $this->template_path = $data['template path'];
-
-    $this->file_include();
-
-    if (!function_exists($this->form_id)) {
-      watchdog('chunks', 'The %module module does not provide a configuration form for the %name chunk type.', array('%module' => $this->module, '%name' => $this->name), WATCHDOG_ERROR);
-    }
   }
 
   /**
@@ -96,7 +94,10 @@ class ChunkType {
    * @see chunks_field_widget_form().
    */
   public function getForm($form, &$form_state, &$configuration) {
-    $this->file_include();
+    if (isset($this->file)) {
+      $this->file_include();
+    }
+
     $function = $this->form_id;
     return $function($form, $form_state, $configuration);
   }
@@ -119,9 +120,11 @@ class ChunkType {
    * @see chunks_field_widget_values_validate().
    */
   public function validateConfiguration($configuration, &$form_state, $form) {
-    $this->file_include();
-    $function = $this->module . '_' . $this->name . '_chunk_form_validate';
-    if (function_exists($function)) {
+    if (isset($this->file)) {
+      $this->file_include();
+    }
+    foreach(module_implements($this->name . '_chunk_form_validate') as $module) {
+      $function = $module . '_' . $this->name . '_chunk_form_validate';
       $valid = $function($configuration, $form_state, $form);
       if (!$valid) {
         return FALSE;
@@ -151,23 +154,24 @@ class ChunkType {
    * @see chunks_field_is_empty().
    */
   public function configurationIsEmpty($configuration, $item, $field) {
-    $this->file_include();
+    if (isset($this->file)) {
+      $this->file_include();
+    }
     $function = $this->module . '_' . $this->name . '_chunk_is_empty';
-    if (function_exists($function)) {
-      return $function($configuration, $item, $field);
+    foreach(module_implements($this->name . '_chunk_form_validate') as $module) {
+      $function = $module . '_' . $this->name . '_chunk_is_empty';
+      $empty = $function($configuration, $item, $field);
+      if ($empty === TRUE) {
+        return TRUE;
+      }
     }
     return FALSE;
   }
 
   /**
    * Include the file which provides the necessary hooks for this chunk type.
-   *
-   * @TODO: we should only run this function if the file property was provided
-   * instead of defaulting to MODULE_NAME.chunk_types.inc. If the file property
-   * was not provided, we should assume that all necessary hooks have been
-   * included in the MODULE_NAME.module file.
    */
-  protected function file_include() {
+  public function file_include() {
     require_once DRUPAL_ROOT . '/' . $this->file_path . '/' . $this->file;
   }
 }
