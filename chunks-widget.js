@@ -107,6 +107,12 @@
             $(element).parents('#' + fieldName + '-' + delta + '-chunk-row').hide();
           }
 
+          // If this chunk is being viewed in configuration view initially, save
+          // the configuration so that the "cancel" button will revert changes.
+          if (view == 'configuration') {
+            saveConfig(delta);
+          }
+
           // If this chunk was just added, focus the type selection form
           // element.
           if (delta === newChunkIndex) {
@@ -229,11 +235,12 @@
             }
           });
 
-          // Switch to configuration view when errors are detected.
+          // Switch to configuration view and save configuration when errors are detected.
           if ($(classPrepend + 'configuration .error', element).length > 0) {
             viewElement.val('configuration');
             viewElement.trigger('change');
             $(':input.error', element).first().focus();
+            saveConfig(delta);
           }
           // If no errors were detected, set the focus to the active chunk's add
           // button.
