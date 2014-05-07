@@ -284,7 +284,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
     );
 
-    foreach ($chunk_types as $name => $chunk_type) {
+    foreach ($form['#allowed_chunk_types'] as $name => $chunk_type) {
       $configuration = isset($chunk_state['type']) && isset($chunk_state['configuration']) ? $chunk_state['configuration'][$chunk_state['type']] : array();
       $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration);
       $row['configuration'][$chunk_type->name] += array(
@@ -874,4 +874,3 @@ function theme_chunks_field_widget_form($variables) {
 
   return $output;
 }
-
