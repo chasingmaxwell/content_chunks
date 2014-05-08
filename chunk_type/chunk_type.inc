@@ -157,8 +157,7 @@ class ChunkType {
     if (isset($this->file)) {
       $this->file_include();
     }
-    $function = $this->module . '_' . $this->name . '_chunk_is_empty';
-    foreach(module_implements($this->name . '_chunk_form_validate') as $module) {
+    foreach(module_implements($this->name . '_chunk_is_empty') as $module) {
       $function = $module . '_' . $this->name . '_chunk_is_empty';
       $empty = $function($configuration, $item, $field);
       if ($empty === TRUE) {

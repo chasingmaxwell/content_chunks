@@ -150,7 +150,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       'add_before' => array(
         '#type' => 'submit',
         '#name' => $field_name . '-add-before',
-        '#value' => t('+ Add chunk here'),
+        '#value' => t('+ Add here'),
         '#submit' => array('chunks_field_add_before'),
         '#op' => 'add_before',
         '#limit_validation_errors' => array(array($field_name)),
@@ -234,12 +234,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       foreach ($form['#allowed_chunk_types'] as $chunk_type) {
         $options[$chunk_type->name] = $chunk_type->title;
       }
-
-      // @TODO: this is just here to test the states functionality because we need
-      // more than one option for it to work. Remove this.
-      $options += array(
-        'test_type' => t('Test type'),
-      );
 
       $row['type'] = array(
         '#type' => 'radios',
@@ -410,7 +404,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'add_after' => array(
           '#type' => 'submit',
           '#name' => $field_name . '-' . $delta . '-add-after',
-          '#value' => t('+ Add chunk here'),
+          '#value' => t('+ Add here'),
           '#submit' => array('chunks_field_form_submit'),
           '#op' => 'add_after',
           '#limit_validation_errors' => array(array($field_name)),
@@ -667,7 +661,7 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
   $item = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
   $triggering_element = $form_state['triggering_element'];
 
-  if (isset($item['type'])) {
+  if (isset($item['type']) && $item['view'] != 'removed') {
 
     $chunk_type = $form['#chunk_types'][$item['type']];
 

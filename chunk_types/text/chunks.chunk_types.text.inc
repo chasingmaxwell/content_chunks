@@ -39,4 +39,3 @@ function chunks_text_chunk_is_empty($configuration, $item, $field) {
   }
   return FALSE;
 }
-
