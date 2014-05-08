@@ -16,7 +16,6 @@ function chunks_heading_chunk_form($form, &$form_state, &$configuration) {
     '#default_value' => isset($configuration['text']) ? $configuration['text'] : '',
     '#description' => t('Enter the heading text.'),
   );
-  // @TODO: restrict options based on the heading before?
   $config_form['level'] = array(
     '#type' => 'select',
     '#title' => t('Level'),
