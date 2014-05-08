@@ -1,0 +1,201 @@
+<?php
+
+/**
+ * @file
+ * Allow content to be edited in structured and reusable chunks.
+ */
+
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
+
+/**
+ * Validate and load all chunk types defined by hook_chunk_types().
+ *
+ * @return
+ *   An associative array of ChunkType objects keyed by the ChunkType's
+ *   machine-readable name.
+ */
+function chunk_types_load() {
+  $chunk_types = &drupal_static(__FUNCTION__);
+  if (!isset($chunk_types)) {
+    $modules = module_implements('chunk_types');
+    $chunk_types = array();
+    foreach ($modules as $module) {
+      $function = $module . '_chunk_types';
+      $module_chunk_types = $function();
+
+      // Validate each chunk type. If they are valid, register them.
+      foreach ($module_chunk_types as $name => $data) {
+
+        // Check for multiple chunk types of the same name. If there are
+        // duplicates, whichever chunk type is registered last will override
+        // those that came before it. Since this is not necessarily an error and
+        // could be intended functionality, we don't prevent this chunk type
+        // from being registered, we just log it in watchdog.
+        if (isset($chunk_types[$name])) {
+          $message = 'The %type chunk type was provided by the %first_module module but has been overridden by the %second_module module which provided a chunk type of the same name.';
+          $variables = array('%type' => $name, '%first_module' => $chunk_types[$name]->module, '%second_module' => $module);
+          watchdog('chunks', $message, $variables, WATCHDOG_WARNING);
+        }
+
+        // Check if required properties are present.
+        // @TODO: Make it possible for chunk types to be created without any
+        // configuration. In this case the widget should be altered to go
+        // straight from the type selection view to the preview view.
+        if (!isset($data['title']) || !isset($data['default configuration'])) {
+          $message = 'The %type chunk type is not properly defined in %module_chunk_types(). It must contain both a title and a default configuration.';
+          $variables = array('%type' => $name, '%module' => $module);
+          watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+          // Do not register this chunk type.
+          continue;
+        }
+
+        // Populate defaults for optional variables if they are not set.
+        if (isset($data['file'])) {
+
+          if (!isset($data['file path'])) {
+            $data['file path'] = drupal_get_path('module', $module);
+          }
+
+          // Check if the file exists.
+          if (!file_exists(DRUPAL_ROOT . '/' . $data['file path'] . '/' . $data['file'])) {
+            $message = 'The %module module does not provide the %file file. The %type chunk type will not be available.';
+            $variables = array('%module' => $module, '%file' => $data['file'], '%type' => $name);
+            watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+            // Do not register this chunk type.
+            continue;
+          }
+        }
+
+        if (!isset($data['template path'])) {
+          $data['template path'] = drupal_get_path('module', $module);
+        }
+        if (!isset($data['template'])) {
+          $data['template'] = 'chunk--' . str_replace('_', '-', $name);
+        }
+
+        // Check if the template file exists.
+        if (!file_exists(DRUPAL_ROOT . '/' . $data['template path'] . '/' . $data['template'] . '.tpl.php')) {
+          $message = 'The %module module did not provide a properly named template file for the %type chunk type. The %type chunk type will not be available.';
+          $variables = array('%module' => $module, '%type' => $name);
+          watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+          // Do not register this chunk type.
+          continue;
+        }
+
+        // Create new ChunkType so we can continue validation.
+        $chunk_type = new ChunkType($name, $data, $module);
+
+        if (isset($data['file'])) {
+          $chunk_type->file_include();
+        }
+
+        // Check if the configuration form exists.
+        if (!function_exists($module . '_' . $name . '_chunk_form')) {
+          $message = 'The %module module does not provide a configuration form for the %name chunk type.';
+          $variables = array('%module' => $module, '%name' => $name);
+          watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
+          // Do not register this chunk type.
+          continue;
+        }
+
+        // This chunk type is valid, register it.
+        $chunk_types[$name] = $chunk_type;
+      }
+    }
+  }
+  return $chunk_types;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function chunks_permission() {
+  $permissions = array();
+  $chunk_types = chunk_types_load();
+  foreach ($chunk_types as $chunk_type) {
+    $permissions['use_' . $chunk_type->name . '_chunk'] = array(
+      'title' => t('Use the %chunk_type chunk type.', array('%chunk_type' => $chunk_type->name)),
+    );
+  }
+  return $permissions;
+}
+
+/**
+ * Implements hook_chunk_types() to provide a simple text chunk.
+ */
+function chunks_chunk_types() {
+  return array(
+    'text' => array(
+      'title' => t('Text'),
+      'default configuration' => array(
+        'text' => '',
+      ),
+      'file' => 'chunk_types/text/chunks.chunk_types.text.inc',
+      'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/text',
+    ),
+    'heading' => array(
+      'title' => t('Heading'),
+      'default configuration' => array(
+        'text' => '',
+        'level' => '2',
+      ),
+      'file' => 'chunk_types/heading/chunks.chunk_types.heading.inc',
+      'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/heading',
+    ),
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function chunks_theme($existing, $type, $theme, $path) {
+  $theme_hooks = array(
+    // This base theme hook should never actually make it to the chunk.tpl.php
+    // template as it merely serves as a base for each chunk type's more
+    // specific theme hook.
+    'chunk' => array(
+      'render element' => 'chunk',
+      'template' => 'chunk',
+    ),
+    'chunks_field_widget_form' => array(
+      'render element' => 'element',
+      'file' => 'chunks.field.inc',
+    ),
+  );
+
+  // Load all chunk types and register corresponding theme hooks.
+  $chunk_types = chunk_types_load();
+  foreach ($chunk_types as $chunk_type) {
+
+    // Build the chunk type's theme hook.
+    $hook =  array(
+      'render element' => 'chunk',
+      'template' => $chunk_type->template,
+      'path' => $chunk_type->template_path,
+    );
+
+    // Register the chunk type's theme hook.
+    $theme_hooks['chunk__' . $chunk_type->name] = $hook;
+  }
+
+  return $theme_hooks;
+}
+
+/**
+ * Preprocess variables for the theme_chunk().
+ */
+function template_preprocess_chunk(&$variables) {
+  // Add class with type name.
+  $variables['classes_array'][] = $variables['chunk']['#chunk_type']->name . '-chunk';
+
+  // Make configuration a top-level variable.
+  $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
+
+  // Make the chunk's type a top-level variable.
+  $variables['chunk_type'] = $variables['chunk']['#chunk_type'];
+
+  // Add theme hook suggestions.
+  $variables['theme_hook_suggestions'][] = 'chunk';
+  $variables['theme_hook_suggestions'][] = 'chunk__' . $variables['chunk']['#chunk_type']->name;
+}
+
