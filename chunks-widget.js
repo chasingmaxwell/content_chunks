@@ -125,14 +125,18 @@
           // Switch to configuration view upon type selection.
           $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]', element).bind('keyup.chunkTypeSelected click.chunkTypeSelected', function(e) {
             if (e.type === 'click' || e.type === 'keyup' && e.keyCode === 13) {
+              var chunkType;
               this.checked = true;
               $(this).trigger('change');
+              chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
               viewElement.val('configuration');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
               setActiveChunk($(element));
               // Add focus to first configuration item.
-              $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').first().focus();
+              setTimeout(function() {
+                $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration][' + chunkType + ']"]').first().focus();
+              }, 0);
             }
           });
 
@@ -149,6 +153,7 @@
           // Switch to configuration view when "Edit" button is pressed.
           $(classPrepend + 'edit-button', element).bind('keyup.chunkEdit mousedown.chunkEdit', function(e) {
             if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+              var chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
               viewElement.val('configuration');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
@@ -159,7 +164,7 @@
               saveConfig(delta);
               // Add focus to first configuration item.
               setTimeout(function() {
-                $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').first().focus();
+                $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration][' + chunkType + ']"]').first().focus();
               }, 0);
             }
           });
@@ -264,4 +269,3 @@
   };
 
 })(jQuery);
-
