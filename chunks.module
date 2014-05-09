@@ -133,6 +133,15 @@ function chunks_chunk_types() {
       'file' => 'chunk_types/text/chunks.chunk_types.text.inc',
       'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/text',
     ),
+    'heading' => array(
+      'title' => t('Heading'),
+      'default configuration' => array(
+        'text' => '',
+        'level' => '2',
+      ),
+      'file' => 'chunk_types/heading/chunks.chunk_types.heading.inc',
+      'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/heading',
+    ),
   );
 }
 
