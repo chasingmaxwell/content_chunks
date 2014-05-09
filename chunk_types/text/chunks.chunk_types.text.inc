@@ -2,8 +2,7 @@
 
 /**
  * @file
- * Provide configuration forms and theme implementations for default chunk
- * types.
+ * Provide hooks relevant to the text chunk type.
  */
 
 /**

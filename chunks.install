@@ -2,37 +2,7 @@
 
 /**
  * @file
- * Install, uninstall, and update functions for the chunks.
- */
-
-/**
- * Implements hook_schema().
- * @TODO: decide if we actually need this.
- */
-/*
- *function chunks_schema() {
- *
- *  $schema['chunk_types'] = array(
- *    'fields' => array(
- *      'name' => array(
- *        'description' => 'Name of the chunk type.',
- *        'type' => 'varchar',
- *        'length' => 32,
- *        'not null' => TRUE,
- *        'default' => '',
- *      ),
- *      'module' => array(
- *        'description' => 'Name of module which defined the chunk type.',
- *        'type' => 'varchar',
- *        'length' => 32,
- *        'not null' => TRUE,
- *        'default' => '',
- *      ),
- *    ),
- *  );
- *
- *  return $schema;
- *}
+ * Install, uninstall, and update functions for the chunks module.
  */
 
 /**

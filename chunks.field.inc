@@ -65,7 +65,7 @@ function chunks_field_widget_info() {
       'label' => t('Chunks'),
       'description' => t('Add and rearrange structured chunks of content.'),
       'field types' => array('chunks'),
-      'settings' => array(), // @TODO: Figure out what should go here.
+      'settings' => array(),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_CUSTOM,
         'default value' => FIELD_BEHAVIOR_NONE,
@@ -150,7 +150,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       'add_before' => array(
         '#type' => 'submit',
         '#name' => $field_name . '-add-before',
-        '#value' => t('+ Add chunk here'),
+        '#value' => t('+ Add here'),
         '#submit' => array('chunks_field_add_before'),
         '#op' => 'add_before',
         '#limit_validation_errors' => array(array($field_name)),
@@ -278,7 +278,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
     );
 
-    foreach ($chunk_types as $name => $chunk_type) {
+    foreach ($form['#allowed_chunk_types'] as $name => $chunk_type) {
       $configuration = isset($chunk_state['type']) && isset($chunk_state['configuration']) ? $chunk_state['configuration'][$chunk_state['type']] : array();
       $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration);
       $row['configuration'][$chunk_type->name] += array(
@@ -404,7 +404,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'add_after' => array(
           '#type' => 'submit',
           '#name' => $field_name . '-' . $delta . '-add-after',
-          '#value' => t('+ Add chunk here'),
+          '#value' => t('+ Add here'),
           '#submit' => array('chunks_field_form_submit'),
           '#op' => 'add_after',
           '#limit_validation_errors' => array(array($field_name)),
@@ -661,12 +661,12 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
   $item = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
   $triggering_element = $form_state['triggering_element'];
 
-  if (isset($item['type'])) {
+  if (isset($item['type']) && $item['view'] != 'removed') {
 
     $chunk_type = $form['#chunk_types'][$item['type']];
 
-    // Create and save the data field value since it does not have a corresponding
-    // field element.
+    // Create and save the data field value since it does not have a
+    // corresponding field element.
     $data = array(
       'type' => $chunk_type,
       'configuration' => $item['configuration'][$item['type']],
@@ -680,11 +680,15 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     if (isset($triggering_element['#op'])) {
       switch ($triggering_element['#op']) {
+        // When removing or adding chunks, configuration validation is not
+        // necessary.
         case 'remove':
         case 'add_after':
         case 'add_before':
           $validate_configuration = FALSE;
           break;
+        // Do not validate configuration if the chunk currenty being validated
+        // is not the chunk being previewed.
         case 'preview':
           if ($triggering_element['#name'] != $element['chunk_actions']['preview']['#name']) {
             $validate_configuration = FALSE;
@@ -694,11 +698,8 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
     }
 
     // Validation for chunk type's configuration values.
-    if ($validate_configuration && $chunk_validation = $chunk_type->getValidation()) {
-      $valid = $chunk_validation($element['configuration'][$chunk_type->name], $form_state, $form);
-      if (!$valid) {
-        $item['view'] = 'configuration';
-      }
+    if ($validate_configuration) {
+      $chunk_type->validateConfiguration($element['configuration'][$chunk_type->name], $form_state, $form);
     }
 
     // Save changes to the form state.
@@ -765,10 +766,8 @@ function chunks_field_is_empty($item, $field) {
 
     // Allow modules to check their chunk type's configuration and determine
     // whether or not it should be considered empty.
-    if ($empty_check = $data['type']->getEmptyCheck()) {
-      if ($empty_check($data['configuration'], $item, $field)) {
-        return TRUE;
-      }
+    if ($data['type']->configurationIsEmpty($data['configuration'], $item, $field)) {
+      return TRUE;
     }
   }
   return FALSE;
@@ -868,4 +867,3 @@ function theme_chunks_field_widget_form($variables) {
 
   return $output;
 }
-

@@ -21,7 +21,7 @@
 
   Drupal.behaviors.chunksWidget = {
     attach: function(context, settings) {
-      // Do some stuff
+      // Perform actions on each chunk field.
       $('.chunks-field', context).each(function() {
         var field, fieldName, classFieldName, langcode, chunks, setActiveChunk, showStagedChunk, resetStripes, config, saveConfig, restoreConfig;
 
@@ -50,7 +50,6 @@
           stagedRow.removeClass('staged');
           stagedRow.insertAfter(prevSibling);
           stagedRow.show();
-          // @TODO: reset weights.
           resetStripes();
         };
 
@@ -108,6 +107,12 @@
             $(element).parents('#' + fieldName + '-' + delta + '-chunk-row').hide();
           }
 
+          // If this chunk is being viewed in configuration view initially, save
+          // the configuration so that the "cancel" button will revert changes.
+          if (view == 'configuration') {
+            saveConfig(delta);
+          }
+
           // If this chunk was just added, focus the type selection form
           // element.
           if (delta === newChunkIndex) {
@@ -153,7 +158,9 @@
               // Save configuration so we can restore it if we cancel.
               saveConfig(delta);
               // Add focus to first configuration item.
-              $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').first().focus();
+              setTimeout(function() {
+                $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').first().focus();
+              }, 0);
             }
           });
 
@@ -169,7 +176,9 @@
               // Restore configuration.
               restoreConfig(delta);
               // Set focus to add chunk button.
-              addButton.focus();
+              setTimeout(function() {
+                addButton.focus();
+              }, 0);
             }
           });
 
@@ -183,10 +192,14 @@
               visibleChunks.each(function(vi, ve) {
                 if ($(ve).attr('delta') === $(element).attr('delta')) {
                   if (vi === 0) {
-                    $(':input[name="' + fieldName + '-add-before"]', field).focus();
+                    setTimeout(function() {
+                      $(':input[name="' + fieldName + '-add-before"]', field).focus();
+                    }, 0);
                   }
                   else {
-                    $(visibleChunks[vi - 1]).find('.add-chunk-action-after input').focus();
+                    setTimeout(function() {
+                      $(visibleChunks[vi - 1]).find('.add-chunk-action-after input').focus();
+                    }, 0);
                   }
                   return false;
                 }
@@ -222,11 +235,12 @@
             }
           });
 
-          // Switch to configuration view when errors are detected.
+          // Switch to configuration view and save configuration when errors are detected.
           if ($(classPrepend + 'configuration .error', element).length > 0) {
             viewElement.val('configuration');
             viewElement.trigger('change');
             $(':input.error', element).first().focus();
+            saveConfig(delta);
           }
           // If no errors were detected, set the focus to the active chunk's add
           // button.
