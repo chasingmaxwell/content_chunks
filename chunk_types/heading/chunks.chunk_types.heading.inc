@@ -21,6 +21,7 @@ function chunks_heading_chunk_form($form, &$form_state, &$configuration) {
     '#title' => t('Level'),
     '#options' => array('2' => 'H2', '3' => 'H3', '4' => 'H4', '5' => 'H5', '6' => 'H6'),
     '#default_value' => isset($configuration['level']) ? $configuration['level'] : '',
+    '#description' => t('Select a heading level.'),
   );
   $config_form['id'] = array(
     '#type' => 'textfield',
