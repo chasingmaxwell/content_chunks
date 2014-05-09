@@ -20,4 +20,4 @@
  */
 ?>
 
-<h<?php print $configuration['level']; ?> class="<?php print $classes; ?>" <?php if (isset($configuration['id'])): ?>id="<?php print $configuration['id']; ?>"<?php endif; ?>><?php print check_plain($configuration['text']); ?></h<?php print $configuration['level']; ?>>
+<h<?php print $configuration['level']; ?> class="<?php print $classes; ?>" <?php if (!empty($configuration['id'])): ?>id="<?php print $configuration['id']; ?>"<?php endif; ?>><?php print check_plain($configuration['text']); ?></h<?php print $configuration['level']; ?>>
