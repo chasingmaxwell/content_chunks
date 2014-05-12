@@ -254,6 +254,11 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#default_value' => isset($chunk_state['view']) ? $chunk_state['view'] : 'type_selection',
     );
 
+    // Force the last chunk to always have a staged view.
+    if (isset($chunk_state['view']) && $chunk_state['view'] == 'staged') {
+      $row['view']['#value'] = 'staged';
+    }
+
     // If this chunk is editable by the current user, build the type selection
     // form element.
     if ($chunk_state['allowed']) {
