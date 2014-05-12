@@ -50,9 +50,6 @@ function chunks_image_image_chunk_type_settings_form($field, $settings) {
  */
 function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
-  // @TODO: figure out what properties the image's widget form needs to operate
-  // properly and provide them.
-  // @TODO: load the image's widget form.
   $image_field = array(
     'type' => 'image',
     'settings' => $settings['field'],
@@ -74,6 +71,8 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
     '#extended' => TRUE,
     '#default_value' => array(
       'fid' => isset($configuration['image']['fid']) ? $configuration['image']['fid'] : 0,
+      'alt' => isset($configuration['image']['alt']) ? $configuration['image']['alt'] : '',
+      'title' => isset($configuration['image']['title']) ? $configuration['image']['title'] : '',
       'display' => 0,
       'description' => '',
     ),
