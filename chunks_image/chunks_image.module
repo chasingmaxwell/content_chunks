@@ -130,7 +130,7 @@ function chunks_image_image_chunk_form_validate($configuration, &$form_state, $f
  * Implements hook_CHUNK_TYPE_chunk_is_empty().
  */
 function chunks_image_image_chunk_is_empty($configuration, $item, $field) {
-  // @TODO: check if the image has it's own empty check and run it.
+  return empty($configuration['image']['fid']);
 }
 
 /**
