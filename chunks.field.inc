@@ -47,9 +47,37 @@ function chunks_field_instance_settings_form($field, $instance) {
       '#description' => t('Select the chunk types which can be added through this field instance.'),
     );
 
+    $form['chunk_type_settings'] = array(
+      '#type' => 'container',
+    );
+
     $chunk_types = chunk_types_load();
     foreach ($chunk_types as $chunk_type) {
+      // Add an option for each chunk type.
       $form['chunk_types']['#options'][$chunk_type->name] = $chunk_type->title;
+
+      // Add chunk type specific settings.
+      if (isset($settings['chunk_type_settings'][$chunk_type->name]['settings'])) {
+        $type_settings = $settings['chunk_type_settings'][$chunk_type->name]['settings'];
+      }
+      else {
+        $type_settings = array();
+      }
+      $type_form = $chunk_type->getTypeSettingsForm($field, $type_settings);
+      if ($type_form) {
+        $form['chunk_type_settings'][$chunk_type->name] = array(
+          '#type' => 'fieldset',
+          '#title' => t('%type chunk type settings', array('%type' => $chunk_type->title)),
+          '#collapsible' => TRUE,
+          '#collapsed' => TRUE,
+          '#states' => array(
+            'visible' => array(
+              ':input[name="instance[settings][chunk_types][' . $chunk_type->name . ']"]' => array('checked' => TRUE),
+            ),
+          ),
+          'settings' => $type_form,
+        );
+      }
     }
   }
 
@@ -280,7 +308,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
     foreach ($form['#allowed_chunk_types'] as $name => $chunk_type) {
       $configuration = isset($chunk_state['type']) && isset($chunk_state['configuration']) ? $chunk_state['configuration'][$chunk_state['type']] : array();
-      $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration);
+      $chunk_type_settings = isset($instance['settings']['chunk_type_settings'][$name]['settings']) ? $instance['settings']['chunk_type_settings'][$name]['settings'] : array();
+      $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration, $chunk_type_settings);
       $row['configuration'][$chunk_type->name] += array(
         '#type' => 'container',
         '#states' => array(
@@ -736,6 +765,8 @@ function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $
       '#theme' => 'chunk',
       '#chunk_type' => $item['data']['type'],
       '#chunk_configuration' => $item['data']['configuration'],
+      '#entity' => $entity,
+      '#entity_type' => $entity_type,
     );
   }
 

@@ -87,19 +87,47 @@ class ChunkType {
    * @param $configuration
    *   An associative array representing the current state of the chunk's
    *   configuration.
+   * @param $settings
+   *   An associative array of settings for the chunk type instance.
    *
    * @return
    *   A renderable array to be inserted into the field's widget form.
    *
    * @see chunks_field_widget_form().
    */
-  public function getForm($form, &$form_state, &$configuration) {
+  public function getForm($form, &$form_state, &$configuration, $settings) {
     if (isset($this->file)) {
       $this->file_include();
     }
 
     $function = $this->form_id;
-    return $function($form, $form_state, $configuration);
+    return $function($form, $form_state, $configuration, $settings);
+  }
+
+  /**
+   * Retrieve the chunk type's instance settings form.
+   *
+   * @param $field
+   *   The parent chunk field's structure.
+   * @param $settings
+   *   The current settings for the chunk type.
+   *
+   * @return
+   *   If the hook exists, return a rendereable array to insert into the field's
+   *   instance settings form. Otherwise, FALSE.
+   *
+   * @see chunks_field_instance_settings_form().
+   */
+  public function getTypeSettingsForm($field, $settings) {
+    if (isset($this->file)) {
+      $this->file_include();
+    }
+
+    $function = $this->module . '_' . $this->name . '_chunk_type_settings_form';
+    if (function_exists($function)) {
+      return $function($field, $settings);
+    }
+    return FALSE;
   }
 
   /**

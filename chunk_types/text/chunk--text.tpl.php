@@ -10,6 +10,10 @@
  * - $configuration: The associative array representing the chunk's
  *   configuration.
  * - $chunk_type: The ChunkType object representing the chunk's type.
+ * - $entity: If we are viewing an entity, this will be the entity object.
+ *   Otherwise it will be FALSE.
+ * - $entity_type: If we are viewing an entity, this will be the string
+ *   represnting the entity's type. Otherwise it will be FALSE.
  *
  * @see template_preprocess()
  * @see template_preprocess_chunk()
