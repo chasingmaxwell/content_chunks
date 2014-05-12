@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ *   Main module file for Paragraph Chunk type.
+ */
+
+/**
+ * Implements hook_chunk_types() to provide a Paragraph chunk.
+ */
+function chunks_p_chunk_types() {
+  return array(
+    'p' => array(
+      'title' => t('Paragraph'),
+      'default configuration' => array(
+        'p' => '',
+      ),
+      'file' => 'chunks.chunk_types.p.inc',
+      'template path' => drupal_get_path('module', 'chunks_p'),
+    ),
+  );
+}

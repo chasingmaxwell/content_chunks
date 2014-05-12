@@ -133,14 +133,6 @@ function chunks_chunk_types() {
       'file' => 'chunk_types/text/chunks.chunk_types.text.inc',
       'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/text',
     ),
-    'p' => array(
-      'title' => t('Paragraph'),
-      'default configuration' => array(
-        'p' => '',
-      ),
-      'file' => 'chunk_types/p/chunks.chunk_types.p.inc',
-      'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/p',
-    ),
   );
 }
 

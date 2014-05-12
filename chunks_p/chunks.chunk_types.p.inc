@@ -10,7 +10,7 @@
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_p_chunk_form($form, &$form_state, &$configuration) {
+function chunks_p_p_chunk_form($form, &$form_state, &$configuration) {
   $config_form = array();
   $config_form['p'] = array(
     '#type' => 'textarea',
@@ -18,13 +18,19 @@ function chunks_p_chunk_form($form, &$form_state, &$configuration) {
     '#default_value' => isset($configuration['p']) ? $configuration['p'] : '',
     '#description' => t('Enter a paragraph of text. Line breaks will be discarded.'),
   );
+
+  // Load editor files
+  drupal_add_css(drupal_get_path('module', 'chunks_p') . '/css/pen.css');
+  drupal_add_js(drupal_get_path('module', 'chunks_p') . '/js/pen.js');
+  drupal_add_js(drupal_get_path('module', 'chunks_p') . '/js/pen-init.js');
+
   return $config_form;
 }
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_p_chunk_form_validate($configuration, &$form_state, $form) {
+function chunks_p_p_chunk_form_validate($configuration, &$form_state, $form) {
   if ($configuration['p']['#value'] == 'chunks') {
     form_error($configuration['p'], t('Enough chunks!'));
     return FALSE;
@@ -35,7 +41,7 @@ function chunks_p_chunk_form_validate($configuration, &$form_state, $form) {
 /**
  * Implements hook_CHUNK_TYPE_chunk_is_empty().
  */
-function chunks_p_chunk_is_empty($configuration, $item, $field) {
+function chunks_p_p_chunk_is_empty($configuration, $item, $field) {
   if (empty($configuration['p'])) {
     return TRUE;
   }

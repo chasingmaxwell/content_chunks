@@ -1,0 +1,4 @@
+name = Paragraph Chunk type
+description = Supplies the Paragraph Chunk type.
+core = 7.x
+dependencies[] = chunks
