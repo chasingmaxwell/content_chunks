@@ -307,7 +307,13 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     );
 
     foreach ($form['#allowed_chunk_types'] as $name => $chunk_type) {
-      $configuration = isset($chunk_state['type']) && isset($chunk_state['configuration']) ? $chunk_state['configuration'][$chunk_state['type']] : array();
+      // If we are working with a chunk that already has configuration, use it.
+      if (isset($chunk_state['type']) && $chunk_state['type'] == $name && isset($chunk_state['configuration'])) {
+        $configuration =  $chunk_state['configuration'][$chunk_state['type']];
+      }
+      else {
+        $configuration = array();
+      }
       $chunk_type_settings = isset($instance['settings']['chunk_type_settings'][$name]['settings']) ? $instance['settings']['chunk_type_settings'][$name]['settings'] : array();
       $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration, $chunk_type_settings);
       $row['configuration'][$chunk_type->name] += array(
