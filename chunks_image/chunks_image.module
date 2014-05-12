@@ -1,0 +1,260 @@
+<?php
+
+/**
+ * @file
+ * Provide an image chunk type.
+ */
+
+/**
+ * Implements hook_chunk_types() to provide a simple text chunk.
+ */
+function chunks_image_chunk_types() {
+  return array(
+    'image' => array(
+      'title' => t('Image'),
+      'default configuration' => array(
+        'fid' => '',
+        'alt' => '',
+        'title' => '',
+        'width' => 0,
+        'height' => 0,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
+ */
+function chunks_image_image_chunk_type_settings_form($field, $settings) {
+  $form = array();
+  $image_field = array(
+    'type' => 'image',
+    'settings' => isset($settings['field']) ? $settings['field'] : field_info_field_settings('image'),
+  );
+  $image_instance = array(
+    'settings' => isset($settings['instance']) ? $settings['instance'] : field_info_instance_settings('image'),
+    'widget' => array(
+      'settings' => isset($settings['widget']) ? $settings['widget'] : field_info_widget_settings('image_image'),
+    ),
+  );
+
+  $form['field'] = image_field_settings_form($image_field, $image_instance);
+  $form['instance'] = image_field_instance_settings_form($image_field, $image_instance);
+  $form['widget'] = image_field_widget_settings_form($image_field, $image_instance);
+  return $form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form().
+ */
+function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $settings) {
+  $config_form = array();
+  // @TODO: figure out what properties the image's widget form needs to operate
+  // properly and provide them.
+  // @TODO: load the image's widget form.
+  $image_field = array(
+    'type' => 'image',
+    'settings' => $settings['field'],
+  );
+  $image_instance = array(
+    'settings' => $settings['instance'],
+    'widget' => array(
+      'settings' => $settings['widget'],
+    ),
+  );
+  $element_info = element_info('managed_file');
+  $config_form['image'] = array(
+    '#type' => 'managed_file',
+    '#upload_location' => file_field_widget_uri($image_field, $image_instance),
+    '#upload_validators' => file_field_widget_upload_validators($image_field, $image_instance),
+    '#value_callback' => 'chunks_image_widget_value',
+    '#process' => array_merge($element_info['#process'], array('chunks_image_widget_process')),
+    '#progress_indicator' => $image_instance['widget']['settings']['progress_indicator'],
+    '#extended' => TRUE,
+    '#default_value' => array(
+      'fid' => isset($configuration['image']['fid']) ? $configuration['image']['fid'] : 0,
+      'display' => 0,
+      'description' => '',
+    ),
+    '#image_field_data' => array(
+      'image_field' => $image_field,
+      'image_instance' => $image_instance,
+    ),
+  );
+
+  // Add upload resolution validation.
+  if ($settings['instance']['max_resolution'] || $settings['instance']['min_resolution']) {
+    $config_form['image']['#upload_validators']['file_validate_image_resolution'] = array($settings['instance']['max_resolution'], $settings['instance']['min_resolution']);
+  }
+
+  // If not using custom extension validation, ensure this is an image.
+  $supported_extensions = array('png', 'gif', 'jpg', 'jpeg');
+  $extensions = isset($config_form['image']['#upload_validators']['file_validate_extensions'][0]) ? $config_form['image']['#upload_validators']['file_validate_extensions'][0] : implode(' ', $supported_extensions);
+  $extensions = array_intersect(explode(' ', $extensions), $supported_extensions);
+  $config_form['image']['#upload_validators']['file_validate_extensions'][0] = implode(' ', $extensions);
+
+  // Add some additional display settings.
+  $image_styles = image_style_options(FALSE, PASS_THROUGH);
+  $config_form['image_style'] = array(
+    '#title' => t('Image style'),
+    '#type' => 'select',
+    '#default_value' => isset($configuration['image_style']) ? $configuration['image_style'] : '',
+    '#empty_option' => t('None (original image)'),
+    '#options' => $image_styles,
+  );
+
+  $link_types = array(
+    'content' => t('Content'),
+    'file' => t('File'),
+  );
+  $config_form['image_link'] = array(
+    '#title' => t('Link image to'),
+    '#type' => 'select',
+    '#default_value' => isset($configuration['image_link']) ? $configuration['image_link'] : '',
+    '#empty_option' => t('Nothing'),
+    '#options' => $link_types,
+  );
+
+  return $config_form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form_validate().
+ */
+function chunks_image_image_chunk_form_validate($configuration, &$form_state, $form) {
+  // @TODO: run whatever validation the image supplies.
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_empty().
+ */
+function chunks_image_image_chunk_is_empty($configuration, $item, $field) {
+  // @TODO: check if the image has it's own empty check and run it.
+}
+
+/**
+ * An element #process callback for managed_file element type inside an image
+ * chunk.
+ */
+function chunks_image_widget_process($element, &$form_state, $form) {
+  $item = $element['#value'];
+  $item['fid'] = $element['fid']['#value'];
+
+  $image_field_data = $element['#image_field_data'];
+  $field = $image_field_data['image_field'];
+  $instance = $image_field_data['image_instance'];
+  $settings = $instance['widget']['settings'];
+
+  $element['#theme'] = 'image_widget';
+  $element['#attached']['css'][] = drupal_get_path('module', 'image') . '/image.css';
+
+  // Add the display field if enabled.
+  if (!empty($field['settings']['display_field']) && $item['fid']) {
+    $element['display'] = array(
+      '#type' => empty($item['fid']) ? 'hidden' : 'checkbox',
+      '#title' => t('Include file in display'),
+      '#value' => isset($item['display']) ? $item['display'] : $field['settings']['display_default'],
+      '#attributes' => array('class' => array('file-display')),
+    );
+  }
+  else {
+    $element['display'] = array(
+      '#type' => 'hidden',
+      '#value' => '1',
+    );
+  }
+
+  // Add the description field if enabled.
+  if (!empty($instance['settings']['description_field']) && $item['fid']) {
+    $element['description'] = array(
+      '#type' => variable_get('file_description_type', 'textfield'),
+      '#title' => t('Description'),
+      '#value' => isset($item['description']) ? $item['description'] : '',
+      '#maxlength' => variable_get('file_description_length', 128),
+      '#description' => t('The description may be used as the label of the link to the file.'),
+    );
+  }
+
+  $element['upload_button']['#limit_validation_errors'] = array(array_slice($element['#parents'], 0, -1));
+
+  // Add the additional alt and title fields.
+  $element['alt'] = array(
+    '#title' => t('Alternate text'),
+    '#type' => 'textfield',
+    '#default_value' => isset($item['alt']) ? $item['alt'] : '',
+    '#description' => t('This text will be used by screen readers, search engines, or when the image cannot be loaded.'),
+    // @see http://www.gawds.org/show.php?contentid=28
+    '#maxlength' => 512,
+    '#weight' => -2,
+    '#access' => (bool) $item['fid'] && $instance['settings']['alt_field'],
+  );
+  $element['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => isset($item['title']) ? $item['title'] : '',
+    '#description' => t('The title is used as a tool tip when the user hovers the mouse over the image.'),
+    '#maxlength' => 1024,
+    '#weight' => -1,
+    '#access' => (bool) $item['fid'] && $instance['settings']['title_field'],
+  );
+
+  return $element;
+}
+
+/**
+ * The #value_callback for the image field element in the image chunk type.
+ */
+function chunks_image_widget_value($element, $input = FALSE, $form_state) {
+  if ($input) {
+    // Checkboxes lose their value when empty.
+    // If the display field is present make sure its unchecked value is saved.
+    $field = $element['#image_field_data']['image_field'];
+    if (empty($input['display'])) {
+      $input['display'] = $field['settings']['display_field'] ? 0 : 1;
+    }
+  }
+
+  // We depend on the managed file element to handle uploads.
+  $return = file_managed_file_value($element, $input, $form_state);
+
+  // Ensure that all the required properties are returned even if empty.
+  $return += array(
+    'fid' => 0,
+    'display' => 1,
+    'description' => '',
+  );
+
+  return $return;
+}
+
+/**
+ * Preprocess variables for image chunks.
+ */
+function chunks_image_preprocess_chunk(&$variables, $hook) {
+  if ($variables['chunk_type']->name == 'image') {
+
+    $config = $variables['configuration'];
+
+    $file = file_load($config['image']['fid']);
+
+    $item = array_merge((array) $file, $config['image']);
+
+    if ($config['image_link'] == 'content' && $variables['entity'] && $variables['entity_type']) {
+      $uri = entity_uri($variables['entity_type'], $variables['entity']);
+    }
+    elseif ($config['image_link'] == 'file') {
+      $uri = array(
+        'path' => file_create_url($file->uri),
+        'options' => array(),
+      );
+    }
+
+    $variables['image'] = array(
+      '#theme' => 'image_formatter',
+      '#item' => $item,
+      '#image_style' => $config['image_style'],
+      '#path' => isset($uri) ? $uri : '',
+    );
+  }
+}
