@@ -88,6 +88,10 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
   }
 
   // If not using custom extension validation, ensure this is an image.
+  // NOTE: Client-side extension validation does not display a message correctly
+  // once an image has been removed from a managed_file widget. This is a known
+  // issue in the file module. You can find a patch for Drupal 7 here:
+  // https://drupal.org/node/1074214#comment-8777683.
   $supported_extensions = array('png', 'gif', 'jpg', 'jpeg');
   $extensions = isset($config_form['image']['#upload_validators']['file_validate_extensions'][0]) ? $config_form['image']['#upload_validators']['file_validate_extensions'][0] : implode(' ', $supported_extensions);
   $extensions = array_intersect(explode(' ', $extensions), $supported_extensions);
