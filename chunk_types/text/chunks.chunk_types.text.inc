@@ -13,7 +13,7 @@ function chunks_text_chunk_form($form, &$form_state, &$configuration) {
   $config_form['text'] = array(
     '#type' => 'textarea',
     '#title' => t('Text'),
-    '#default_value' => isset($configuration['text']) ? $configuration['text'] : '',
+    '#default_value' => $configuration['text'],
     '#description' => t('Enter some plain text.'),
   );
   return $config_form;

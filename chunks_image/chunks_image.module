@@ -13,9 +13,13 @@ function chunks_image_chunk_types() {
     'image' => array(
       'title' => t('Image'),
       'default configuration' => array(
-        'fid' => '',
-        'alt' => '',
-        'title' => '',
+        'image' => array(
+          'fid' => 0,
+          'alt' => '',
+          'title' => '',
+        ),
+        'image_style' => '',
+        'image_link' => '',
         'width' => 0,
         'height' => 0,
       ),
@@ -40,6 +44,11 @@ function chunks_image_image_chunk_type_settings_form($field, $settings) {
   );
 
   $form['field'] = image_field_settings_form($image_field, $image_instance);
+
+  // Remove default_image from field settings since we get a duplicate in
+  // instance settings.
+  unset($form['field']['default_image']);
+
   $form['instance'] = image_field_instance_settings_form($image_field, $image_instance);
   $form['widget'] = image_field_widget_settings_form($image_field, $image_instance);
   return $form;
@@ -70,9 +79,9 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
     '#progress_indicator' => $image_instance['widget']['settings']['progress_indicator'],
     '#extended' => TRUE,
     '#default_value' => array(
-      'fid' => isset($configuration['image']['fid']) ? $configuration['image']['fid'] : 0,
-      'alt' => isset($configuration['image']['alt']) ? $configuration['image']['alt'] : '',
-      'title' => isset($configuration['image']['title']) ? $configuration['image']['title'] : '',
+      'fid' => $configuration['image']['fid'],
+      'alt' => $configuration['image']['alt'],
+      'title' => $configuration['image']['title'],
       'display' => 0,
       'description' => '',
     ),
@@ -105,7 +114,7 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
   $config_form['image_style'] = array(
     '#title' => t('Image style'),
     '#type' => 'select',
-    '#default_value' => isset($configuration['image_style']) ? $configuration['image_style'] : '',
+    '#default_value' => $configuration['image_style'],
     '#empty_option' => t('None (original image)'),
     '#options' => $image_styles,
     '#description' => t('Select the image style which should be applied to the image when displayed.'),
@@ -118,7 +127,7 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
   $config_form['image_link'] = array(
     '#title' => t('Link image to'),
     '#type' => 'select',
-    '#default_value' => isset($configuration['image_link']) ? $configuration['image_link'] : '',
+    '#default_value' => $configuration['image_link'],
     '#empty_option' => t('Nothing'),
     '#options' => $link_types,
     '#description' => t('Select a location to which the imaage should be linked.'),
@@ -150,22 +159,6 @@ function chunks_image_widget_process($element, &$form_state, $form) {
   $element['#theme'] = 'image_widget';
   $element['#attached']['css'][] = drupal_get_path('module', 'image') . '/image.css';
 
-  // Add the display field if enabled.
-  if (!empty($field['settings']['display_field']) && $item['fid']) {
-    $element['display'] = array(
-      '#type' => empty($item['fid']) ? 'hidden' : 'checkbox',
-      '#title' => t('Include file in display'),
-      '#value' => isset($item['display']) ? $item['display'] : $field['settings']['display_default'],
-      '#attributes' => array('class' => array('file-display')),
-    );
-  }
-  else {
-    $element['display'] = array(
-      '#type' => 'hidden',
-      '#value' => '1',
-    );
-  }
-
   $element['upload_button']['#limit_validation_errors'] = array(array_slice($element['#parents'], 0, -1));
 
   // Add the additional alt and title fields.
@@ -196,14 +189,6 @@ function chunks_image_widget_process($element, &$form_state, $form) {
  * The #value_callback for the image field element in the image chunk type.
  */
 function chunks_image_widget_value($element, $input = FALSE, $form_state) {
-  if ($input) {
-    // Checkboxes lose their value when empty.
-    // If the display field is present make sure its unchecked value is saved.
-    $field = $element['#image_field_data']['image_field'];
-    if (empty($input['display'])) {
-      $input['display'] = $field['settings']['display_field'] ? 0 : 1;
-    }
-  }
 
   // We depend on the managed file element to handle uploads.
   $return = file_managed_file_value($element, $input, $form_state);
@@ -211,7 +196,7 @@ function chunks_image_widget_value($element, $input = FALSE, $form_state) {
   // Ensure that all the required properties are returned even if empty.
   $return += array(
     'fid' => 0,
-    'display' => 1,
+    'display' => 0,
     'description' => '',
   );
 
