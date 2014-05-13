@@ -318,7 +318,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         $configuration =  $chunk_state['configuration'][$chunk_state['type']];
       }
       else {
-        $configuration = array();
+        $configuration = $chunk_type->default_configuration;
       }
       $chunk_type_settings = isset($instance['settings']['chunk_type_settings'][$name]['settings']) ? $instance['settings']['chunk_type_settings'][$name]['settings'] : array();
       $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration, $chunk_type_settings);
