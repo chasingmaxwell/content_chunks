@@ -47,13 +47,13 @@ function chunks_image_image_chunk_type_settings_form($field, $settings) {
   $form['instance'] = image_field_instance_settings_form($image_field, $image_instance);
   $form['widget'] = image_field_widget_settings_form($image_field, $image_instance);
 
-  // Remove default_image from field settings since we get a duplicate in
+  // Hide default_image from field settings since we get a duplicate in
   // instance settings.
-  unset($form['field']['default_image']);
+  $form['field']['default_image']['#access'] = FALSE;
 
-  // Remove preview_image_style from widget settings since we have our own
+  // Hide preview_image_style from widget settings since we have our own
   // chunky preview functionality.
-  unset($form['widget']['preview_image_style']);
+  $form['widget']['preview_image_style']['#access'] = FALSE;
 
   return $form;
 }
