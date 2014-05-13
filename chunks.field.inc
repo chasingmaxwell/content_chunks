@@ -201,6 +201,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // callback.
     $row += array(
       '#element_validate' => array('chunks_field_widget_values_validate'),
+      '#instance_settings' => $instance['settings'],
       '#prefix' => '<div id="' . $field_name . '-' . $delta . '-chunk' . '" class="chunk-wrapper" delta="' . $delta . '">',
       '#suffix' => '</div>'
     );
@@ -345,6 +346,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#theme' => 'chunk',
         '#chunk_type' => $chunk_types[$chunk_state['type']],
         '#chunk_configuration' => $chunk_state['configuration'][$chunk_state['type']],
+        '#type_settings' => isset($instance['settings']['chunk_type_settings'][$chunk_state['type']]['settings']) ? $instance['settings']['chunk_type_settings'][$chunk_state['type']]['settings'] : array(),
       );
     }
 
@@ -705,11 +707,19 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     $chunk_type = $form['#chunk_types'][$item['type']];
 
+    if (isset($element['#instance_settings']['chunk_type_settings'][$item['type']])) {
+      $type_settings = $element['#instance_settings']['chunk_type_settings'][$item['type']]['settings'];
+    }
+    else {
+      $type_settings = array();
+    }
+
     // Create and save the data field value since it does not have a
     // corresponding field element.
     $data = array(
       'type' => $chunk_type,
       'configuration' => $item['configuration'][$item['type']],
+      'type_settings' => $type_settings,
     );
     $item['data'] = serialize($data);
     $item['module'] = $chunk_type->module;
@@ -772,10 +782,13 @@ function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $
     // Prepare chunk data.
     $item['data'] = unserialize($item['data']);
 
+    $chunk_type = $item['data']['type'];
+
     $element[0][$delta] = array(
       '#theme' => 'chunk',
-      '#chunk_type' => $item['data']['type'],
+      '#chunk_type' => $chunk_type,
       '#chunk_configuration' => $item['data']['configuration'],
+      '#type_settings' => isset($instance['settings']['chunk_type_settings'][$chunk_type->name]['settings']) ? $instance['settings']['chunk_type_settings'][$chunk_type->name]['settings'] : array(),
       '#entity' => $entity,
       '#entity_type' => $entity_type,
     );

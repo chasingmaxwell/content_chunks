@@ -119,13 +119,6 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
 }
 
 /**
- * Implements hook_CHUNK_TYPE_chunk_form_validate().
- */
-function chunks_image_image_chunk_form_validate($configuration, &$form_state, $form) {
-  // @TODO: run whatever validation the image supplies.
-}
-
-/**
  * Implements hook_CHUNK_TYPE_chunk_is_empty().
  */
 function chunks_image_image_chunk_is_empty($configuration, $item, $field) {
@@ -234,26 +227,45 @@ function chunks_image_preprocess_chunk(&$variables, $hook) {
   if ($variables['chunk_type']->name == 'image') {
 
     $config = $variables['configuration'];
+    $type_settings = $variables['type_settings'];
 
-    $file = file_load($config['image']['fid']);
-
-    $item = array_merge((array) $file, $config['image']);
-
-    if ($config['image_link'] == 'content' && $variables['entity'] && $variables['entity_type']) {
-      $uri = entity_uri($variables['entity_type'], $variables['entity']);
+    // Retrive the file id either from the uploaded image or the default.
+    if ($config['image']['fid']) {
+      $fid = $config['image']['fid'];
     }
-    elseif ($config['image_link'] == 'file') {
-      $uri = array(
-        'path' => file_create_url($file->uri),
-        'options' => array(),
+    else {
+      $fid = $type_settings['instance']['default_image'];
+    }
+
+    // If we have either an uploaded image or a default image, theme it.
+    if ($fid) {
+      $file = file_load($fid);
+
+      $item = array_merge((array) $file, $config['image']);
+
+      if ($config['image_link'] == 'content' && $variables['entity'] && $variables['entity_type']) {
+        $uri = entity_uri($variables['entity_type'], $variables['entity']);
+      }
+      elseif ($config['image_link'] == 'file') {
+        $uri = array(
+          'path' => file_create_url($file->uri),
+          'options' => array(),
+        );
+      }
+
+      $variables['image'] = array(
+        '#theme' => 'image_formatter',
+        '#item' => $item,
+        '#image_style' => $config['image_style'],
+        '#path' => isset($uri) ? $uri : '',
       );
     }
-
-    $variables['image'] = array(
-      '#theme' => 'image_formatter',
-      '#item' => $item,
-      '#image_style' => $config['image_style'],
-      '#path' => isset($uri) ? $uri : '',
-    );
+    // Provide a message for the chunks widget if an empty image chunk is
+    // previewed and there is no default.
+    else {
+      $variables['image'] = array(
+        '#markup' => t('No image was uploaded and no default set. This image will not be saved.'),
+      );
+    }
   }
 }
