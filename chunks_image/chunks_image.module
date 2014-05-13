@@ -76,6 +76,7 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
   $element_info = element_info('managed_file');
   $config_form['image'] = array(
     '#type' => 'managed_file',
+    '#title' => t('Image'),
     '#upload_location' => file_field_widget_uri($image_field, $image_instance),
     '#upload_validators' => file_field_widget_upload_validators($image_field, $image_instance),
     '#value_callback' => 'chunks_image_widget_value',
