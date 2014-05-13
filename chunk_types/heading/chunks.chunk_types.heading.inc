@@ -13,20 +13,20 @@ function chunks_heading_chunk_form($form, &$form_state, &$configuration) {
   $config_form['text'] = array(
     '#type' => 'textfield',
     '#title' => t('Text'),
-    '#default_value' => isset($configuration['text']) ? $configuration['text'] : '',
+    '#default_value' => $configuration['text'],
     '#description' => t('Enter the heading text.'),
   );
   $config_form['level'] = array(
     '#type' => 'select',
     '#title' => t('Level'),
     '#options' => array('2' => 'H2', '3' => 'H3', '4' => 'H4', '5' => 'H5', '6' => 'H6'),
-    '#default_value' => isset($configuration['level']) ? $configuration['level'] : '',
+    '#default_value' => $configuration['level'],
     '#description' => t('Select a heading level.'),
   );
   $config_form['id'] = array(
     '#type' => 'textfield',
     '#title' => t('HTML ID'),
-    '#default_value' => isset($configuration['id']) ? $configuration['id'] : '',
+    '#default_value' => $configuration['id'],
     '#description' => t('<em>Optional:</em> add an HTML ID to allow for direct links to this heading.'),
     '#maxlength' => '64',
   );

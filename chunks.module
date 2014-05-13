@@ -138,6 +138,7 @@ function chunks_chunk_types() {
       'default configuration' => array(
         'text' => '',
         'level' => '2',
+        'id' => '',
       ),
       'file' => 'chunk_types/heading/chunks.chunk_types.heading.inc',
       'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/heading',
