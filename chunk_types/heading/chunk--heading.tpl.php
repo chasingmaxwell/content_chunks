@@ -11,6 +11,8 @@
  *   configuration.
  *   -  text: A string of text with which to fill the heading.
  *   -  level: An integer representing the header level (2, 3, 4, 5, or 6).
+ * - $type_settings: An associative array representing the chunk type settings
+ *   connected to the chunk field's instance.
  * - $chunk_type: The ChunkType object representing the chunk's type.
  * - $entity: If we are viewing an entity, this will be the entity object.
  *   Otherwise it will be FALSE.

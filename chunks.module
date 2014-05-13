@@ -188,13 +188,10 @@ function template_preprocess_chunk(&$variables, $hook) {
   // Add class with type name.
   $variables['classes_array'][] = $variables['chunk']['#chunk_type']->name . '-chunk';
 
-  // Make configuration a top-level variable.
-  $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
-
-  // Make the chunk's type a top-level variable.
+  // Provide some intuitive top-level variables.
   $variables['chunk_type'] = $variables['chunk']['#chunk_type'];
-
-  // If we have an entity, set entity and entity_type top-level variables.
+  $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
+  $variables['type_settings'] = $variables['chunk']['#type_settings'];
   $variables['entity'] = isset($variables['chunk']['#entity']) ? $variables['chunk']['#entity'] : FALSE;
   $variables['entity_type'] = isset($variables['chunk']['#entity_type']) ? $variables['chunk']['#entity_type'] : FALSE;
 
