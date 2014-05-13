@@ -82,6 +82,9 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
     ),
   );
 
+  // Add field description.
+  $config_form['image']['#description'] = theme('file_upload_help', array('upload_validators' => $config_form['image']['#upload_validators']));
+
   // Add upload resolution validation.
   if ($settings['instance']['max_resolution'] || $settings['instance']['min_resolution']) {
     $config_form['image']['#upload_validators']['file_validate_image_resolution'] = array($settings['instance']['max_resolution'], $settings['instance']['min_resolution']);
@@ -105,6 +108,7 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
     '#default_value' => isset($configuration['image_style']) ? $configuration['image_style'] : '',
     '#empty_option' => t('None (original image)'),
     '#options' => $image_styles,
+    '#description' => t('Select the image style which should be applied to the image when displayed.'),
   );
 
   $link_types = array(
@@ -117,6 +121,7 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
     '#default_value' => isset($configuration['image_link']) ? $configuration['image_link'] : '',
     '#empty_option' => t('Nothing'),
     '#options' => $link_types,
+    '#description' => t('Select a location to which the imaage should be linked.'),
   );
 
   return $config_form;
@@ -158,17 +163,6 @@ function chunks_image_widget_process($element, &$form_state, $form) {
     $element['display'] = array(
       '#type' => 'hidden',
       '#value' => '1',
-    );
-  }
-
-  // Add the description field if enabled.
-  if (!empty($instance['settings']['description_field']) && $item['fid']) {
-    $element['description'] = array(
-      '#type' => variable_get('file_description_type', 'textfield'),
-      '#title' => t('Description'),
-      '#value' => isset($item['description']) ? $item['description'] : '',
-      '#maxlength' => variable_get('file_description_length', 128),
-      '#description' => t('The description may be used as the label of the link to the file.'),
     );
   }
 
