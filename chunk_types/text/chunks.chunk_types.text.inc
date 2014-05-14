@@ -3,6 +3,9 @@
 /**
  * @file
  * Provide hooks relevant to the text chunk type.
+ *
+ * @TODO: This is only here for demonstration and testing during development.
+ * Delete this chunk type once it is no longer necessary.
  */
 
 /**

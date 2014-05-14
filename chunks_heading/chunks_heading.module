@@ -2,13 +2,29 @@
 
 /**
  * @file
- * Provide hooks relevant to the heading chunk type.
+ * Provide a heading chunk type.
  */
+
+/**
+ * Implements hook_chunk_types().
+ */
+function chunks_heading_chunk_types() {
+  return array(
+    'heading' => array(
+      'title' => t('Heading'),
+      'default configuration' => array(
+        'text' => '',
+        'level' => '2',
+        'id' => '',
+      ),
+    ),
+  );
+}
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_heading_chunk_form($form, &$form_state, &$configuration) {
+function chunks_heading_heading_chunk_form($form, &$form_state, &$configuration) {
   $config_form = array();
   $config_form['text'] = array(
     '#type' => 'textfield',
@@ -51,7 +67,7 @@ function chunks_heading_chunk_form_validate($configuration, &$form_state, $form)
 /**
  * Implements hook_CHUNK_TYPE_chunk_is_empty().
  */
-function chunks_heading_chunk_is_empty($configuration, $item, $field) {
+function chunks_heading_heading_chunk_is_empty($configuration, $item, $field) {
   if (empty($configuration['text'])) {
     return TRUE;
   }
