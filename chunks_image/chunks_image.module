@@ -20,6 +20,9 @@ function chunks_image_chunk_types() {
         ),
         'image_style' => '',
         'image_link' => '',
+        // @TODO: I'm not sure if we need these two properties, but they exist
+        // in image_field_schema() so I thought I'd be safe and provide them.
+        // Figure out if they should be removed.
         'width' => 0,
         'height' => 0,
       ),
@@ -32,6 +35,9 @@ function chunks_image_chunk_types() {
  */
 function chunks_image_image_chunk_type_settings_form($field, $settings) {
   $form = array();
+
+  // Create fake field and instance arrays with just enough information to
+  // retrieve image field, instance, and widget settings forms.
   $image_field = array(
     'type' => 'image',
     'settings' => isset($settings['field']) ? $settings['field'] : field_info_field_settings('image'),
@@ -43,6 +49,7 @@ function chunks_image_image_chunk_type_settings_form($field, $settings) {
     ),
   );
 
+  // Embed settings forms for the image field.
   $form['field'] = image_field_settings_form($image_field, $image_instance);
   $form['instance'] = image_field_instance_settings_form($image_field, $image_instance);
   $form['widget'] = image_field_widget_settings_form($image_field, $image_instance);
@@ -63,6 +70,10 @@ function chunks_image_image_chunk_type_settings_form($field, $settings) {
  */
 function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
+
+  // Create fake field and instance arrays with just enough information to
+  // utilize some functions provided by the image and file field
+  // implementations.
   $image_field = array(
     'type' => 'image',
     'settings' => $settings['field'],
@@ -73,6 +84,8 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
       'settings' => $settings['widget'],
     ),
   );
+
+  // Build the image upload widget.
   $element_info = element_info('managed_file');
   $config_form['image'] = array(
     '#type' => 'managed_file',
@@ -114,7 +127,7 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
   $extensions = array_intersect(explode(' ', $extensions), $supported_extensions);
   $config_form['image']['#upload_validators']['file_validate_extensions'][0] = implode(' ', $extensions);
 
-  // Add some additional display settings.
+  // Provide some additional display settings.
   $image_styles = image_style_options(FALSE, PASS_THROUGH);
   $config_form['image_style'] = array(
     '#title' => t('Image style'),
@@ -149,8 +162,10 @@ function chunks_image_image_chunk_is_empty($configuration, $item, $field) {
 }
 
 /**
- * An element #process callback for managed_file element type inside an image
- * chunk.
+ * An element #process callback for managed_file element inside the image chunk
+ * form.
+ *
+ * @see chunks_image_image_chunk_form()
  */
 function chunks_image_widget_process($element, &$form_state, $form) {
   $item = $element['#value'];
@@ -191,7 +206,9 @@ function chunks_image_widget_process($element, &$form_state, $form) {
 }
 
 /**
- * The #value_callback for the image field element in the image chunk type.
+ * The #value_callback for the managed_file element inside the image chunk form.
+ *
+ * @see chunks_image_image_chunk_form()
  */
 function chunks_image_widget_value($element, $input = FALSE, $form_state) {
 
@@ -209,7 +226,12 @@ function chunks_image_widget_value($element, $input = FALSE, $form_state) {
 }
 
 /**
- * Preprocess variables for image chunks.
+ * Implements hook_preprocess_chunk().
+ *
+ * Preprocess variables for chunk--image.tpl.php.
+ *
+ * @see template_preprocess_chunk()
+ * @see chunk--image.tpl.php
  */
 function chunks_image_preprocess_chunk(&$variables, $hook) {
   if ($variables['chunk_type']->name == 'image') {
