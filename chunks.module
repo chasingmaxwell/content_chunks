@@ -73,6 +73,10 @@ function chunk_types_load() {
           $data['template'] = 'chunk--' . str_replace('_', '-', $name);
         }
 
+        if (!isset($data['client themeable']) || $data['client themeable'] !== TRUE) {
+          $data['client themeable'] = FALSE;
+        }
+
         // Check if the template file exists.
         if (!file_exists(DRUPAL_ROOT . '/' . $data['template path'] . '/' . $data['template'] . '.tpl.php')) {
           $message = 'The %module module did not provide a properly named template file for the %type chunk type. The %type chunk type will not be available.';
@@ -133,6 +137,7 @@ function chunks_chunk_types() {
       'default configuration' => array(
         'text' => '',
       ),
+      'client themeable' => TRUE,
       'file' => 'chunk_types/text/chunks.chunk_types.text.inc',
       'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/text',
     ),

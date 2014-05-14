@@ -27,6 +27,10 @@ class ChunkType {
   // to DRUPAL_ROOT.
   public $template_path;
 
+  // A boolean indicating whether or not this chunk type provides a client-side
+  // theme implementation in JavaScript.
+  public $client_themeable;
+
   // The file which must be included before performing actions on this
   // ChunkType object.
   protected $file;
@@ -57,6 +61,8 @@ class ChunkType {
    *       extension.
    *     - template path: The directory path in which to look for the above
    *       template file, relative to DRUPAL_ROOT.
+   *     - client themeable: A boolean indicating whether or not this chunk type
+   *       provides a client-side theme implementation in JavaScript.
    * @param $module
    *   The chunk type's module name.
    */
@@ -74,6 +80,7 @@ class ChunkType {
     }
     $this->template = $data['template'];
     $this->template_path = $data['template path'];
+    $this->client_themeable = $data['client themeable'];
   }
 
   /**
@@ -120,15 +127,27 @@ class ChunkType {
    * @see chunks_field_instance_settings_form().
    */
   public function getTypeSettingsForm($field, $settings) {
+
+    $form = array();
+
     if (isset($this->file)) {
       $this->file_include();
     }
 
     $function = $this->module . '_' . $this->name . '_chunk_type_settings_form';
     if (function_exists($function)) {
-      return $function($field, $settings);
+      $form += $function($field, $settings);
     }
-    return FALSE;
+
+    if ($this->client_themeable) {
+      $form['theme_on_client'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Theme this chunk type using the client-side, JavaScript theme implementation.'),
+        '#description' => t('WARNING: This bypasses Drupal\'s normal theming process. Preprocessors, Processors, and hook overrides in php will not be run.'),
+      );
+    }
+
+    return !empty($form) ? $form : FALSE;
   }
 
   /**
