@@ -1,6 +1,11 @@
 /**
  * @file
  * Add some extra reactivity to the chunks field widget.
+ *
+ * @TODO:
+ *  1. Preview button is not losing it's active state when clicked on a chunk
+ *  with client-side theming.
+ *  2. configuration is not replaced correctly on the heading chunk type.
  */
 
 (function($){
@@ -130,9 +135,18 @@
               this.checked = true;
               $(this).trigger('change');
               chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
+
+              // Prepare form if the chunk type is to be themed on the client.
               if (Drupal.settings.chunks[chunkType].instance_type_settings.theme_on_client) {
-                $(classPrepend + 'preview-button', element).unbind('click');
+
+                // Prevent default actions on preview button if we are theming on
+                // the client.
+                $(classPrepend + 'preview-button', element).unbind('click').unbind('keypress').bind('keypress', false);
+
+                // Set module value since it may not be set in a form rebuild.
+                $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][module]"]').val(Drupal.settings.chunks[chunkType].module);
               }
+
               viewElement.val('configuration');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
@@ -149,25 +163,46 @@
             if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
               var chunkType, configuration, newProp, preview;
 
+              // We will trigger the click event manually if we want this button
+              // to do anything outside this function.
+              e.preventDefault();
+
               chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
 
               // If we should be using a client-side theme implementation,
               // prevent the ajax call and build the preview.
               if (typeof chunkType !== 'undefined' && Drupal.settings.chunks[chunkType].instance_type_settings.theme_on_client) {
-                e.preventDefault();
+
+                // Save configuration data.
                 saveConfig(delta);
+
+                // Parse configuration data.
                 configuration = {};
                 for (var name in config[delta]) {
                   newProp = name.match(/[^\[]*(?=]$)/)[0];
                   configuration[newProp] = config[delta][name];
                 }
+
+                // Build preview.
                 preview = Drupal.theme(chunkType + '_chunk', configuration);
-                delete config[delta];
                 $(classPrepend + 'preview').html(preview);
+
+                // Remove configuration data.
+                delete config[delta];
+
+                // Set focus to add chunk button.
+                setTimeout(function() {
+                  addButton.focus();
+                }, 0);
+              }
+              else {
+                // Trigger click event so ajax call will fire.
+                $(this).trigger('click');
               }
 
               viewElement.val('preview');
               viewElement.trigger('change');
+
               // Set active class on the last chunk with user interaction.
               setActiveChunk($(element));
             }
@@ -177,6 +212,10 @@
           $(classPrepend + 'edit-button', element).bind('keyup.chunkEdit mousedown.chunkEdit', function(e) {
             if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
               var chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
+
+              // show cancel button.
+              $(classPrepend + 'cancel-button', element).show();
+
               viewElement.val('configuration');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
@@ -195,6 +234,10 @@
           // Swith to preview view with "Cancel" button is pressed.
           $(classPrepend + 'cancel-button', element).bind('keyup.chunkEditCancel mousedown.chunkEditCancel', function(e) {
             if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+
+              // hide cancel button.
+              $(this).hide();
+
               viewElement.val('preview');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.

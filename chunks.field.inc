@@ -438,26 +438,19 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         ),
       );
 
-      // Once we have a preview, display a cancel button.
-      if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
-        $row['chunk_actions']['cancel'] = array(
-          '#type' => 'submit',
-          '#name' => $id_prefix . '-' . $delta . '-cancel',
-          '#value' => t('Cancel'),
-          '#submit' => array('chunks_field_form_submit'),
-          '#op' => 'cancel',
-          '#weight' => -1,
-          '#limit_validation_errors' => array(array($field_name)),
-          '#attributes' => array(
-            'class' => array('chunk-cancel-button', str_replace('_', '-', $field_name) . '-' . $delta . '-cancel-button'),
-          ),
-          '#states' => array(
-            'visible' => array(
-              ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'configuration'),
-            ),
-          ),
-        );
-      }
+      $row['chunk_actions']['cancel'] = array(
+        '#type' => 'submit',
+        '#name' => $id_prefix . '-' . $delta . '-cancel',
+        '#value' => t('Cancel'),
+        '#submit' => array('chunks_field_form_submit'),
+        '#op' => 'cancel',
+        '#weight' => -1,
+        '#limit_validation_errors' => array(array($field_name)),
+        '#attributes' => array(
+          'class' => array('chunk-cancel-button', str_replace('_', '-', $field_name) . '-' . $delta . '-cancel-button'),
+          'style' => 'display: none;',
+        ),
+      );
     }
 
     // If cardinality is unlimited, provide buttons for adding new chunks
