@@ -11,7 +11,7 @@
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_text_chunk_form($form, &$form_state, &$configuration) {
+function chunks_text_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
   $config_form['text'] = array(
     '#type' => 'textarea',
@@ -19,6 +19,16 @@ function chunks_text_chunk_form($form, &$form_state, &$configuration) {
     '#default_value' => $configuration['text'],
     '#description' => t('Enter some plain text.'),
   );
+
+  // Add JavaScript for client-side preview theming.
+  if ($settings['theme_on_client']) {
+    $config_form['#attached'] = array(
+      'js' => array(
+        drupal_get_path('module', 'chunks') . '/chunk_types/text/chunks-text.js',
+      ),
+    );
+  }
+
   return $config_form;
 }
 

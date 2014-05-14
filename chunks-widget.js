@@ -73,10 +73,11 @@
 
         // Helper function to save configuration.
         saveConfig = function(delta) {
-          config[delta] = {};
+          var chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
 
-          $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').each(function(i, element) {
+          $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration][' + chunkType + ']"]').each(function(i, element) {
             var name = $(element).attr('name');
+            config[delta] = {};
             config[delta][name] = $(element).val();
           });
         };
@@ -93,7 +94,7 @@
 
         // Perform actions on each chunk.
         chunks.each(function(index, element) {
-          var delta, classPrepend, viewElement, view, active, addButton;
+          var delta, type, classPrepend, viewElement, view, active, addButton;
 
           delta = parseInt($(element).attr('delta'), 10);
           viewElement = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][view]"]');
@@ -129,6 +130,9 @@
               this.checked = true;
               $(this).trigger('change');
               chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
+              if (Drupal.settings.chunks[chunkType].instance_type_settings.theme_on_client) {
+                $(classPrepend + 'preview-button', element).unbind('click');
+              }
               viewElement.val('configuration');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.
@@ -143,6 +147,25 @@
           // Switch to preview view when "Preview" button is pressed.
           $(classPrepend + 'preview-button', element).bind('keyup.chunkPreview mousedown.chunkPreview', function(e) {
             if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+              var chunkType, configuration, newProp, preview;
+
+              chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
+
+              // If we should be using a client-side theme implementation,
+              // prevent the ajax call and build the preview.
+              if (typeof chunkType !== 'undefined' && Drupal.settings.chunks[chunkType].instance_type_settings.theme_on_client) {
+                e.preventDefault();
+                saveConfig(delta);
+                configuration = {};
+                for (var name in config[delta]) {
+                  newProp = name.match(/[^\[]*(?=]$)/)[0];
+                  configuration[newProp] = config[delta][name];
+                }
+                preview = Drupal.theme(chunkType + '_chunk', configuration);
+                delete config[delta];
+                $(classPrepend + 'preview').html(preview);
+              }
+
               viewElement.val('preview');
               viewElement.trigger('change');
               // Set active class on the last chunk with user interaction.

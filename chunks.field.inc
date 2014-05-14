@@ -115,6 +115,24 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // Retrieve all chunk_types for use later.
   $chunk_types = chunk_types_load();
 
+  // Prepare settings array for drupal_add_js.
+  $js_settings = array(
+    'chunks' => array(),
+  );
+
+  // Process chunk types and provide additional properties.
+  foreach ($chunk_types as $name => $chunk_type) {
+    // Add chunk type settings defined on the field isntance to each chunk type
+    // for easy access in the rest of the widget.
+    $chunk_types[$name]->instance_type_settings = isset($instance['settings']['chunk_type_settings'][$name]['settings']) ? $instance['settings']['chunk_type_settings'][$name]['settings'] : array();
+
+    // Store information about each chunk type in JavaScript settings.
+    $js_settings['chunks'][$name] = $chunk_type;
+  }
+
+  // Save JavaScript settings.
+  drupal_add_js($js_settings, 'setting');
+
   // Save chunk types in the form so they can be accessed easily later.
   $form['#chunk_types'] = $chunk_types;
 
@@ -123,8 +141,10 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   foreach ($chunk_types as $name => $chunk_type) {
     if ((!isset($instance['settings']['chunk_types'][$name]) || !$instance['settings']['chunk_types'][$name]) ||
       !user_access('use_' . $chunk_type->name . '_chunk')) {
-        continue;
-      }
+
+      // Do not add to allowed types.
+      continue;
+    }
 
     $form['#allowed_chunk_types'][$chunk_type->name] = $chunk_type;
   }
@@ -320,8 +340,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       else {
         $configuration = $chunk_type->default_configuration;
       }
-      $chunk_type_settings = isset($instance['settings']['chunk_type_settings'][$name]['settings']) ? $instance['settings']['chunk_type_settings'][$name]['settings'] : array();
-      $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration, $chunk_type_settings);
+      $row['configuration'][$chunk_type->name] = $chunk_type->getForm($form, $form_state, $configuration, $chunk_type->instance_type_settings);
       $row['configuration'][$chunk_type->name] += array(
         '#type' => 'container',
         '#attributes' => array(
@@ -341,6 +360,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'visible' => array(
           ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'preview'),
         ),
+      ),
+      '#attributes' => array(
+        'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-preview'),
       ),
     );
 
@@ -407,6 +429,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#ajax' => array(
           'callback' => 'chunks_field_preview_callback',
           'wrapper' => $field_name . '-' . $delta . '-chunk',
+          'event' => 'click',
         ),
         '#states' => array(
           'visible' => array(
