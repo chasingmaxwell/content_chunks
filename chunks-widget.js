@@ -1,11 +1,6 @@
 /**
  * @file
  * Add some extra reactivity to the chunks field widget.
- *
- * @TODO:
- *  1. Preview button is not losing it's active state when clicked on a chunk
- *  with client-side theming.
- *  2. configuration is not replaced correctly on the heading chunk type.
  */
 
 (function($){
@@ -80,9 +75,10 @@
         saveConfig = function(delta) {
           var chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
 
+          config[delta] = {};
+
           $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration][' + chunkType + ']"]').each(function(i, element) {
             var name = $(element).attr('name');
-            config[delta] = {};
             config[delta][name] = $(element).val();
           });
         };
@@ -167,6 +163,9 @@
               // to do anything outside this function.
               e.preventDefault();
 
+              // Hide cancel button.
+              $(classPrepend + 'cancel-button', element).hide();
+
               chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
 
               // If we should be using a client-side theme implementation,
@@ -184,7 +183,7 @@
                 }
 
                 // Build preview.
-                preview = Drupal.theme(chunkType + '_chunk', configuration);
+                preview = Drupal.theme('chunk__' + chunkType, configuration);
                 $(classPrepend + 'preview').html(preview);
 
                 // Remove configuration data.
@@ -194,6 +193,9 @@
                 setTimeout(function() {
                   addButton.focus();
                 }, 0);
+
+                // Remove active state on button.
+                removeActiveState(this);
               }
               else {
                 // Trigger click event so ajax call will fire.
@@ -213,7 +215,7 @@
             if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
               var chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
 
-              // show cancel button.
+              // Show cancel button.
               $(classPrepend + 'cancel-button', element).show();
 
               viewElement.val('configuration');
@@ -235,7 +237,7 @@
           $(classPrepend + 'cancel-button', element).bind('keyup.chunkEditCancel mousedown.chunkEditCancel', function(e) {
             if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
 
-              // hide cancel button.
+              // Hide cancel button.
               $(this).hide();
 
               viewElement.val('preview');
