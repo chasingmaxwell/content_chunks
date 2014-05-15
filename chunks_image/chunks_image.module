@@ -107,6 +107,11 @@ function chunks_image_image_chunk_form($form, &$form_state, &$configuration, $se
       'image_field' => $image_field,
       'image_instance' => $image_instance,
     ),
+    '#attached' => array(
+      'js' => array(
+        drupal_get_path('module', 'chunks_image') . '/chunks-image.js',
+      ),
+    ),
   );
 
   // Add field description.
