@@ -1,5 +1,8 @@
-(function($) {
+(function() {
   Drupal.theme.prototype.chunk__text = function(config) {
-    return Drupal.checkPlain(config.text);
+    var output = '<div class="chunk text-chunk">';
+    output += Drupal.checkPlain(config.text);
+    output += '</div>';
+    return output;
   };
-})(jQuery);
+})();

@@ -6,7 +6,7 @@
   Drupal.theme.prototype.chunk__heading = function(configuration) {
     var output = '';
 
-    output += '<h' + configuration.level + ' class="chunk chunk-heading"';
+    output += '<h' + configuration.level + ' class="chunk heading-chunk"';
     if (configuration.id !== '') {
       output += ' id="' + Drupal.checkPlain(configuration.id) + '"';
     }
