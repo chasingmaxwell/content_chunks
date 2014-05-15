@@ -88,7 +88,8 @@ class ChunkType {
    *   An associative array representing the current state of the chunk's
    *   configuration.
    * @param $settings
-   *   An associative array of settings for the chunk type instance.
+   *   An associative array of settings for the chunk type instance. An empty
+   *   array if no settings exist.
    *
    * @return
    *   A renderable array to be inserted into the field's widget form.
@@ -110,7 +111,7 @@ class ChunkType {
    * @param $field
    *   The parent chunk field's structure.
    * @param $settings
-   *   The current settings for the chunk type.
+   *   The current settings for the chunk type as an associative array.
    *
    * @return
    *   If the hook exists, return a rendereable array to insert into the field's

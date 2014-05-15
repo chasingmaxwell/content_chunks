@@ -46,6 +46,31 @@ function hook_chunk_types() {
 }
 
 /**
+ * Provides the chunk type's instance settings form.
+ *
+ * @param $field
+ *   The parent chunk field's structure.
+ * @param $settings
+ *   The current settings for the chunk type as an associative array.
+ *
+ * @return
+ *   A renderable array to insert into the parent field's instance settings
+ *   form.
+ *
+ * @see chunks_field_instance_settings_form().
+ */
+function hook_CHUNK_TYPE_chunk_type_settings_form($field, $settings) {
+  $form = array();
+  $form['default_text'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Default text'),
+    '#default_value' => isset($settings['default_text']) ? $settings['default_text'] : '',
+    '#description' => t('Enter the text to use by default if no text is entered.'),
+  );
+  return $form;
+}
+
+/**
  * Provides the configuration form to be inserted into the field widget form for
  * a specific chunk type.
  *
@@ -59,18 +84,22 @@ function hook_chunk_types() {
  * @param $configuration
  *   An associative array representing the current state of the chunk's
  *   configuration.
+ * @param $settings
+ *   An associative array of settings for the chunk type instance. An empty
+ *   array if no settings exist.
  *
  * @return
  *   A renderable array to be inserted into the field's widget form.
  *
  * @see chunks_field_widget_form().
  */
-function hook_CHUNK_TYPE_chunk_form($form, &$form_state, &$configuration) {
+function hook_CHUNK_TYPE_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
+
   $config_form['text'] = array(
     '#type' => 'textarea',
     '#title' => t('Text'),
-    '#default_value' => isset($configuration['text']) ? $configuration['text'] : '',
+    '#default_value' => isset($configuration['text']) ? $configuration['text'] : $settings['default_text'],
     '#description' => t('Enter some plain text.'),
   );
   return $config_form;
