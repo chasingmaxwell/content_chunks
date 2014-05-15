@@ -29,6 +29,15 @@
  *     extension.
  *   - template path: The directory path in which to look for the above template
  *     file, relative to DRUPAL_ROOT.
+ *   - client themeable: A boolean indicating whether or not the chunk type
+ *     provides a client-side theme implementation in JavaScript. If TRUE, a
+ *     setting will appear on the chunk field's instance settings to allow the
+ *     chunk type in that instance to theme the preview on the client. The
+ *     module must also register a theme hook in Javascript with the name
+ *     "chunk__CHUNK_TYPE". This theme hook will be called to generate the
+ *     preview in lieu of an ajax call. You can find more information about
+ *     JavaScript theming in Drupal under the "JavaScript theming" header on
+ *     this page: https://drupal.org/node/171213.
  *
  * @see chunk_types_load().
  */
