@@ -21,7 +21,7 @@ function chunks_text_chunk_form($form, &$form_state, &$configuration, $settings)
   );
 
   // Add JavaScript for client-side preview theming.
-  if ($settings['theme_on_client']) {
+  if ($settings['preview_on_client']) {
     $config_form['#attached'] = array(
       'js' => array(
         drupal_get_path('module', 'chunks') . '/chunk_types/text/chunks-text.js',

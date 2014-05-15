@@ -133,7 +133,7 @@
               chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
 
               // Prepare form if the chunk type is to be themed on the client.
-              if (Drupal.settings.chunks[chunkType].instance_type_settings.theme_on_client) {
+              if (Drupal.settings.chunks[chunkType].instance_type_settings.preview_on_client) {
 
                 // Prevent default actions on preview button if we are theming on
                 // the client.
@@ -170,7 +170,7 @@
 
               // If we should be using a client-side theme implementation,
               // prevent the ajax call and build the preview.
-              if (typeof chunkType !== 'undefined' && Drupal.settings.chunks[chunkType].instance_type_settings.theme_on_client) {
+              if (typeof chunkType !== 'undefined' && Drupal.settings.chunks[chunkType].instance_type_settings.preview_on_client) {
 
                 // Save configuration data.
                 saveConfig(delta);

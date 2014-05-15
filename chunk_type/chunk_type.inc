@@ -140,10 +140,11 @@ class ChunkType {
     }
 
     if ($this->client_themeable) {
-      $form['theme_on_client'] = array(
+      $form['preview_on_client'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Theme this chunk type using the client-side, JavaScript theme implementation.'),
-        '#description' => t('WARNING: This bypasses Drupal\'s normal theming process. Preprocessors, Processors, and hook overrides in php will not be run.'),
+        '#title' => t('Preview this chunk type using the client-side, JavaScript theme implementation.'),
+        '#default_value' => isset($settings['preview_on_client']) ? $settings['preview_on_client'] : 0,
+        '#description' => t('<strong>WARNING:</strong> This bypasses Drupal\'s normal theming process when previewing an edited chunk. Preprocessors, processors, and theme hook overrides in php will not be run.'),
       );
     }
 

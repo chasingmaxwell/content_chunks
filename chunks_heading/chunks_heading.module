@@ -48,7 +48,7 @@ function chunks_heading_heading_chunk_form($form, &$form_state, &$configuration,
     '#maxlength' => '64',
   );
 
-  if ($settings['theme_on_client']) {
+  if ($settings['preview_on_client']) {
     $config_form['#attached'] = array(
       'js' => array(
         drupal_get_path('module', 'chunks_heading'). '/chunks-heading.js',
