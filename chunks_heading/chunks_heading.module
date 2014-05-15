@@ -17,6 +17,7 @@ function chunks_heading_chunk_types() {
         'level' => '2',
         'id' => '',
       ),
+      'client themeable' => TRUE,
     ),
   );
 }
@@ -24,7 +25,7 @@ function chunks_heading_chunk_types() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_heading_heading_chunk_form($form, &$form_state, &$configuration) {
+function chunks_heading_heading_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
   $config_form['text'] = array(
     '#type' => 'textfield',
@@ -46,6 +47,15 @@ function chunks_heading_heading_chunk_form($form, &$form_state, &$configuration)
     '#description' => t('<em>Optional:</em> add an HTML ID to allow for direct links to this heading.'),
     '#maxlength' => '64',
   );
+
+  if ($settings['theme_on_client']) {
+    $config_form['#attached'] = array(
+      'js' => array(
+        drupal_get_path('module', 'chunks_heading'). '/chunks-heading.js',
+      ),
+    );
+  }
+
   return $config_form;
 }
 
