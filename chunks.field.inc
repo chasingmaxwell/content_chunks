@@ -57,12 +57,13 @@ function chunks_field_instance_settings_form($field, $instance) {
       $form['chunk_types']['#options'][$chunk_type->name] = $chunk_type->title;
 
       // Add chunk type specific settings.
+      $type_settings = array();
       if (isset($settings['chunk_type_settings'][$chunk_type->name]['settings'])) {
-        $type_settings = $settings['chunk_type_settings'][$chunk_type->name]['settings'];
+        $type_settings += $settings['chunk_type_settings'][$chunk_type->name]['settings'];
       }
-      else {
-        $type_settings = array();
-      }
+      // Provide defaults for any missing settings.
+      $type_settings += $chunk_type->default_type_settings;
+
       $type_form = $chunk_type->getTypeSettingsForm($field, $type_settings);
       if ($type_form) {
         $form['chunk_type_settings'][$chunk_type->name] = array(

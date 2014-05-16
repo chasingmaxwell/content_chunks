@@ -26,6 +26,11 @@ function chunks_image_chunk_types() {
         'width' => 0,
         'height' => 0,
       ),
+      'default type settings' => array(
+        'field' => array(),
+        'instance' => array(),
+        'widget' => array(),
+      ),
     ),
   );
 }
@@ -36,16 +41,22 @@ function chunks_image_chunk_types() {
 function chunks_image_image_chunk_type_settings_form($field, $settings) {
   $form = array();
 
+  // Get real defaults. We can't do this in chunks_image_chunk_types() because
+  // the image field info settings aren't ready yet at that point.
+  $settings['field'] = !empty($settings['field']) ? $settings['field'] : field_info_field_settings('image');
+  $settings['instance'] = !empty($settings['instance']) ? $settings['instance'] : field_info_instance_settings('image');
+  $settings['widget'] = !empty($settings['widget']) ? $settings['widget'] : field_info_widget_settings('image_image');
+
   // Create fake field and instance arrays with just enough information to
   // retrieve image field, instance, and widget settings forms.
   $image_field = array(
     'type' => 'image',
-    'settings' => isset($settings['field']) ? $settings['field'] : field_info_field_settings('image'),
+    'settings' => $settings['field'],
   );
   $image_instance = array(
-    'settings' => isset($settings['instance']) ? $settings['instance'] : field_info_instance_settings('image'),
+    'settings' => $settings['instance'],
     'widget' => array(
-      'settings' => isset($settings['widget']) ? $settings['widget'] : field_info_widget_settings('image_image'),
+      'settings' => $settings['widget'],
     ),
   );
 

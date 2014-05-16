@@ -17,6 +17,10 @@ class ChunkType {
   // default values in the chunk type's configuration form.
   public $default_configuration;
 
+  // An array of default chunk type settings values used to populate default
+  // values in the chunk type's settings form.
+  public $default_type_settings;
+
   // The implementing module's name.
   public $module;
 
@@ -53,6 +57,8 @@ class ChunkType {
    *     - title: The chunk type's human-readable name.
    *     - default configuration: An associative array containing the default
    *       configuration values.
+   *     - default type settings: An associative array containing the default
+   *       settings for this chunk type.
    *     - file: The file which should be included before performing actions on
    *       this CunkType object.
    *     - file path: The directory path in which to look for the above file,
@@ -70,6 +76,7 @@ class ChunkType {
     $this->name = $name;
     $this->title = $data['title'];
     $this->default_configuration = $data['default configuration'];
+    $this->default_type_settings = $data['default type settings'];
     $this->module = $module;
     $this->form_id = $module . '_' . $name . '_chunk_form';
     if (isset($data['file'])) {

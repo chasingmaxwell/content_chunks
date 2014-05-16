@@ -50,6 +50,10 @@ function chunk_types_load() {
         }
 
         // Populate defaults for optional variables if they are not set.
+        if (!isset($data['default type settings'])) {
+          $data['default type settings'] = array();
+        }
+
         if (isset($data['file'])) {
 
           if (!isset($data['file path'])) {

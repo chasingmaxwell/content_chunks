@@ -62,7 +62,7 @@ function chunks_heading_heading_chunk_form($form, &$form_state, &$configuration,
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_heading_chunk_form_validate($configuration, &$form_state, $form) {
+function chunks_heading_heading_chunk_form_validate($configuration, &$form_state, $form) {
   if (empty($configuration['text']['#value'])) {
     form_error($configuration['text'], t('Please enter heading text.'));
     return FALSE;
