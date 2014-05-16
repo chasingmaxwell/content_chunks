@@ -131,7 +131,10 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   }
 
   // Save JavaScript settings.
-  drupal_add_js($js_settings, 'setting');
+  $form['#attached']['js'][] = array(
+    'data' => $js_settings,
+    'type' => 'setting',
+  );
 
   // Save chunk types in the form so they can be accessed easily later.
   $form['#chunk_types'] = $chunk_types;
