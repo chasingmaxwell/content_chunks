@@ -186,6 +186,26 @@
            * Register event handlers relative to each chunk.
            */
 
+          // Navigate types.
+          $(':input[name="' + namePrepend + '[type]"]', element).bind('keydown.chunkTypeNavigate', function(e) {
+            if ((e.keyCode === 9 && !e.shiftKey) || e.keyCode === 39 || e.keyCode === 40) {
+              // Navigate down.
+              var nextRadio = $(this).parent().next('.form-item').children('.chunk-type-selection');
+              if (nextRadio.length > 0) {
+                e.preventDefault();
+                nextRadio.focus();
+              }
+            }
+            else if ((e.keyCode === 9 && e.shiftKey) || e.keyCode === 37 || e.keyCode === 38) {
+              // Navigate up.
+              var prevRadio = $(this).parent().prev('.form-item').children('.chunk-type-selection');
+              if (prevRadio.length > 0) {
+                e.preventDefault();
+                prevRadio.focus();
+              }
+            }
+          });
+
           // Type selection.
           $(':input[name="' + namePrepend + '[type]"]', element).bind('keyup.chunkTypeSelected click.chunkTypeSelected', function(e) {
             if (e.type === 'click' || e.type === 'keyup' && e.keyCode === 13) {
