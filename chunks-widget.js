@@ -238,7 +238,7 @@
 
               // Add focus to first configuration item.
               setTimeout(function() {
-                $('[name^="' + namePrepend + '[configuration][' + chunkType + ']"]').first().focus();
+                $('.' + chunkType + '-chunk-configuration :input:visible').first().focus();
               }, 0);
             }
           });
