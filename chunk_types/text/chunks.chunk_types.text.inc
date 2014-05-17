@@ -11,7 +11,7 @@
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_text_chunk_form($form, &$form_state, &$configuration, $settings) {
+function chunks_text_chunk_form(&$configuration, $settings, $form, &$form_state) {
   $config_form = array();
   $config_form['text'] = array(
     '#type' => 'textarea',

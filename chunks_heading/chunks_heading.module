@@ -25,7 +25,7 @@ function chunks_heading_chunk_types() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_heading_heading_chunk_form($form, &$form_state, &$configuration, $settings) {
+function chunks_heading_heading_chunk_form(&$configuration, $settings, $form, &$form_state) {
   $config_form = array();
   $config_form['text'] = array(
     '#type' => 'textfield',

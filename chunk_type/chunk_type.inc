@@ -93,30 +93,39 @@ class ChunkType {
   /**
    * Retrieve the chunk type's configuration form.
    *
-   * @param $form
-   *   The edit form for the entity in which the chunks field exists.
-   * @param $form_state
-   *   An associative array representing the current state of the entity's edit
-   *   form.
    * @param $configuration
    *   An associative array representing the current state of the chunk's
    *   configuration.
    * @param $settings
    *   An associative array of settings for the chunk type instance. An empty
    *   array if no settings exist.
+   * @param $form
+   *   The edit form for the entity in which the chunks field exists.
+   * @param $form_state
+   *   An associative array representing the current state of the entity's edit
+   *   form.
+   * @param $field
+   *   The parent field structure.
+   * @param $instance
+   *   The parent parent field instance.
+   * @param $delta
+   *   The order of this chunk in the array of chunks.
+   * @param $element
+   *   A form element array containing basic properties for the parent field
+   *   widget.
    *
    * @return
    *   A renderable array to be inserted into the field's widget form.
    *
    * @see chunks_field_widget_form().
    */
-  public function getForm($form, &$form_state, &$configuration, $settings) {
+  public function getForm(&$configuration, $settings, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
     if (isset($this->file)) {
       $this->file_include();
     }
 
     $function = $this->form_id;
-    return $function($form, $form_state, $configuration, $settings);
+    return $function($configuration, $settings, $form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
   }
 
   /**
