@@ -1,0 +1,176 @@
+<?php
+
+/**
+ * @file
+ * Provide a list chunk type.
+ */
+
+/**
+ * Implements hook_chunk_types().
+ */
+function chunks_list_chunk_types() {
+  return array(
+    'list' => array(
+      'title' => t('List'),
+      'default configuration' => array(
+        'style' => 'ul',
+        'items' => array('', '', '', '', '', '', '', '', '', ''),
+      ),
+      'default type settings' => array(
+        'max_length' => 128,
+      ),
+      'client themeable' => TRUE,
+    ),
+  );
+}
+/**
+ * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
+ */
+function chunks_list_list_chunk_type_settings_form($field, $settings) {
+  $form = array();
+
+  $form['max_length'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Maximum length'),
+    '#default_value' => $settings['max_length'],
+    '#description' => t('The maximum length of the list item in characters.'),
+    '#element_validate' => array('element_validate_integer_positive'),
+  );
+
+  return $form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form().
+ */
+function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $config_form = array();
+
+  $config_form['style'] = array(
+    '#type' => 'select',
+    '#title' => t('Style'),
+    '#default_value' => $configuration['style'],
+    '#options' => array(
+      'ul' => t('Bulleted'),
+      'ol' => t('Numbered'),
+    ),
+  );
+
+  $items_wrapper_id = $field['field_name'] . '-' . $delta . '-configuration-list-items-wrapper';
+
+  $config_form['items'] = array(
+    '#type' => 'container',
+    '#title' => t('Items'),
+    '#prefix' => '<div id="' . $items_wrapper_id . '">',
+    '#suffix' => '</div>',
+  );
+
+  foreach ($configuration['items'] as $item) {
+    $config_form['items'][] = array(
+      '#type' => 'textfield',
+      '#default_value' => $item,
+      '#maxlength' => $settings['max_length'],
+    );
+  }
+
+  $config_form['add_item'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add list item'),
+    '#name' => $field['field_name'] . '-' . $delta . '-add-list-item',
+    '#submit' => array('chunks_list_add_item'),
+    '#limit_validation_errors' => array(array($field['field_name'])),
+    '#ajax' => array(
+      'wrapper' => $items_wrapper_id,
+      'callback' => 'chunks_list_add_item_callback',
+    ),
+  );
+
+  if ($settings['preview_on_client']) {
+    $config_form['#attached'] = array(
+      'js' => array(
+        drupal_get_path('module', 'chunks_list'). '/chunks-list.js',
+      ),
+    );
+  }
+
+  return $config_form;
+}
+
+/**
+ * Ajax callback for adding list items.
+ */
+function chunks_list_add_item_callback($form, $form_state) {
+  $button = $form_state['triggering_element'];
+  $parents = $button['#array_parents'];
+  $delta = $parents[count($parents)-4];
+  $configuration = drupal_array_get_nested_value($form, array_slice($parents, 0, -1));
+
+  return $configuration['items'];
+}
+
+/**
+ * #submit handler for adding new items to a list.
+ */
+function chunks_list_add_item($form, &$form_state) {
+  $button = $form_state['triggering_element'];
+  $parents = $button['#array_parents'];
+  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+  $field_name = $element['#field_name'];
+  $language = $element['#language'];
+  $element_parents = $element['#field_parents'];
+  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -4));
+  $delta = $parents[count($parents)-4];
+  $chunk_state = &$items[$delta];
+  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
+
+  // Add a new, blank list item.
+  $chunk_state['configuration']['list']['items'][] = '';
+
+  // Store the items in the field state.
+  $field_state['items'] = $items;
+  field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
+
+  // Save configuration.
+  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -4), $items);
+  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -4), $items);
+
+  // Rebuild the form.
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form_validate().
+ */
+function chunks_list_list_chunk_form_validate($configuration, &$form_state, $form) {
+  // @TODO: Add validation.
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_empty().
+ */
+function chunks_list_list_chunk_is_empty($configuration, $item, $field) {
+  // If any list item contains data, this chunk is not empty.
+  foreach ($configuration['items'] as $item) {
+    if (!empty($item)) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+/**
+ * Implements hook_preprocess_chunk().
+ */
+function chunks_list_preprocess_chunk(&$variables) {
+  if ($variables['chunk_type']->name == 'list') {
+
+    $config = $variables['configuration'];
+
+    // Do not show empty list items.
+    foreach ($config['items'] as $key => $item) {
+      if (empty($item)) {
+        unset($variables['configuration']['items'][$key]);
+      }
+    }
+  }
+}
