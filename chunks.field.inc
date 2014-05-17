@@ -518,7 +518,6 @@ function chunks_field_preview_callback($form, $form_state) {
   $parents = $triggering_element['#array_parents'];
   $delta = $parents[count($parents)-3];
   $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
-  $item = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -2));
 
   // Unset weight since it is not being replaced in the markup.
   unset($element['_weight']);
