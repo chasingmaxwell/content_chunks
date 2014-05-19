@@ -185,6 +185,31 @@ function hook_CHUNK_TYPE_chunk_is_empty($configuration, $item, $field) {
 }
 
 /**
+  * Act on chunk data before saving.
+  *
+  * @param $item
+  *   The field data for a single chunk.
+  * @param $entity_type
+  *   The type of $entity.
+  * @param $entity
+  *   The entity for the operation.
+  * @param $field
+  *   The parent chunk field's structure.
+  * @param $instance
+  *   The instance structure for $field on $entity's bundle.
+  * @param $langcode
+  *   The language associated with the parent chunk field's items.
+  *
+  * @see chunks_field_presave().
+  */
+function hook_CHUNK_TYPE_chunk_presave(&$item, $entity_type, $entity, $field, $instance, $langcode) {
+  if ($item['data']['configuration']['text'] == 'chunkaroons') {
+    // You meant chunks, silly.
+    $item['data']['configuration']['text'] = 'chunks';
+  }
+}
+
+/**
  * @} End of "addtogroup hooks".
  */
 
