@@ -27,6 +27,10 @@ class ChunkType {
   // to DRUPAL_ROOT.
   public $template_path;
 
+  // A boolean indicating whether or not this chunk type provides a client-side
+  // theme implementation in JavaScript.
+  public $client_themeable;
+
   // The file which must be included before performing actions on this
   // ChunkType object.
   protected $file;
@@ -57,6 +61,8 @@ class ChunkType {
    *       extension.
    *     - template path: The directory path in which to look for the above
    *       template file, relative to DRUPAL_ROOT.
+   *     - client themeable: A boolean indicating whether or not this chunk type
+   *       provides a client-side theme implementation in JavaScript.
    * @param $module
    *   The chunk type's module name.
    */
@@ -74,6 +80,7 @@ class ChunkType {
     }
     $this->template = $data['template'];
     $this->template_path = $data['template path'];
+    $this->client_themeable = $data['client themeable'];
   }
 
   /**
@@ -87,19 +94,61 @@ class ChunkType {
    * @param $configuration
    *   An associative array representing the current state of the chunk's
    *   configuration.
+   * @param $settings
+   *   An associative array of settings for the chunk type instance. An empty
+   *   array if no settings exist.
    *
    * @return
    *   A renderable array to be inserted into the field's widget form.
    *
    * @see chunks_field_widget_form().
    */
-  public function getForm($form, &$form_state, &$configuration) {
+  public function getForm($form, &$form_state, &$configuration, $settings) {
     if (isset($this->file)) {
       $this->file_include();
     }
 
     $function = $this->form_id;
-    return $function($form, $form_state, $configuration);
+    return $function($form, $form_state, $configuration, $settings);
+  }
+
+  /**
+   * Retrieve the chunk type's instance settings form.
+   *
+   * @param $field
+   *   The parent chunk field's structure.
+   * @param $settings
+   *   The current settings for the chunk type as an associative array.
+   *
+   * @return
+   *   If the hook exists, return a rendereable array to insert into the field's
+   *   instance settings form. Otherwise, FALSE.
+   *
+   * @see chunks_field_instance_settings_form().
+   */
+  public function getTypeSettingsForm($field, $settings) {
+
+    $form = array();
+
+    if (isset($this->file)) {
+      $this->file_include();
+    }
+
+    $function = $this->module . '_' . $this->name . '_chunk_type_settings_form';
+    if (function_exists($function)) {
+      $form += $function($field, $settings);
+    }
+
+    if ($this->client_themeable) {
+      $form['preview_on_client'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Preview this chunk type using the client-side, JavaScript theme implementation.'),
+        '#default_value' => isset($settings['preview_on_client']) ? $settings['preview_on_client'] : 0,
+        '#description' => t('<strong>WARNING:</strong> This bypasses Drupal\'s normal theming process when previewing an edited chunk. Preprocessors, processors, and theme hook overrides in php will not be run.'),
+      );
+    }
+
+    return !empty($form) ? $form : FALSE;
   }
 
   /**

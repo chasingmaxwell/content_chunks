@@ -29,6 +29,15 @@
  *     extension.
  *   - template path: The directory path in which to look for the above template
  *     file, relative to DRUPAL_ROOT.
+ *   - client themeable: A boolean indicating whether or not the chunk type
+ *     provides a client-side theme implementation in JavaScript. If TRUE, a
+ *     setting will appear on the chunk field's instance settings to allow the
+ *     chunk type in that instance to theme the preview on the client. The
+ *     module must also register a theme hook in Javascript with the name
+ *     "chunk__CHUNK_TYPE". This theme hook will be called to generate the
+ *     preview in lieu of an ajax call. You can find more information about
+ *     JavaScript theming in Drupal under the "JavaScript theming" header on
+ *     this page: https://drupal.org/node/171213.
  *
  * @see chunk_types_load().
  */
@@ -46,6 +55,31 @@ function hook_chunk_types() {
 }
 
 /**
+ * Provides the chunk type's instance settings form.
+ *
+ * @param $field
+ *   The parent chunk field's structure.
+ * @param $settings
+ *   The current settings for the chunk type as an associative array.
+ *
+ * @return
+ *   A renderable array to insert into the parent field's instance settings
+ *   form.
+ *
+ * @see chunks_field_instance_settings_form().
+ */
+function hook_CHUNK_TYPE_chunk_type_settings_form($field, $settings) {
+  $form = array();
+  $form['default_text'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Default text'),
+    '#default_value' => isset($settings['default_text']) ? $settings['default_text'] : '',
+    '#description' => t('Enter the text to use by default if no text is entered.'),
+  );
+  return $form;
+}
+
+/**
  * Provides the configuration form to be inserted into the field widget form for
  * a specific chunk type.
  *
@@ -59,18 +93,22 @@ function hook_chunk_types() {
  * @param $configuration
  *   An associative array representing the current state of the chunk's
  *   configuration.
+ * @param $settings
+ *   An associative array of settings for the chunk type instance. An empty
+ *   array if no settings exist.
  *
  * @return
  *   A renderable array to be inserted into the field's widget form.
  *
  * @see chunks_field_widget_form().
  */
-function hook_CHUNK_TYPE_chunk_form($form, &$form_state, &$configuration) {
+function hook_CHUNK_TYPE_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
+
   $config_form['text'] = array(
     '#type' => 'textarea',
     '#title' => t('Text'),
-    '#default_value' => isset($configuration['text']) ? $configuration['text'] : '',
+    '#default_value' => isset($configuration['text']) ? $configuration['text'] : $settings['default_text'],
     '#description' => t('Enter some plain text.'),
   );
   return $config_form;

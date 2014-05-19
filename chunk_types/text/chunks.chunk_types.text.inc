@@ -3,19 +3,32 @@
 /**
  * @file
  * Provide hooks relevant to the text chunk type.
+ *
+ * @TODO: This is only here for demonstration and testing during development.
+ * Delete this chunk type once it is no longer necessary.
  */
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_text_chunk_form($form, &$form_state, &$configuration) {
+function chunks_text_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
   $config_form['text'] = array(
     '#type' => 'textarea',
     '#title' => t('Text'),
-    '#default_value' => isset($configuration['text']) ? $configuration['text'] : '',
+    '#default_value' => $configuration['text'],
     '#description' => t('Enter some plain text.'),
   );
+
+  // Add JavaScript for client-side preview theming.
+  if ($settings['preview_on_client']) {
+    $config_form['#attached'] = array(
+      'js' => array(
+        drupal_get_path('module', 'chunks') . '/chunk_types/text/chunks-text.js',
+      ),
+    );
+  }
+
   return $config_form;
 }
 

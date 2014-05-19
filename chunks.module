@@ -73,6 +73,10 @@ function chunk_types_load() {
           $data['template'] = 'chunk--' . str_replace('_', '-', $name);
         }
 
+        if (!isset($data['client themeable']) || $data['client themeable'] !== TRUE) {
+          $data['client themeable'] = FALSE;
+        }
+
         // Check if the template file exists.
         if (!file_exists(DRUPAL_ROOT . '/' . $data['template path'] . '/' . $data['template'] . '.tpl.php')) {
           $message = 'The %module module did not provide a properly named template file for the %type chunk type. The %type chunk type will not be available.';
@@ -122,6 +126,9 @@ function chunks_permission() {
 
 /**
  * Implements hook_chunk_types() to provide a simple text chunk.
+ *
+ * @TODO: The text chunk type is only provided for demonstration and testing
+ * during development. Delete it once it is no longer necessary.
  */
 function chunks_chunk_types() {
   return array(
@@ -130,6 +137,7 @@ function chunks_chunk_types() {
       'default configuration' => array(
         'text' => '',
       ),
+      'client themeable' => TRUE,
       'file' => 'chunk_types/text/chunks.chunk_types.text.inc',
       'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/text',
     ),
@@ -175,18 +183,18 @@ function chunks_theme($existing, $type, $theme, $path) {
 /**
  * Preprocess variables for the theme_chunk().
  */
-function template_preprocess_chunk(&$variables) {
+function template_preprocess_chunk(&$variables, $hook) {
   // Add class with type name.
   $variables['classes_array'][] = $variables['chunk']['#chunk_type']->name . '-chunk';
 
-  // Make configuration a top-level variable.
-  $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
-
-  // Make the chunk's type a top-level variable.
+  // Provide some intuitive top-level variables.
   $variables['chunk_type'] = $variables['chunk']['#chunk_type'];
+  $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
+  $variables['type_settings'] = $variables['chunk']['#type_settings'];
+  $variables['entity'] = isset($variables['chunk']['#entity']) ? $variables['chunk']['#entity'] : FALSE;
+  $variables['entity_type'] = isset($variables['chunk']['#entity_type']) ? $variables['chunk']['#entity_type'] : FALSE;
 
   // Add theme hook suggestions.
   $variables['theme_hook_suggestions'][] = 'chunk';
   $variables['theme_hook_suggestions'][] = 'chunk__' . $variables['chunk']['#chunk_type']->name;
 }
-
