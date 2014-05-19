@@ -233,6 +233,34 @@ class ChunkType {
   }
 
   /**
+   * Act on chunk data before saving.
+   *
+   * @param $item
+   *   The field data for a single chunk.
+   * @param $entity_type
+   *   The type of $entity.
+   * @param $entity
+   *   The entity for the operation.
+   * @param $field
+   *   The parent chunk field's structure.
+   * @param $instance
+   *   The instance structure for $field on $entity's bundle.
+   * @param $langcode
+   *   The language associated with the parent chunk field's items.
+   *
+   * @see chunks_field_presave().
+   */
+  public function presave(&$item, $entity_type, $entity, $field, $instance, $langcode) {
+    if (isset($this->file)) {
+      $this->file_include();
+    }
+    foreach(module_implements($this->name . '_chunk_presave') as $module) {
+      $function = $module . '_' . $this->name . '_chunk_presave';
+      $function($item, $entity_type, $entity, $field, $instance, $langcode);
+    }
+  }
+
+  /**
    * Include the file which provides the necessary hooks for this chunk type.
    */
   public function file_include() {

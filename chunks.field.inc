@@ -729,23 +729,6 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     $chunk_type = $form['#chunk_types'][$item['type']];
 
-    if (isset($element['#instance_settings']['chunk_type_settings'][$item['type']])) {
-      $type_settings = $element['#instance_settings']['chunk_type_settings'][$item['type']]['settings'];
-    }
-    else {
-      $type_settings = array();
-    }
-
-    // Create and save the data field value since it does not have a
-    // corresponding field element.
-    $data = array(
-      'type' => $chunk_type,
-      'configuration' => $item['configuration'][$item['type']],
-      'type_settings' => $type_settings,
-    );
-    $item['data'] = serialize($data);
-    $item['module'] = $chunk_type->module;
-
     // Do not validate chunk configuration when it is unnecessary, like in the
     // case of removing a chunk or adding a new chunk.
     $validate_configuration = TRUE;
@@ -768,6 +751,9 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
           break;
       }
     }
+
+    // Set module value.
+    $item['module'] = $chunk_type->module;
 
     // Validation for chunk type's configuration values.
     if ($validate_configuration) {
@@ -828,27 +814,60 @@ function chunks_field_is_empty($item, $field) {
     // Make sure we have values for each column.
     if (empty($item['type']) ||
         empty($item['module']) ||
-        empty($item['data']) ||
+        empty($item['configuration'][$item['type']]) ||
         $item['view'] == 'removed') {
 
       return TRUE;
     }
 
-    // Make sure $data is complete.
-    $data = unserialize($item['data']);
-    if (empty($data['type']) ||
-        empty($data['configuration'])) {
+    $chunk_types = chunk_types_load();
 
-      return TRUE;
-    }
+    $chunk_type = $chunk_types[$item['type']];
 
     // Allow modules to check their chunk type's configuration and determine
     // whether or not it should be considered empty.
-    if ($data['type']->configurationIsEmpty($data['configuration'], $item, $field)) {
+    if ($chunk_type->configurationIsEmpty($item['configuration'][$item['type']], $item, $field)) {
       return TRUE;
     }
   }
   return FALSE;
+}
+
+/**
+ * Implements hook_field_presave().
+ */
+function chunks_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
+  if ($field['type'] == 'chunks') {
+
+
+    foreach ($items as $delta => $item) {
+
+      $chunk_types = chunk_types_load();
+
+      $chunk_type = $chunk_types[$item['type']];
+
+      if (isset($instance['settings']['chunk_type_settings'][$item['type']])) {
+        $type_settings = $instance['settings']['chunk_type_settings'][$item['type']]['settings'];
+      }
+      else {
+        $type_settings = array();
+      }
+
+      // Create and save the data field value since it does not have a
+      // corresponding field element.
+      $items[$delta]['data'] = array(
+        'type' => $chunk_type,
+        'configuration' => $item['configuration'][$item['type']],
+        'type_settings' => $type_settings,
+      );
+
+      // Allow modules to act on chunk data before saving.
+      $chunk_type->presave($items[$delta], $entity_type, $entity, $field, $instance, $langcode);
+
+      // Serialize data after other modules have had a chance to alter it.
+      $items[$delta]['data'] = serialize($items[$delta]['data']);
+    }
+  }
 }
 
 /**
