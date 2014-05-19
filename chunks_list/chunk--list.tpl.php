@@ -28,6 +28,6 @@
 
 <<?php print $configuration['style']; ?> class="<?php print $classes; ?>">
   <?php foreach ($configuration['items'] as $item): ?>
-    <li><?php print check_plain($item); ?></li>
+    <li><?php print check_plain($item['text']); ?></li>
   <?php endforeach; ?>
 </<?php print $configuration['style']; ?>>

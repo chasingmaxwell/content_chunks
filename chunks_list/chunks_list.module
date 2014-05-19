@@ -14,7 +14,7 @@ function chunks_list_chunk_types() {
       'title' => t('List'),
       'default configuration' => array(
         'style' => 'ul',
-        'items' => array('', '', '', '', '', '', '', '', '', ''),
+        'items' => array(),
       ),
       'default type settings' => array(
         'max_length' => 128,
@@ -59,29 +59,57 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
   $items_wrapper_id = $field['field_name'] . '-' . $delta . '-configuration-list-items-wrapper';
 
   $config_form['items'] = array(
-    '#type' => 'container',
+    '#type' => 'fieldset',
     '#title' => t('Items'),
     '#prefix' => '<div id="' . $items_wrapper_id . '">',
     '#suffix' => '</div>',
   );
 
+  // Add some empty items when there are none already.
+  $has_empty_items = FALSE;
   foreach ($configuration['items'] as $item) {
+    if (empty($item['text'])) {
+      $has_empty_items = TRUE;
+      break;
+    }
+  }
+
+  if (!$has_empty_items) {
+    for ($i = 0; $i <= 4; $i++) {
+      $configuration['items'][]['text'] = '';
+    }
+  }
+
+  foreach ($configuration['items'] as $key => $item) {
     $config_form['items'][] = array(
-      '#type' => 'textfield',
-      '#default_value' => $item,
-      '#maxlength' => $settings['max_length'],
+      'text' => array(
+        '#type' => 'textfield',
+        '#default_value' => $item['text'],
+        '#maxlength' => $settings['max_length'],
+      ),
+      'remove' => array(
+        '#type' => 'submit',
+        '#value' => t('Remove'),
+        '#name' => $field['field_name'] . '-' . $delta . '-list-item-remove-' . $key,
+        '#submit' => array('chunks_list_remove_item'),
+        '#limit_validation_errors' => array(array($field['field_name'])),
+        '#ajax' => array(
+          'wrapper' => $items_wrapper_id,
+          'callback' => 'chunks_list_remove_item_callback',
+        ),
+      ),
     );
   }
 
-  $config_form['add_item'] = array(
+  $config_form['add_items'] = array(
     '#type' => 'submit',
-    '#value' => t('Add list item'),
-    '#name' => $field['field_name'] . '-' . $delta . '-add-list-item',
-    '#submit' => array('chunks_list_add_item'),
+    '#value' => t('Add more'),
+    '#name' => $field['field_name'] . '-' . $delta . '-add-list-items',
+    '#submit' => array('chunks_list_add_items'),
     '#limit_validation_errors' => array(array($field['field_name'])),
     '#ajax' => array(
       'wrapper' => $items_wrapper_id,
-      'callback' => 'chunks_list_add_item_callback',
+      'callback' => 'chunks_list_add_items_callback',
     ),
   );
 
@@ -99,7 +127,7 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
 /**
  * Ajax callback for adding list items.
  */
-function chunks_list_add_item_callback($form, $form_state) {
+function chunks_list_add_items_callback($form, $form_state) {
   $button = $form_state['triggering_element'];
   $parents = $button['#array_parents'];
   $delta = $parents[count($parents)-4];
@@ -109,9 +137,21 @@ function chunks_list_add_item_callback($form, $form_state) {
 }
 
 /**
+ * Ajax callback for removing list items.
+ */
+function chunks_list_remove_item_callback($form, $form_state) {
+  $button = $form_state['triggering_element'];
+  $parents = $button['#array_parents'];
+  $delta = $parents[count($parents)-6];
+  $configuration = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+
+  return $configuration['items'];
+}
+
+/**
  * #submit handler for adding new items to a list.
  */
-function chunks_list_add_item($form, &$form_state) {
+function chunks_list_add_items($form, &$form_state) {
   $button = $form_state['triggering_element'];
   $parents = $button['#array_parents'];
   $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
@@ -123,8 +163,10 @@ function chunks_list_add_item($form, &$form_state) {
   $chunk_state = &$items[$delta];
   $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
 
-  // Add a new, blank list item.
-  $chunk_state['configuration']['list']['items'][] = '';
+  // Add new, blank list items.
+  for ($i = 0; $i <= 4; $i++) {
+    $chunk_state['configuration']['list']['items'][]['text'] = '';
+  }
 
   // Store the items in the field state.
   $field_state['items'] = $items;
@@ -133,6 +175,39 @@ function chunks_list_add_item($form, &$form_state) {
   // Save configuration.
   drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -4), $items);
   drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -4), $items);
+
+  // Rebuild the form.
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * #submit handler for removing items from a list.
+ */
+function chunks_list_remove_item($form, &$form_state) {
+  $button = $form_state['triggering_element'];
+  $parents = $button['#array_parents'];
+  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -5));
+  $field_name = $element['#field_name'];
+  $language = $element['#language'];
+  $element_parents = $element['#field_parents'];
+  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -6));
+  $delta = $parents[count($parents)-6];
+  $chunk_state = &$items[$delta];
+  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
+
+  // Remove item and reindex remaining list items.
+  $list_items = $chunk_state['configuration']['list']['items'];
+  $list_item = $parents[count($parents)-2];
+  unset($list_items[$list_item]);
+  $chunk_state['configuration']['list']['items'] = array_values($list_items);
+
+  // Store the items in the field state.
+  $field_state['items'] = $items;
+  field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
+
+  // Save configuration.
+  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -6), $items);
+  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -6), $items);
 
   // Rebuild the form.
   $form_state['rebuild'] = TRUE;
@@ -151,11 +226,24 @@ function chunks_list_list_chunk_form_validate($configuration, &$form_state, $for
 function chunks_list_list_chunk_is_empty($configuration, $item, $field) {
   // If any list item contains data, this chunk is not empty.
   foreach ($configuration['items'] as $item) {
-    if (!empty($item)) {
+    if (!empty($item['text'])) {
       return FALSE;
     }
   }
   return TRUE;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_presave().
+ */
+function chunks_list_list_chunk_presave(&$item) {
+  // Don't save any empty list items.
+  $list_items = $item['data']['configuration']['items'];
+  foreach ($list_items as $key => $list_item) {
+    if (empty($list_item['text'])) {
+      unset($item['data']['configuration']['items'][$key]);
+    }
+  }
 }
 
 /**
@@ -168,7 +256,7 @@ function chunks_list_preprocess_chunk(&$variables) {
 
     // Do not show empty list items.
     foreach ($config['items'] as $key => $item) {
-      if (empty($item)) {
+      if (empty($item['text'])) {
         unset($variables['configuration']['items'][$key]);
       }
     }
