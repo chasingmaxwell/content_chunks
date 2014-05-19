@@ -10,7 +10,7 @@
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_p_p_chunk_form($form, &$form_state, &$configuration) {
+function chunks_p_p_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
   $config_form['p'] = array(
     '#type' => 'textarea',
@@ -23,6 +23,15 @@ function chunks_p_p_chunk_form($form, &$form_state, &$configuration) {
   drupal_add_css(drupal_get_path('module', 'chunks_p') . '/css/pen.css');
   drupal_add_js(drupal_get_path('module', 'chunks_p') . '/js/pen.js');
   drupal_add_js(drupal_get_path('module', 'chunks_p') . '/js/pen-init.js');
+
+  // Add JavaScript for client-side preview theming.
+  if ($settings['preview_on_client']) {
+    $config_form['#attached'] = array(
+      'js' => array(
+        drupal_get_path('module', 'chunks_p') . '/js/chunks-p.js',
+      ),
+    );
+  }
 
   return $config_form;
 }
