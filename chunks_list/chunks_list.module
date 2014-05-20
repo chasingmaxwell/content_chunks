@@ -29,12 +29,20 @@ function chunks_list_chunk_types() {
 function chunks_list_list_chunk_type_settings_form($field, $settings) {
   $form = array();
 
-  $form['max_length'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Maximum length'),
-    '#default_value' => $settings['max_length'],
-    '#description' => t('The maximum length of the list item in characters.'),
-    '#element_validate' => array('element_validate_integer_positive'),
+  /*
+   *$form['max_length'] = array(
+   *  '#type' => 'textfield',
+   *  '#title' => t('Maximum length'),
+   *  '#default_value' => $settings['max_length'],
+   *  '#description' => t('The maximum length of the list item in characters.'),
+   *  '#element_validate' => array('element_validate_integer_positive'),
+   *);
+   */
+  $form['edit_in_place'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Edit list items in-place'),
+    '#default_value' => 1,
+    '#description' => t('This requires the pen library (https://github.com/sofish/pen).'),
   );
 
   return $form;
@@ -83,9 +91,8 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
   foreach ($configuration['items'] as $key => $item) {
     $config_form['items'][] = array(
       'text' => array(
-        '#type' => 'textfield',
+        '#type' => 'textarea',
         '#default_value' => $item['text'],
-        '#maxlength' => $settings['max_length'],
       ),
       'remove' => array(
         '#type' => 'submit',
@@ -97,6 +104,27 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
           'wrapper' => $items_wrapper_id,
           'callback' => 'chunks_list_remove_item_callback',
         ),
+      ),
+    );
+  }
+
+  if ($settings['edit_in_place']) {
+    $config_form['inplace_items'] = array(
+      '#markup' => '<' . $configuration['style'] . ' contenteditable>',
+    );
+
+    foreach ($configuration['items'] as $key => $item) {
+      $config_form['inplace_items']['#markup'] .= '<li>' . $item['text'] . '</li>';
+    }
+
+    $config_form['inplace_items']['#markup'] .= '</' . $configuration['style'] . '>';
+
+    $config_form['items']['#attached'] = array(
+      'js' => array(
+        drupal_get_path('module', 'chunks_list') . '/chunks-list.js',
+      ),
+      'library' => array(
+        array('chunks', 'pen'),
       ),
     );
   }
