@@ -9,4 +9,7 @@
     output += '</div>';
     return output;
   };
+  Drupal.theme.prototype.chunk_callback__text = function(config) {
+    console.log('Text chunk: the client-side theming callback was fired.');
+  };
 })();

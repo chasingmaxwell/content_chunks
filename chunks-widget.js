@@ -275,6 +275,9 @@
                 // Build preview.
                 preview = Drupal.theme('chunk__' + chunkType, configuration);
                 $(classPrepend + 'preview').html(preview);
+                if (typeof Drupal.theme.prototype['chunk_callback__' + chunkType] === 'function') {
+                  Drupal.theme('chunk_callback__' + chunkType, configuration);
+                }
 
                 // Remove configuration data.
                 delete config[delta];
