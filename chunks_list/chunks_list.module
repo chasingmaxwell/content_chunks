@@ -14,10 +14,11 @@ function chunks_list_chunk_types() {
       'title' => t('List'),
       'default configuration' => array(
         'style' => 'ul',
-        'items' => array(),
+        'list' => array(''),
       ),
       'default type settings' => array(
-        'max_length' => 128,
+        'edit_in_place' => 1,
+        'format' => '',
       ),
       'client themeable' => TRUE,
     ),
@@ -29,23 +30,45 @@ function chunks_list_chunk_types() {
 function chunks_list_list_chunk_type_settings_form($field, $settings) {
   $form = array();
 
-  /*
-   *$form['max_length'] = array(
-   *  '#type' => 'textfield',
-   *  '#title' => t('Maximum length'),
-   *  '#default_value' => $settings['max_length'],
-   *  '#description' => t('The maximum length of the list item in characters.'),
-   *  '#element_validate' => array('element_validate_integer_positive'),
-   *);
-   */
   $form['edit_in_place'] = array(
     '#type' => 'checkbox',
     '#title' => t('Edit list items in-place'),
-    '#default_value' => 1,
+    '#default_value' => $settings['edit_in_place'],
     '#description' => t('This requires the pen library (https://github.com/sofish/pen).'),
   );
 
+  // Only display this setting to users with 'administer filters' permission
+  // since we do not limit the available filters to those which the current user
+  // has access to.
+  if (user_access('administer filters')) {
+    $formats = array();
+    foreach (filter_formats() as $id => $format) {
+      $formats[$id] = $format->name;
+    }
+
+    $form['format'] = array(
+      '#type' => 'select',
+      '#title' => t('Text format'),
+      '#options' => $formats,
+      // By default $settings['format'] is an empty string so the default value
+      // can be derived from the first value of $formats which should be the
+      // global default.
+      '#default_value' => !empty($settings['format']) ? $settings['format'] : reset($formats),
+    );
+  }
+
   return $form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_allowed().
+ */
+function chunks_list_list_chunk_is_allowed($settings, $field, $instance, $langcode) {
+  $format = filter_format_load($settings['format']);
+  if (!filter_access($format)) {
+    return FALSE;
+  }
+  return TRUE;
 }
 
 /**
@@ -64,57 +87,27 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
     ),
   );
 
-  $items_wrapper_id = $field['field_name'] . '-' . $delta . '-configuration-list-items-wrapper';
-
-  $config_form['items'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Items'),
-    '#prefix' => '<div id="' . $items_wrapper_id . '">',
-    '#suffix' => '</div>',
+  $config_form['list'] = array(
+    '#type' => 'textarea',
+    '#default_value' => $configuration['list'],
+    '#value_callback' => 'chunks_list_text_to_items',
+    '#after_build' => array('chunks_list_items_to_text'),
+    '#format' => $settings['format'],
   );
 
-  // Add some empty items when there are none already.
-  $has_empty_items = FALSE;
-  foreach ($configuration['items'] as $item) {
-    if (empty($item['text'])) {
-      $has_empty_items = TRUE;
-      break;
-    }
-  }
-
-  if (!$has_empty_items) {
-    for ($i = 0; $i <= 4; $i++) {
-      $configuration['items'][]['text'] = '';
-    }
-  }
-
-  foreach ($configuration['items'] as $key => $item) {
-    $config_form['items'][] = array(
-      'text' => array(
-        '#type' => 'textarea',
-        '#default_value' => $item['text'],
-      ),
-      'remove' => array(
-        '#type' => 'submit',
-        '#value' => t('Remove'),
-        '#name' => $field['field_name'] . '-' . $delta . '-list-item-remove-' . $key,
-        '#submit' => array('chunks_list_remove_item'),
-        '#limit_validation_errors' => array(array($field['field_name'])),
-        '#ajax' => array(
-          'wrapper' => $items_wrapper_id,
-          'callback' => 'chunks_list_remove_item_callback',
-        ),
-      ),
-    );
-  }
-
   if ($settings['edit_in_place']) {
+
+    // Hide list textarea
+    $config_form['list']['#attributes'] = array(
+      'style' => 'display: none;',
+    );
+
     $config_form['inplace_items'] = array(
       '#markup' => '<' . $configuration['style'] . ' contenteditable>',
     );
 
-    foreach ($configuration['items'] as $key => $item) {
-      $config_form['inplace_items']['#markup'] .= '<li>' . $item['text'] . '</li>';
+    foreach ($configuration['list'] as $key => $list_item) {
+      $config_form['inplace_items']['#markup'] .= '<li>' . $list_item . '</li>';
     }
 
     $config_form['inplace_items']['#markup'] .= '</' . $configuration['style'] . '>';
@@ -129,18 +122,6 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
     );
   }
 
-  $config_form['add_items'] = array(
-    '#type' => 'submit',
-    '#value' => t('Add more'),
-    '#name' => $field['field_name'] . '-' . $delta . '-add-list-items',
-    '#submit' => array('chunks_list_add_items'),
-    '#limit_validation_errors' => array(array($field['field_name'])),
-    '#ajax' => array(
-      'wrapper' => $items_wrapper_id,
-      'callback' => 'chunks_list_add_items_callback',
-    ),
-  );
-
   if ($settings['preview_on_client']) {
     $config_form['#attached'] = array(
       'js' => array(
@@ -153,99 +134,46 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
 }
 
 /**
- * Ajax callback for adding list items.
+ * #value_callback for the "list" textarea.
+ *
+ * Breaks one string into an array of list items.
  */
-function chunks_list_add_items_callback($form, $form_state) {
-  $button = $form_state['triggering_element'];
-  $parents = $button['#array_parents'];
-  $delta = $parents[count($parents)-4];
-  $configuration = drupal_array_get_nested_value($form, array_slice($parents, 0, -1));
-
-  return $configuration['items'];
-}
-
-/**
- * Ajax callback for removing list items.
- */
-function chunks_list_remove_item_callback($form, $form_state) {
-  $button = $form_state['triggering_element'];
-  $parents = $button['#array_parents'];
-  $delta = $parents[count($parents)-6];
-  $configuration = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
-
-  return $configuration['items'];
-}
-
-/**
- * #submit handler for adding new items to a list.
- */
-function chunks_list_add_items($form, &$form_state) {
-  $button = $form_state['triggering_element'];
-  $parents = $button['#array_parents'];
-  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
-  $field_name = $element['#field_name'];
-  $language = $element['#language'];
-  $element_parents = $element['#field_parents'];
-  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -4));
-  $delta = $parents[count($parents)-4];
-  $chunk_state = &$items[$delta];
-  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
-
-  // Add new, blank list items.
-  for ($i = 0; $i <= 4; $i++) {
-    $chunk_state['configuration']['list']['items'][]['text'] = '';
+function chunks_list_text_to_items($element, $input = FALSE, $form_state) {
+  $return = $input !== FALSE ? $input : $element['#default_value'];
+  if (is_string($return)) {
+    $return = explode("\n", $return);
   }
-
-  // Store the items in the field state.
-  $field_state['items'] = $items;
-  field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
-
-  // Save configuration.
-  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -4), $items);
-  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -4), $items);
-
-  // Rebuild the form.
-  $form_state['rebuild'] = TRUE;
+  foreach ($return as $key => $list_item) {
+    $return[$key] = str_replace("\n", "", $list_item);
+    $return[$key] = str_replace("\r", "", $list_item);
+  }
+  return $return;
 }
 
 /**
- * #submit handler for removing items from a list.
+ * #after_build handler for the "list" textarea.
+ *
+ * Turns an array of items back to text.
  */
-function chunks_list_remove_item($form, &$form_state) {
-  $button = $form_state['triggering_element'];
-  $parents = $button['#array_parents'];
-  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -5));
-  $field_name = $element['#field_name'];
-  $language = $element['#language'];
-  $element_parents = $element['#field_parents'];
-  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -6));
-  $delta = $parents[count($parents)-6];
-  $chunk_state = &$items[$delta];
-  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
-
-  // Remove item and reindex remaining list items.
-  $list_items = $chunk_state['configuration']['list']['items'];
-  $list_item = $parents[count($parents)-2];
-  unset($list_items[$list_item]);
-  $chunk_state['configuration']['list']['items'] = array_values($list_items);
-
-  // Store the items in the field state.
-  $field_state['items'] = $items;
-  field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
-
-  // Save configuration.
-  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -6), $items);
-  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -6), $items);
-
-  // Rebuild the form.
-  $form_state['rebuild'] = TRUE;
+function chunks_list_items_to_text($element) {
+  $element['#default_value'] = implode("\n", $element['#default_value']);
+  $element['#value'] = implode("\n", $element['#value']);
+  return $element;
 }
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
 function chunks_list_list_chunk_form_validate($configuration, &$form_state, $form) {
-  // @TODO: Add validation.
+  // This should never happen because the chunk type should not be displayed to
+  // users who do not have access to the filter format. Still, let's be safe.
+  $format = filter_format_load($configuration['list']['#format']);
+
+  if (!filter_access($format)) {
+    form_error($configuration['list'], t('You do not have permission to use the %format text format, which this instance of the list chunk type requires.', array('%format' => $format->format)));
+    return FALSE;
+  }
+  return TRUE;
 }
 
 /**
@@ -253,8 +181,8 @@ function chunks_list_list_chunk_form_validate($configuration, &$form_state, $for
  */
 function chunks_list_list_chunk_is_empty($configuration, $item, $field) {
   // If any list item contains data, this chunk is not empty.
-  foreach ($configuration['items'] as $item) {
-    if (!empty($item['text'])) {
+  foreach ($configuration['list'] as $item) {
+    if (!empty($item)) {
       return FALSE;
     }
   }
@@ -266,9 +194,9 @@ function chunks_list_list_chunk_is_empty($configuration, $item, $field) {
  */
 function chunks_list_list_chunk_presave(&$item) {
   // Don't save any empty list items.
-  $list_items = $item['data']['configuration']['items'];
+  $list_items = $item['data']['configuration']['list'];
   foreach ($list_items as $key => $list_item) {
-    if (empty($list_item['text'])) {
+    if (empty($list_item)) {
       unset($item['data']['configuration']['items'][$key]);
     }
   }
@@ -283,9 +211,9 @@ function chunks_list_preprocess_chunk(&$variables) {
     $config = $variables['configuration'];
 
     // Do not show empty list items.
-    foreach ($config['items'] as $key => $item) {
-      if (empty($item['text'])) {
-        unset($variables['configuration']['items'][$key]);
+    foreach ($config['list'] as $key => $item) {
+      if (empty($item)) {
+        unset($variables['configuration']['list'][$key]);
       }
     }
   }
