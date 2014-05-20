@@ -19,15 +19,14 @@ function chunks_p_p_chunk_form($form, &$form_state, &$configuration, $settings) 
     '#description' => t('Enter a paragraph of text. Line breaks will be discarded.'),
   );
 
-  // Load editor files
-  drupal_add_css(drupal_get_path('module', 'chunks_p') . '/css/pen.css');
-  drupal_add_js(drupal_get_path('module', 'chunks_p') . '/js/pen.js');
-  drupal_add_js(drupal_get_path('module', 'chunks_p') . '/js/pen-init.js');
-
   // Add JavaScript for client-side preview theming.
   if ($settings['preview_on_client']) {
     $config_form['#attached'] = array(
+      'css' => array(
+        drupal_get_path('module', 'chunks_p') . '/css/pen.css',
+      ),
       'js' => array(
+        drupal_get_path('module', 'chunks_p') . '/js/pen.js',
         drupal_get_path('module', 'chunks_p') . '/js/chunks-p.js',
       ),
     );
