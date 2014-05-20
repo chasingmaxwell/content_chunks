@@ -10,8 +10,8 @@
     return output;
   };
   Drupal.theme.prototype.chunk_callback__p = function(config, classPrepend) {
+    // Initialize editor for this Paragraph chunk
     $(classPrepend + 'preview .p-chunk').each(function() {
-      // Initialize editor for this Paragraph chunk
       var editor,
           editorConfig;
 
@@ -23,6 +23,12 @@
         list: ['bold', 'italic', 'underline', 'createlink']
       };
       editor = new Pen(editorConfig);
+    }).live('keyup', function() {
+      // Each keystroke, copy the data back into the form item so it gets saved
+      // when the user submits the form.
+      console.log('#edit-' + classPrepend.substring(1, classPrepend.length - 2) + 'und-' + classPrepend.substring(classPrepend.length - 2) + 'configuration-p-p');
+      $('#edit-' + classPrepend.substring(1, classPrepend.length - 2) + 'und-' + classPrepend.substring(classPrepend.length - 2) + 'configuration-p-p').val($(this).html());
     });
+
   };
 })(jQuery);
