@@ -276,7 +276,7 @@
                 preview = Drupal.theme('chunk__' + chunkType, configuration);
                 $(classPrepend + 'preview').html(preview);
                 if (typeof Drupal.theme.prototype['chunk_callback__' + chunkType] === 'function') {
-                  Drupal.theme('chunk_callback__' + chunkType, configuration);
+                  Drupal.theme('chunk_callback__' + chunkType, configuration, classPrepend);
                 }
 
                 // Remove configuration data.
