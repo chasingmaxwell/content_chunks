@@ -144,7 +144,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   $form['#allowed_chunk_types'] = array();
   foreach ($chunk_types as $name => $chunk_type) {
     if ((!isset($instance['settings']['chunk_types'][$name]) || !$instance['settings']['chunk_types'][$name]) ||
-      !user_access('use_' . $chunk_type->name . '_chunk')) {
+      !user_access('use_' . $chunk_type->name . '_chunk') ||
+      !$chunk_type->isAllowed($chunk_type->instance_type_settings, $field, $instance, $langcode)) {
 
       // Do not add to allowed types.
       continue;

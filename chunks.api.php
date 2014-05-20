@@ -80,6 +80,30 @@ function hook_CHUNK_TYPE_chunk_type_settings_form($field, $settings) {
 }
 
 /**
+  * Provides additional access checks to determine whether or not the chunk type
+  * should be allowed in the given context.
+  *
+  * @param $settings
+  *   An associative array of settings for the chunk type instance. An empty
+  *   array if no settings exist.
+  * @param $field
+  *   The parent field structure.
+  * @param $instance
+  *   The parent parent field instance.
+  * @param $langcode
+  *   The language associated with the parent chunk field's items.
+  *
+  * @return
+  *   TRUE if chunk type is allowed in the given context. Otherwise, FALSE.
+  */
+function hook_CHUNK_TYPE_chunk_is_allowed($settings, $field, $instance, $langcode) {
+  if (!filter_access($settings['format'])) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
  * Provides the configuration form to be inserted into the field widget form for
  * a specific chunk type.
  *

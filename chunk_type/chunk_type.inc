@@ -91,6 +91,39 @@ class ChunkType {
   }
 
   /**
+   * Allow modules to run additional access checks to determine if a chunk type
+   * should be allowed in a given context.
+   *
+   * @param $settings
+   *   An associative array of settings for the chunk type instance. An empty
+   *   array if no settings exist.
+   * @param $field
+   *   The parent field structure.
+   * @param $instance
+   *   The parent parent field instance.
+   * @param $langcode
+   *   The language associated with the parent chunk field's items.
+   *
+   * @return
+   *   TRUE if chunk type is allowed in the given context. Otherwise, FALSE.
+   */
+  public function isAllowed($settings, $field, $instance, $langcode) {
+    if (isset($this->file)) {
+      $this->file_include();
+    }
+
+    // If any implementation of hook_CHUNK_TYPE_chunk_is_allowed returns false,
+    // the chunk type is not allowed in this context.
+    foreach (module_implements($this->name . '_chunk_is_allowed') as $module) {
+      $function = $module . '_' . $this->name . '_chunk_is_allowed';
+      if (!$function($settings, $field, $instance, $langcode)) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  /**
    * Retrieve the chunk type's configuration form.
    *
    * @param $configuration
@@ -108,6 +141,8 @@ class ChunkType {
    *   The parent field structure.
    * @param $instance
    *   The parent parent field instance.
+   * @param $langcode
+   *   The language associated with the parent chunk field's items.
    * @param $delta
    *   The order of this chunk in the array of chunks.
    * @param $element
@@ -160,7 +195,7 @@ class ChunkType {
         '#type' => 'checkbox',
         '#title' => t('Preview this chunk type using the client-side, JavaScript theme implementation.'),
         '#default_value' => isset($settings['preview_on_client']) ? $settings['preview_on_client'] : 0,
-        '#description' => t('<strong>WARNING:</strong> This bypasses Drupal\'s normal theming process when previewing an edited chunk. Preprocessors, processors, and theme hook overrides in php will not be run.'),
+        '#description' => t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when previewing an edited chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and this supplying the data with which to generate the html.'),
       );
     }
 
