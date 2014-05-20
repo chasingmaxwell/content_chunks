@@ -274,7 +274,7 @@
 
                 // Build preview.
                 preview = Drupal.theme('chunk__' + chunkType, configuration);
-                $(classPrepend + 'preview').html(preview);
+                $(classPrepend + 'preview')[0].innerHTML = preview;
 
                 // Remove configuration data.
                 delete config[delta];
