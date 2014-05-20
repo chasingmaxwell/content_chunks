@@ -359,7 +359,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       );
     }
 
-    $row['preview'] = array(
+    $row['preview_wrapper'] = array(
       '#type' => 'container',
       '#states' => array(
         'visible' => array(
@@ -369,16 +369,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#attributes' => array(
         'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-preview'),
       ),
+      '#after_build' => array('chunks_field_build_preview'),
+      '#type_settings' => $instance['settings']['chunk_type_settings'],
     );
-
-    if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
-      $row['preview'] += array(
-        '#theme' => 'chunk',
-        '#chunk_type' => $chunk_types[$chunk_state['type']],
-        '#chunk_configuration' => $chunk_state['configuration'][$chunk_state['type']],
-        '#type_settings' => isset($instance['settings']['chunk_type_settings'][$chunk_state['type']]['settings']) ? $instance['settings']['chunk_type_settings'][$chunk_state['type']]['settings'] : array(),
-      );
-    }
 
     $row['chunk_actions'] = array(
       '#type' => 'actions',
@@ -490,6 +483,23 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   }
 
   return $elements;
+}
+
+/**
+ * #after_build handler for chunk preview elements.
+ */
+function chunks_field_build_preview($element, &$form_state) {
+  $chunk_types = chunk_types_load();
+  $chunk_state = drupal_array_get_nested_value($form_state['values'], array_slice($element['#array_parents'], 0, -1));
+  if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
+    $element['preview'] = array(
+      '#theme' => 'chunk',
+      '#chunk_type' => $chunk_types[$chunk_state['type']],
+      '#chunk_configuration' => $chunk_state['configuration'][$chunk_state['type']],
+      '#type_settings' => $element['#type_settings'][$chunk_state['type']]['settings'],
+    );
+  }
+  return $element;
 }
 
 
