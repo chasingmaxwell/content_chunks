@@ -12,5 +12,5 @@
 ?>
 
 <p class="<?php print $classes; ?>">
-  <?php print check_plain(trim(preg_replace('/\s+/', ' ', $configuration['p']))); ?>
+  <?php print filter_xss(trim(preg_replace('/\s+/', ' ', $configuration['p'])), array('a', 'b', 'em', 'i', 'strong', 'u')); ?>
 </p>
