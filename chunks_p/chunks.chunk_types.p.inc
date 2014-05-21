@@ -12,10 +12,16 @@
  */
 function chunks_p_p_chunk_form($form, &$form_state, &$configuration, $settings) {
   $config_form = array();
+
+  // This field holds the data and interacts with Drupal
   $config_form['p'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Paragraph'),
+    '#type' => 'hidden',
     '#default_value' => isset($configuration['p']) ? $configuration['p'] : '',
+  );
+  // This field is the user-facing editor and continually transfers its contents
+  // to the p field which is then saved within Drupal.
+  $config_form['editor'] = array(
+    '#markup' => '<p class="chunk p-chunk" contenteditable="true">' . (isset($configuration['p']) ? $configuration['p'] : '') . '</p>',
     '#description' => t('Enter a paragraph of text. Line breaks will be discarded.'),
   );
 
