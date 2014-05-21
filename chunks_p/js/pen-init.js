@@ -12,7 +12,7 @@
             editorConfig;
 
         editorConfig = {
-          class: 'pen-editor',
+          class: 'pen',
           debug: true,
           editor: this,
           textarea: '<textarea name="content"></textarea>', // fallback for old browsers
