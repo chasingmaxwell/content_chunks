@@ -85,14 +85,22 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
       'ul' => t('Bulleted'),
       'ol' => t('Numbered'),
     ),
+    '#description' => t('Bulleted will wrap items in an %ul element. Numbered will wrap items in an %ol element.', array('%ul' => '<ul></ul>', '%ol' => '<ol></ol>')),
   );
+
+  $format = filter_format_load($settings['format']);
+
+  $list_description = t('Enter list items. Each new line is a new item filtered with the %format text format. Empty lines will be discarded.', array('%format' => $format->name));
+  $list_description .= theme('filter_guidelines', array('format' => $format));
 
   $config_form['list'] = array(
     '#type' => 'textarea',
+    '#title' => t('List items'),
     '#default_value' => $configuration['list'],
     '#value_callback' => 'chunks_list_text_to_items',
     '#after_build' => array('chunks_list_items_to_text'),
     '#format' => $settings['format'],
+    '#description' =>  $list_description,
   );
 
   if ($settings['edit_in_place']) {
