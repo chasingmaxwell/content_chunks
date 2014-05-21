@@ -20,9 +20,12 @@ function chunks_p_p_chunk_form($form, &$form_state, &$configuration, $settings) 
   );
   // This field is the user-facing editor and continually transfers its contents
   // to the p field which is then saved within Drupal.
+  $configuration['editor'] = TRUE;
   $config_form['editor'] = array(
-    '#markup' => '<p class="chunk p-chunk" contenteditable="true">' . ((isset($configuration['p']) && $configuration['p'] != '') ? filter_xss(trim(preg_replace('/(\s|<br>|<\/?div>)+/', ' ', $configuration['p'])), array('a', 'b', 'em', 'i', 'strong', 'u')) : '<i>Enter your content here...</i>') . '</p>',
-    '#description' => t('Enter a paragraph of text. Line breaks will be discarded.'),
+    '#theme' => 'chunk',
+    '#chunk_type' => $form['#chunk_types']['p'],
+    '#chunk_configuration' => $configuration,
+    '#type_settings' => $settings,
   );
 
   // Load editor files
