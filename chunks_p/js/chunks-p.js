@@ -4,9 +4,9 @@
 
 (function($) {
   Drupal.theme.prototype.chunk__p = function(config) {
-    var output = '<div class="chunk p-chunk">';
+    var output = '<p class="chunk p-chunk">';
     output += Drupal.checkPlain(config.p);
-    output += '</div>';
+    output += '</p>';
     return output;
   };
   Drupal.theme.prototype.chunk_callback__p = function(config, classPrepend) {
