@@ -36,11 +36,6 @@ function chunks_p_p_chunk_form($form, &$form_state, &$configuration, $settings) 
     ),
   );
 
-  // Add JavaScript for client-side preview theming.
-  if ($settings['preview_on_client']) {
-    $config_form['#attached']['js'][] = drupal_get_path('module', 'chunks_p') . '/js/chunks-p.js';
-  }
-
   return $config_form;
 }
 
