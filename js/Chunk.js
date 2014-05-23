@@ -54,6 +54,19 @@
       this.active = false;
     };
 
+    this.getConfigState = function() {
+      var configuration = {};
+      this.chunkType = $(':input[name="' + this.namePrepend + '[type]"]:checked').val();
+
+      $('[name^="' + this.namePrepend + '[configuration][' + this.chunkType + ']"]').each(function(i, element) {
+        var name = $(element).attr('name');
+        var configProp = name.match(/[^\[]*(?=]$)/)[0];
+        configuration[configProp] = $(element).val();
+      });
+
+      return configuration;
+    };
+
     this.saveConfig = function() {
       this.chunkType = $(':input[name="' + this.namePrepend + '[type]"]:checked').val();
 
