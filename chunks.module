@@ -195,6 +195,9 @@ function template_preprocess_chunk(&$variables, $hook) {
   $variables['chunk_type'] = $variables['chunk']['#chunk_type'];
   $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
   $variables['type_settings'] = $variables['chunk']['#type_settings'];
+  $variables['field_name'] = $variables['chunk']['#field_name'];
+  $variables['langcode'] = $variables['chunk']['#langcode'];
+  $variables['delta'] = $variables['chunk']['#delta'];
   $variables['entity'] = isset($variables['chunk']['#entity']) ? $variables['chunk']['#entity'] : FALSE;
   $variables['entity_type'] = isset($variables['chunk']['#entity_type']) ? $variables['chunk']['#entity_type'] : FALSE;
 

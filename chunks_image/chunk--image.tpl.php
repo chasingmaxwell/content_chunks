@@ -16,6 +16,9 @@
  *   Otherwise it will be FALSE.
  * - $entity_type: If we are viewing an entity, this will be the string
  *   represnting the entity's type. Otherwise it will be FALSE.
+ * - $field_name: The field name for the parent chunks field.
+ * - $langcode: The language code for the parent chunks field.
+ * - $delta: The delta for the current chunk within the parent chunks field.
  * - $image: A rendereable array for the image to be displayed for this chunk.
  *
  * @see template_preprocess()

@@ -36,6 +36,10 @@
         chunks = $('.chunk-wrapper', field);
         config = {};
 
+        // Remove empty property from Drupal.settings.chunks[fieldName]. It only
+        // exists to force a dictionary structure.
+        delete Drupal.settings.chunks[fieldName].empty;
+
         /**
          * Provide helper functions that operate on the current chunks field.
          */
@@ -79,26 +83,38 @@
           });
         };
 
-        // Save configuration for chunk with given delta.
+        // Save configuration for the chunk with the given delta.
         saveConfig = function(delta) {
           var chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
 
-          config[delta] = {};
-
           $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration][' + chunkType + ']"]').each(function(i, element) {
             var name = $(element).attr('name');
-            config[delta][name] = $(element).val();
+            var configProp = name.match(/[^\[]*(?=]$)/)[0];
+            Drupal.settings.chunks[fieldName][delta].configuration[chunkType][configProp] = $(element).val();
           });
+
+          // Provide a callback with which to perform actions against the saved
+          // configuration.
+          if (typeof Drupal.settings.chunks.types[chunkType].callbacks.saveConfig === 'function') {
+            Drupal.settings.chunks.types[chunkType].callbacks.saveConfig(fieldName, langcode, delta);
+          }
         };
 
-        // Restore configuration for chunk with given delta.
+        // Restore configuration to the last saved state for the chunk with the given delta.
         restoreConfig = function(delta) {
+          var chunkType = $(':input[name="' + fieldName + '[' + langcode + '][' + delta + '][type]"]:checked').val();
+
           $('[name^="' + fieldName + '[' + langcode + '][' + delta + '][configuration]"]').each(function(i, element) {
             var name = $(element).attr('name');
-             $(element).val(config[delta][name]);
+            var configProp = name.match(/[^\[]*(?=]$)/)[0];
+            $(element).val(Drupal.settings.chunks[fieldName][delta].configuration[chunkType][configProp]);
           });
 
-          delete config[delta];
+          // Provide a callback with which to perform actions against the
+          // restored configuration.
+          if (typeof Drupal.settings.chunks.types[chunkType].callbacks.restoreConfig === 'function') {
+            Drupal.settings.chunks.types[chunkType].callbacks.restoreConfig(fieldName, langcode, delta);
+          }
         };
 
         /**
@@ -154,7 +170,7 @@
           // If there is already a selected type and that type is configured to
           // be themed on the client, prevent default actions on the preview
           // button.
-          if (typeof chunkType !== 'undefined' && Drupal.settings.chunks[chunkType].instance_type_settings.preview_on_client) {
+          if (typeof chunkType !== 'undefined' && Drupal.settings.chunks.types[chunkType].instance_type_settings.preview_on_client) {
             // Prevent default actions on preview button if we are theming on
             // the client.
             $(classPrepend + 'preview-button', element).unbind('click').unbind('keypress').bind('keypress', false);
@@ -219,14 +235,14 @@
               chunkType = $(':input[name="' + namePrepend + '[type]"]:checked').val();
 
               // Prepare form if the chunk type is to be themed on the client.
-              if (Drupal.settings.chunks[chunkType].instance_type_settings.preview_on_client) {
+              if (Drupal.settings.chunks.types[chunkType].instance_type_settings.preview_on_client) {
 
                 // Prevent default actions on preview button if we are theming on
                 // the client.
                 $(classPrepend + 'preview-button', element).unbind('click').unbind('keypress').bind('keypress', false);
 
                 // Set module value since it may not be set in a form rebuild.
-                $('[name^="' + namePrepend + '[module]"]').val(Drupal.settings.chunks[chunkType].module);
+                $('[name^="' + namePrepend + '[module]"]').val(Drupal.settings.chunks.types[chunkType].module);
               }
 
               // Switch to configuration view.
@@ -246,7 +262,7 @@
           // Preview.
           $(classPrepend + 'preview-button', element).bind('keyup.chunkPreview mousedown.chunkPreview', function(e) {
             if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
-              var configuration, newProp, preview;
+              var preview;
 
               // We will trigger the click event manually if we want this button
               // to do anything outside this function.
@@ -260,24 +276,14 @@
 
               // If we should be using a client-side theme implementation,
               // prevent the ajax call and build the preview.
-              if (typeof chunkType !== 'undefined' && Drupal.settings.chunks[chunkType].instance_type_settings.preview_on_client) {
+              if (typeof chunkType !== 'undefined' && Drupal.settings.chunks.types[chunkType].instance_type_settings.preview_on_client) {
 
                 // Save configuration data.
                 saveConfig(delta);
 
-                // Parse configuration data.
-                configuration = {};
-                for (var name in config[delta]) {
-                  newProp = name.match(/[^\[]*(?=]$)/)[0];
-                  configuration[newProp] = config[delta][name];
-                }
-
                 // Build preview.
-                preview = Drupal.theme('chunk__' + chunkType, configuration);
+                preview = Drupal.theme('chunk__' + chunkType, Drupal.settings.chunks[fieldName][delta].configuration[chunkType], fieldName, langcode, delta);
                 $(classPrepend + 'preview')[0].innerHTML = preview;
-
-                // Remove configuration data.
-                delete config[delta];
 
                 // Set focus to add chunk button.
                 setTimeout(function() {
@@ -385,6 +391,9 @@
               // Switch to removed view.
               viewElement.val('removed');
               viewElement.trigger('change');
+
+              // Remove javascript settings.
+              delete Drupal.settings.chunks[fieldName][delta];
 
               // Hide the row for the removed chunk.
               $('#' + fieldName + '-' + delta + '-chunk-row').hide();
