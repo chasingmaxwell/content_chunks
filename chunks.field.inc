@@ -119,8 +119,10 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // Prepare settings array for drupal_add_js.
   $js_settings = array(
     'chunks' => array(
-      'types' => array(),
-      $field_name => array(),
+      $field_name => array(
+        'types' => array(),
+      ),
+      'callbacks' => array(),
     ),
   );
 
@@ -131,15 +133,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     $chunk_types[$name]->instance_type_settings = isset($instance['settings']['chunk_type_settings'][$name]['settings']) ? $instance['settings']['chunk_type_settings'][$name]['settings'] : array();
 
     // Store information about each chunk type in JavaScript settings.
-    $js_settings['chunks']['types'][$name] = $chunk_type;
+    $js_settings['chunks'][$field_name]['types'][$name] = $chunk_type;
 
     // Add a space for registering callbacks.
-    $js_settings['chunks']['types'][$name]->callbacks = array();
+    $js_settings['chunks']['callbacks'][$name] = array();
   }
 
-  // Force Drupal.settings.chunks.chunks to be a dictionary instead of an
-  // array.
-  $js_settings['chunks'][$field_name]['empty'] = '';
+  // Force the list of chunks to be a dictionary instead of an array.
+  $js_settings['chunks'][$field_name]['chunks']['empty'] = '';
 
   // Save chunk types in the form so they can be accessed easily later.
   $form['#chunk_types'] = $chunk_types;
@@ -285,7 +286,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       'data' => array(
         'chunks' => array(
           $field_name => array(
-            $delta => $chunk_state,
+            'chunks' => array(
+              $delta => $chunk_state,
+            ),
           ),
         ),
       ),
@@ -560,6 +563,21 @@ function chunks_field_form_callback($form, $form_state) {
       $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
       break;
   }
+
+  // Force the list of chunks to be a dictionary instead of an array.
+  $field['#attached']['js'][] = array(
+    'data' => array(
+      'chunks' => array(
+        $field['#field_name'] => array(
+          'chunks' => array(
+            'empty' => '',
+          ),
+        ),
+      ),
+    ),
+    'type' => 'setting',
+  );
+
   return $field;
 }
 
