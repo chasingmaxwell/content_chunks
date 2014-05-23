@@ -176,6 +176,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       break;
   }
 
+  $path = drupal_get_path('module', 'chunks');
+
   // Create wrapper element.
   $elements = array(
     '#theme' => 'chunks_field_widget_form',
@@ -189,10 +191,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     '#suffix' => '</div>',
     '#attached' => array(
       'css' => array(
-        drupal_get_path('module', 'chunks') . '/chunks-widget.css',
+        $path . '/css/chunks-widget.css',
       ),
       'js' => array(
-        drupal_get_path('module', 'chunks') . '/chunks-widget.js',
+        $path . '/js/Chunk.js',
+        $path . '/js/ChunksField.js',
+        $path . '/js/chunks-widget.js',
       ),
     ),
   );
