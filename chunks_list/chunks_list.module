@@ -14,7 +14,8 @@ function chunks_list_chunk_types() {
       'title' => t('List'),
       'default configuration' => array(
         'style' => 'ul',
-        'list' => array(''),
+        'list' => array('Enter list items here...'),
+        'edit_in_place' => 0,
       ),
       'default type settings' => array(
         'edit_in_place' => 1,
@@ -24,6 +25,33 @@ function chunks_list_chunk_types() {
     ),
   );
 }
+
+/**
+ * Implements hook_libraries_info().
+ */
+function chunks_list_libraries_info() {
+  $libraries = array();
+  $libraries['pen'] = array(
+    'name' => 'Pen',
+    'vendor url' => 'https://github.com/sofish/pen',
+    'download url' => 'https://github.com/sofish/pen',
+    'version arguments' => array(
+      'file' => 'bower.json',
+      'pattern' => '@version":\s"+([0-9\.]+)+@',
+    ),
+    'files' => array(
+      'js' => array(
+        'src/pen.js',
+        'src/markdown.js',
+      ),
+      'css' => array(
+        'src/pen.css',
+      ),
+    ),
+  );
+  return $libraries;
+}
+
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
@@ -34,8 +62,17 @@ function chunks_list_list_chunk_type_settings_form($field, $settings) {
     '#type' => 'checkbox',
     '#title' => t('Edit list items in-place'),
     '#default_value' => $settings['edit_in_place'],
-    '#description' => t('This requires the pen library (https://github.com/sofish/pen).'),
+    '#description' => t('This setting requires the libraries module (https://drupal.org/project/libraries) and the pen library (https://github.com/sofish/pen).'),
   );
+
+  // Do not allow the edit_in_place setting to be configured if the pen library
+  // does not exist.
+  $library = module_exists('libraries') ? libraries_detect('pen') : array('installed' => FALSE);
+  if (!$library['installed']) {
+    $form['edit_in_place']['#default_value'] = 0;
+    $form['edit_in_place']['#value'] = 0;
+    $form['edit_in_place']['#disabled'] = TRUE;
+  }
 
   // Only display this setting to users with 'administer filters' permission
   // since we do not limit the available filters to those which the current user
@@ -103,31 +140,35 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
     '#description' =>  $list_description,
   );
 
+  // Only allow the edit-in-place functionality if we can load the pen library
+  // and edit_in_place is TRUE.
   if ($settings['edit_in_place']) {
 
-    // Hide list textarea
-    $config_form['list']['#attributes'] = array(
-      'style' => 'display: none;',
-    );
+    $library = module_exists('libraries') ? libraries_detect('pen') : array('installed' => FALSE);
 
-    $config_form['inplace_items'] = array(
-      '#markup' => '<' . $configuration['style'] . ' contenteditable>',
-    );
+    if ($library['installed']) {
 
-    foreach ($configuration['list'] as $key => $list_item) {
-      $config_form['inplace_items']['#markup'] .= '<li>' . $list_item . '</li>';
+      $configuration['edit_in_place'] = TRUE;
+
+      $config_form['inplace_items'] = array(
+        '#theme' => 'chunk',
+        '#chunk_type' => $form['#chunk_types']['list'],
+        '#chunk_configuration' => $configuration,
+        '#type_settings' => $settings,
+        '#field_name' => $field['field_name'],
+        '#langcode' => $langcode,
+        '#delta' => $delta,
+        '#after_build' => array('chunks_list_fill_inplace_items'),
+        '#attached' => array(
+          'libraries_load' => array(
+            array('pen'),
+          ),
+          'js' => array(
+            drupal_get_path('module', 'chunks_list') . '/chunks-list.js',
+          ),
+        ),
+      );
     }
-
-    $config_form['inplace_items']['#markup'] .= '</' . $configuration['style'] . '>';
-
-    $config_form['items']['#attached'] = array(
-      'js' => array(
-        drupal_get_path('module', 'chunks_list') . '/chunks-list.js',
-      ),
-      'library' => array(
-        array('chunks', 'pen'),
-      ),
-    );
   }
 
   if ($settings['preview_on_client']) {
@@ -166,6 +207,19 @@ function chunks_list_text_to_items($element, $input = FALSE, $form_state) {
 function chunks_list_items_to_text($element) {
   $element['#default_value'] = implode("\n", $element['#default_value']);
   $element['#value'] = implode("\n", $element['#value']);
+  return $element;
+}
+
+/**
+ * #after_build handler for the "inline_list" contenteditable element.
+ *
+ * Fills contenteditable list items with correct values.
+ */
+function chunks_list_fill_inplace_items($element) {
+  if (isset($form_state['input'])) {
+    $input = drupal_array_get_nested_value($form_state['input'], array_slice($element['#array_parents'], 0, -1));
+    $element['#chunk_configuration']['list'] = implode("\n", $input);
+  }
   return $element;
 }
 
