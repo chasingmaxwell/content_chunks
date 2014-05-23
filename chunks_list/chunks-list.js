@@ -1,16 +1,23 @@
 /**
  * @file Provide some additional interactivity for the list chunk type.
+ *
+ * @TODO: Hitting cancel multiple times is causing the configuration to reset.
+ * Stop it!
  */
 
 (function($) {
+
+  'use strict';
 
   // Handle in-place editing for chunks.
   Drupal.behaviors.chunksListInPlace = {
     attach: function(context, settings) {
 
-      $('.chunks-field', context).each(function() {
+      $('.chunks-field', context).each(function(index, element) {
+        var fieldName, langcode;
 
         fieldName = $(this).attr('field_name');
+        langcode = $(this).attr('langcode');
 
         if (settings.chunks[fieldName].types.list.instance_type_settings.edit_in_place && typeof Pen === 'function') {
           // Sometimes the pen-menu doesn't like to go away. Let's force it.
@@ -21,7 +28,7 @@
 
           // Perform actions on each list chunk with the contenteditable
           // attribute.
-          $('.list-chunk[contenteditable]', context).once(function() {
+          $('.list-chunk[contenteditable]', element).once(function() {
 
             // Initialize pen.
             var editor = new Pen({
@@ -49,6 +56,35 @@
           $('.pen-menu').bind('click.chunksListBlur', function() {
             $('.list-chunk[contenteditable]').trigger('blur.chunksListInPlace');
           });
+
+          // A switch in list style should cause a switch in the in-place editor as well.
+          $('.list-chunk-configuration select[name$="[style]"]', element).bind('change.chunksListStyleChanged', function() {
+            var chunkWrapper, delta, listConfig, configuration, inPlaceEditor, el;
+
+            chunkWrapper = $(this).parents('.chunk-wrapper');
+            delta = parseInt(chunkWrapper.attr('delta'), 10);
+            listConfig = $(this).parents('.list-chunk-configuration');
+
+            // Retrieve the configuration state from the form.
+            configuration = Drupal.chunks.fields[fieldName].chunks[delta].getConfigState();
+
+            // Add edit_in_place configuration property.
+            configuration.edit_in_place = true;
+
+            // Generate the new markup.
+            inPlaceEditor = Drupal.theme.prototype.chunk__list(configuration, fieldName, langcode, delta);
+
+            // Convert inPlaceEditor from a string to an element so we can use
+            // appendChild().
+            el = document.createElement('div');
+            el.innerHTML = inPlaceEditor;
+            inPlaceEditor = el.firstChild;
+
+            // Insert that markup into the editor.
+            listConfig.find('.list-chunk').remove();
+            listConfig[0].appendChild(inPlaceEditor);
+            Drupal.attachBehaviors(chunkWrapper.parents('.field-type-chunks'));
+          });
         }
       });
     }
@@ -56,11 +92,14 @@
 
 
   // Provide a client-side theme implementation for list chunks.
-  Drupal.theme.prototype.chunk__list = function(configuration) {
-    var list, output, list_item;
+  Drupal.theme.prototype.chunk__list = function(configuration, fieldName, langcode, delta) {
+    var list, output, list_item, contentEditable;
 
-    // Break configuration.list into an array.
-    list = configuration.list.split(/\n/);
+    // Break configuration.list into an array if it's value is coming from the
+    // textarea element.
+    if (typeof configuration.list === 'string') {
+      configuration.list = configuration.list.split(/\n/);
+    }
 
     // Add contenteditable attribute if we're editing this chunk in-place.
     if (typeof configuration.edit_in_place !== 'undefined') {
@@ -72,15 +111,15 @@
 
     output = '<' + configuration.style + ' class="chunk list-chunk"' + contentEditable + '>';
 
-    for (var key in list) {
+    for (var key in configuration.list) {
 
       // If the format is plain text, run the text through chunkPlain
       if (Drupal.settings.chunks[fieldName].types.list.instance_type_settings.format === 'plain_text') {
-        list_item = Drupal.checkPlain(list[key]);
+        list_item = Drupal.checkPlain(configuration.list[key]);
       }
       // Otherwise don't do anything at all.
       else {
-        list_item = list[key];
+        list_item = configuration.list[key];
       }
 
       // Do not display empty strings.
@@ -103,14 +142,27 @@
       // Implements the saveConfig callback to save list items.
       if (typeof settings.chunks.callbacks.list.restoreConfig === 'undefined') {
         settings.chunks.callbacks.list.restoreConfig = function(fieldName, langcode, delta) {
-          var classFieldName, preview, listConfig;
-          classFieldName = fieldName.replace(/_/g, '-');
-          Drupal.settings.chunks[fieldName].chunks[delta].configuration.list.edit_in_place = true;
-          preview = Drupal.theme.prototype.chunk__list(Drupal.settings.chunks[fieldName].chunks[delta].configuration.list, fieldName, langcode, delta);
-          listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-configuration');
-          listConfig.find('.list-chunk').remove();
-          listConfig[0].innerHTML += preview;
-          Drupal.attachBehaviors(listConfig.parents('.field-type-chunks'));
+
+          // Only do anything if this instance of the chunk type is set to be
+          // edited in-place.
+          if (settings.chunks[fieldName].types.list.instance_type_settings.edit_in_place) {
+            var classFieldName, listConfig, configuration, inPlaceEditor;
+
+            classFieldName = fieldName.replace(/_/g, '-');
+            listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-configuration');
+
+            // Update configuration.
+            configuration = Drupal.settings.chunks[fieldName].chunks[delta].configuration.list;
+            configuration.edit_in_place = true;
+
+            // Generate new markup.
+            inPlaceEditor = Drupal.theme.prototype.chunk__list(configuration, fieldName, langcode, delta);
+
+            // Insert that new markup into the editor.
+            listConfig.find('.list-chunk').remove();
+            listConfig[0].innerHTML += inPlaceEditor;
+            Drupal.attachBehaviors(listConfig.parents('.field-type-chunks'));
+          }
         };
       }
     },
