@@ -17,10 +17,10 @@
         langcode = $(this).attr('langcode');
 
         if (settings.chunks[fieldName].types.list.instance_type_settings.edit_in_place && typeof Pen === 'function') {
-          // Sometimes the pen-menu doesn't like to go away. Let's force it.
-          $('.pen-menu').hide();
+          // Sometimes the pen-list-menu doesn't like to go away. Let's force it.
+          $('.pen-list-menu').hide();
           $(':input', context).bind('mousedown.hidePenMenu', function() {
-            $('.pen-menu').hide();
+            $('.pen-list-menu').hide();
           });
 
           // Perform actions on each list chunk with the contenteditable
@@ -29,9 +29,10 @@
 
             // Initialize pen.
             var editor = new Pen({
+              class: 'pen-list',
               editor: this,
-                list: ['bold', 'italic', 'underline', 'createlink'],
-                stay: false
+              list: ['bold', 'italic', 'underline', 'createlink'],
+              stay: false
             });
 
             // Hide regular textarea.
@@ -50,7 +51,7 @@
 
           // Trigger blur event on all contenteditable list chunks when the pen
           // toolbar is clicked so we save configuration correctly.
-          $('.pen-menu').bind('click.chunksListBlur', function() {
+          $('.pen-list-menu').bind('click.chunksListBlur', function() {
             $('.list-chunk[contenteditable]').trigger('blur.chunksListInPlace');
           });
 
@@ -90,20 +91,26 @@
   Drupal.behaviors.chunksListCallbacks = {
     attach: function(context, settings) {
 
-      // Implements the saveConfig callback to save list items.
+      // Implements the restoreConfig callback to restore list configuration.
       if (typeof settings.chunks.callbacks.list.restoreConfig === 'undefined') {
         settings.chunks.callbacks.list.restoreConfig = function(fieldName, langcode, delta) {
 
           // Only do anything if this instance of the chunk type is set to be
           // edited in-place.
           if (settings.chunks[fieldName].types.list.instance_type_settings.edit_in_place) {
-            var classFieldName, listConfig, configuration, inPlaceEditor, listConfigMarkup;
+            var classFieldName, listConfig, configuration, inPlaceEditor;
 
             classFieldName = fieldName.replace(/_/g, '-');
             listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-configuration');
 
-            // Update configuration.
-            configuration = Drupal.settings.chunks[fieldName].chunks[delta].configuration.list;
+            // Make a copy of the configuration and add the edit_in_place
+            // property so we can render a contenteditable list chunk
+            // without changing the configuration settings for the chunk.
+            configState = Drupal.settings.chunks[fieldName].chunks[delta].configuration.list;
+            configuration = {};
+            for (var prop in configState) {
+              configuration[prop] = configState[prop];
+            }
             configuration.edit_in_place = true;
 
             // Generate new markup.

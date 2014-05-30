@@ -243,8 +243,8 @@ function chunks_list_list_chunk_form_validate($configuration, &$form_state, $for
  */
 function chunks_list_list_chunk_is_empty($configuration, $item, $field) {
   // If any list item contains data, this chunk is not empty.
-  foreach ($configuration['list'] as $item) {
-    if (!empty($item)) {
+  foreach ($configuration['list'] as $list_item) {
+    if (!empty($list_item)) {
       return FALSE;
     }
   }

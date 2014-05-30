@@ -11,6 +11,6 @@
 
 ?>
 
-<p class="<?php print $classes; ?>" <?php if (isset($configuration['editor'])): ?>contenteditable="true"<?php endif; ?>>
+<p class="<?php print $classes; ?>" <?php if (isset($configuration['edit_in_place'])): ?>contenteditable<?php endif; ?>>
   <?php print filter_xss(trim(preg_replace('/(\s|<br>|<\/?div>)+/', ' ', $configuration['p'])), array('a', 'b', 'em', 'i', 'strong', 'u')); ?>
 </p>
