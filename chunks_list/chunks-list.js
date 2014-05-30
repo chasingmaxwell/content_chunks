@@ -83,13 +83,44 @@
             // Insert that markup into the editor.
             listConfig.find('.list-chunk').remove();
             listConfig[0].appendChild(inPlaceEditor);
-            Drupal.attachBehaviors(chunkWrapper.parents('.field-type-chunks'));
+            Drupal.behaviors.chunksListInPlace.attach(chunkWrapper.parents('.field-type-chunks'), Drupal.settings);
           });
         }
       });
     }
   };
 
+  Drupal.behaviors.chunksListCallbacks = {
+    attach: function(context, settings) {
+
+      // Implements the saveConfig callback to save list items.
+      if (typeof settings.chunks.callbacks.list.restoreConfig === 'undefined') {
+        settings.chunks.callbacks.list.restoreConfig = function(fieldName, langcode, delta) {
+
+          // Only do anything if this instance of the chunk type is set to be
+          // edited in-place.
+          if (settings.chunks[fieldName].types.list.instance_type_settings.edit_in_place) {
+            var classFieldName, listConfig, configuration, inPlaceEditor, listConfigMarkup;
+
+            classFieldName = fieldName.replace(/_/g, '-');
+            listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-configuration');
+
+            // Update configuration.
+            configuration = Drupal.settings.chunks[fieldName].chunks[delta].configuration.list;
+            configuration.edit_in_place = true;
+
+            // Generate new markup.
+            inPlaceEditor = Drupal.theme.prototype.chunk__list(configuration, fieldName, langcode, delta);
+
+            // Insert that new markup into the editor.
+            listConfig.find('.list-chunk').remove();
+            listConfig.append(inPlaceEditor);
+            Drupal.behaviors.chunksListInPlace.attach(listConfig.parents('.field-type-chunks'), Drupal.settings);
+          }
+        };
+      }
+    },
+  };
 
   // Provide a client-side theme implementation for list chunks.
   Drupal.theme.prototype.chunk__list = function(configuration, fieldName, langcode, delta) {
@@ -136,35 +167,4 @@
     return output;
   };
 
-  Drupal.behaviors.chunksListCallbacks = {
-    attach: function(context, settings) {
-
-      // Implements the saveConfig callback to save list items.
-      if (typeof settings.chunks.callbacks.list.restoreConfig === 'undefined') {
-        settings.chunks.callbacks.list.restoreConfig = function(fieldName, langcode, delta) {
-
-          // Only do anything if this instance of the chunk type is set to be
-          // edited in-place.
-          if (settings.chunks[fieldName].types.list.instance_type_settings.edit_in_place) {
-            var classFieldName, listConfig, configuration, inPlaceEditor;
-
-            classFieldName = fieldName.replace(/_/g, '-');
-            listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-configuration');
-
-            // Update configuration.
-            configuration = Drupal.settings.chunks[fieldName].chunks[delta].configuration.list;
-            configuration.edit_in_place = true;
-
-            // Generate new markup.
-            inPlaceEditor = Drupal.theme.prototype.chunk__list(configuration, fieldName, langcode, delta);
-
-            // Insert that new markup into the editor.
-            listConfig.find('.list-chunk').remove();
-            listConfig[0].innerHTML += inPlaceEditor;
-            Drupal.attachBehaviors(listConfig.parents('.field-type-chunks'));
-          }
-        };
-      }
-    },
-  };
 })(jQuery);
