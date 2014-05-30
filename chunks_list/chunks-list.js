@@ -1,8 +1,5 @@
 /**
  * @file Provide some additional interactivity for the list chunk type.
- *
- * @TODO: Hitting cancel multiple times is causing the configuration to reset.
- * Stop it!
  */
 
 (function($) {
