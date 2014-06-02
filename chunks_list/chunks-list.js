@@ -98,7 +98,7 @@
           // Only do anything if this instance of the chunk type is set to be
           // edited in-place.
           if (settings.chunks[fieldName].types.list.instance_type_settings.edit_in_place) {
-            var classFieldName, listConfig, configuration, inPlaceEditor;
+            var classFieldName, listConfig, configState, configuration, inPlaceEditor;
 
             classFieldName = fieldName.replace(/_/g, '-');
             listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-configuration');
