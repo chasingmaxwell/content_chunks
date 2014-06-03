@@ -542,11 +542,18 @@ function chunks_field_build_preview($element, &$form_state) {
       '#theme' => 'chunk',
       '#chunk_type' => $chunk_type,
       '#chunk_configuration' => $chunk_state['configuration'][$chunk_state['type']] + $chunk_type->default_configuration,
-      '#type_settings' => $element['#type_settings'][$chunk_state['type']]['settings'],
       '#field_name' => $element['#field_name'],
       '#langcode' => $element['#langcode'],
       '#delta' => $element['#delta'],
     );
+
+    // Add type settings if they exist.
+    if (isset($element['#type_settings'][$chunk_state['type']]['settings'])) {
+      $element['preview']['#type_settings'] = $element['#type_settings'][$chunk_state['type']]['settings'];
+    }
+    else {
+      $element['preview']['#type_settings'] = array();
+    }
   }
   return $element;
 }
@@ -870,13 +877,20 @@ function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $
       '#theme' => 'chunk',
       '#chunk_type' => $chunk_type,
       '#chunk_configuration' => $item['data']['configuration'],
-      '#type_settings' => isset($instance['settings']['chunk_type_settings'][$chunk_type->name]['settings']) ? $instance['settings']['chunk_type_settings'][$chunk_type->name]['settings'] : array(),
       '#entity' => $entity,
       '#entity_type' => $entity_type,
       '#field_name' => $field['field_name'],
       '#langcode' => $langcode,
       '#delta' => $delta,
     );
+
+    // Add type settings if they exist.
+    if (isset($instance['settings']['chunk_type_settings'][$chunk_type->name]['settings'])) {
+      $element[0][$delta]['#type_settings'] = $instance['settings']['chunk_type_settings'][$chunk_type->name]['settings'];
+    }
+    else {
+      $element[0][$delta]['#type_settings'] = array();
+    }
   }
 
   return $element;
