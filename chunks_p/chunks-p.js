@@ -74,12 +74,12 @@
     attach: function(context, settings) {
 
       // Implements the restoreConfig callback to restore saved configuration.
-      if (typeof settings.chunks.callbacks.p.restoreConfig === 'undefined') {
-        settings.chunks.callbacks.p.restoreConfig = function(fieldName, langcode, delta) {
+      if (typeof Drupal.settings.chunks.callbacks.p.restoreConfig === 'undefined') {
+        Drupal.settings.chunks.callbacks.p.restoreConfig = function(fieldName, langcode, delta) {
 
           // Only do anything if this instance of the chunk type is set to be
           // edited in-place.
-          if (settings.chunks[fieldName].types.p.instance_type_settings.edit_in_place) {
+          if (Drupal.settings.chunks[fieldName].types.p.instance_type_settings.edit_in_place) {
             var classFieldName, pConfig, configuration, configState, inPlaceEditor;
 
             classFieldName = fieldName.replace(/_/g, '-');
