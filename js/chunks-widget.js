@@ -17,7 +17,7 @@
     attach: function(context, settings) {
 
       // Create a new ChunksField object for each chunks field.
-      $('.chunks-field', context).once('initializeChunkField', function(i, e) {
+      $('.chunks-field', context).each(function(i, e) {
         var fieldName;
 
         fieldName = $(this).attr('field_name');
