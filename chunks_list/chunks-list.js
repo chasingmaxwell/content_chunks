@@ -158,7 +158,8 @@
       }
 
       // Do not display empty strings.
-      if (list_item === '') {
+      // '<p><br></p>' is the merkup output by Pen when a line is empty.
+      if (list_item === '' || list_item == '<p><br></p>') {
         continue;
       }
 

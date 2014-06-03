@@ -188,14 +188,22 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
  * Breaks one string into an array of list items.
  */
 function chunks_list_text_to_items($element, $input = FALSE, $form_state) {
-  $return = $input !== FALSE ? $input : $element['#default_value'];
-  if (is_string($return)) {
-    $return = explode("\n", $return);
+  $return = array();
+  $items = $input !== FALSE ? $input : $element['#default_value'];
+
+  if (is_string($items)) {
+    $items = explode("\n", $items);
   }
-  foreach ($return as $key => $list_item) {
-    $return[$key] = str_replace("\n", "", $list_item);
-    $return[$key] = str_replace("\r", "", $list_item);
+
+  // Trim items and add them to the return array if they contain data.
+  // '<p><br></p>' is the markup output by Pen when a line is empty.
+  foreach ($items as $key => $list_item) {
+    $list_item = trim($list_item);
+    if (!empty($list_item) && $list_item !== '<p><br></p>') {
+      $return[] = $list_item;
+    }
   }
+
   return $return;
 }
 
