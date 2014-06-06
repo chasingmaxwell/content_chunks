@@ -1,4 +1,5 @@
-name = Paragraph Chunk type
-description = Supplies the Paragraph Chunk type.
+name = Chunks paragraph
+description = Supplies the Paragraph chunk type.
 core = 7.x
 dependencies[] = chunks
+dependencies[] = field
