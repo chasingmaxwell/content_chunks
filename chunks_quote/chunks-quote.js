@@ -19,38 +19,51 @@
 
         if (settings.chunks[fieldName].types.quote.instance_type_settings.edit_in_place && typeof Pen === 'function') {
 
-          // @TODO: replicate pen initialization for the <cite> element.
-
           // Sometimes the pen-quote-menu doesn't like to go away. Let's force it.
-          $('.pen-quote-menu').hide();
+          $('.pen-quote-quote-menu, .pen-quote-attribution-menu').hide();
           $(':input', context).bind('mousedown.hidePenMenu', function() {
-            $('.pen-quote-menu').hide();
+            $('.pen-quote-quote-menu, .pen-quote-attribution-menu').hide();
           });
 
           // Initialize editor for the paragraph in this Quote chunk
-          $('.quote-chunk p[contenteditable]').once(function() {
-            var editor,
-            editorConfig;
+          $('.quote-chunk > p[contenteditable], .quote-chunk cite[contenteditable]').once(function() {
+            var editor, editorConfig, configWrapper, hiddenField;
 
             editorConfig = {
-              class: 'pen-quote',
+              class: this.nodeName === 'P' ? 'pen-quote-quote' : 'pen-quote-attribution',
               editor: this,
-              textarea: '<textarea name="content"></textarea>', // fallback for old browsers
               list: ['bold', 'italic', 'underline', 'createlink'],
               stay: false
             };
 
             editor = new Pen(editorConfig);
 
-            // Hide the regular textarea.
-            $(this).parent().find('.form-textarea-wrapper').hide();
+            configWrapper = $(this).parents('.quote-chunk-configuration');
 
-            // Update hidden textarea on keyup and blur.
-            $(this).bind('keyup.chunksQuoteInPlace blur.chunksQuoteInPlace', function(e) {
-              // Each keystroke, copy the data back into the form item so it gets saved
-              // when the user submits the form.
-              $(this).parent().find('textarea').val($(this).html());
-            });
+            if (this.nodeName === 'P') {
+              // Hide the regular textarea.
+              hiddenField = configWrapper.find('[name$="[quote][quote]"]');
+              hiddenField.parent().parent().hide();
+
+              // Update hidden textarea on keyup and blur.
+              $(this).bind('keyup.chunksQuoteInPlace blur.chunksQuoteInPlace', function(e) {
+                // Each keystroke, copy the data back into the form item so it gets saved
+                // when the user submits the form.
+                hiddenField.val($(this).html());
+              });
+            }
+            else {
+              // Hide the regular textfield.
+              hiddenField = configWrapper.find('[name$="[quote][attribution]"]');
+              hiddenField.parent().hide();
+
+              // Update hidden textfield on keyup and blur.
+              $(this).bind('keyup.chunksQuoteInPlace blur.chunksQuoteInPlace', function(e) {
+                // Each keystroke, copy the data back into the form item so it gets saved
+                // when the user submits the form.
+                hiddenField.val($(this).html());
+              });
+            }
 
             // Prevent <div></div> tags from being added when user presses
             // "Enter".
@@ -64,8 +77,11 @@
 
           // Trigger blur event on all contenteditable quote chunks when the
           // pen toolbar is clicked so we save configuration correctly.
-          $('.pen-quote-menu').bind('click.chunksQuoteBlur', function() {
-            $('.quote-chunk p[contenteditable]').trigger('blur.chunksQuoteInPlace');
+          $('.pen-quote-quote-menu').bind('click.chunksQuoteBlur', function() {
+            $('.quote-chunk > p[contenteditable]').trigger('blur.chunksQuoteInPlace');
+          });
+          $('.pen-quote-attribution-menu').bind('click.chunksQuoteBlur', function() {
+            $('.quote-chunk cite[contenteditable]').trigger('blur.chunksQuoteInPlace');
           });
         }
       });
@@ -122,7 +138,24 @@
       contentEditable = '';
     }
 
-    // @TODO: replicate chunk--quote.tpl.php output.
+    // Add the cite_attribute property if the attribution_location property
+    // exists.
+    if (config.attribution_location !== '') {
+      config.attribution_location = Drupal.checkPlain(config.attribution_location);
+      config.cite_attribute = config.attribution_location !== '' ? ' cite="' + config.attribution_location + '"' : '';
+    }
+    else {
+      config.cite_attribute = '';
+    }
+
+    output = '<blockquote class="chunk quote-chunk"' + config.cite_attribute + '>';
+    output += '<p' + contentEditable + '>' + config.quote + '</p>';
+
+    if (config.attribution !== '') {
+      output += '<footer><cite' + contentEditable + '>' + config.attribution + '</cite></footer>';
+    }
+
+    output += '</blockquote>';
 
     return output;
   };

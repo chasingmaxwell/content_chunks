@@ -95,6 +95,13 @@ function chunks_quote_quote_chunk_form(&$configuration, $settings, $form, &$form
     '#default_value' => $configuration['attribution'],
   );
 
+  // This is the location for the cite attribute on the blockquote element.
+  $config_form['attribution_location'] = array(
+    '#title' => t('Attribution location'),
+    '#type' => 'textfield',
+    '#default_value' => $configuration['attribution_location'],
+  );
+
   // This field is the user-facing editor and continually transfers its contents
   // to the p field which is then saved within Drupal.
   if ($settings['edit_in_place']) {
@@ -127,13 +134,6 @@ function chunks_quote_quote_chunk_form(&$configuration, $settings, $form, &$form
 
     }
   }
-
-  // This is the location for the cite attribute on the blockquote element.
-  $config_form['attribution_location'] = array(
-    '#title' => t('Attribution location'),
-    '#type' => 'textfield',
-    '#default_value' => $configuration['attribution_location'],
-  );
 
   if ($settings['preview_on_client']) {
     $config_form['#attached'] = array(
