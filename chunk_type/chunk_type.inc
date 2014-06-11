@@ -195,7 +195,7 @@ class ChunkType {
         '#type' => 'checkbox',
         '#title' => t('Preview this chunk type using the client-side, JavaScript theme implementation.'),
         '#default_value' => isset($settings['preview_on_client']) ? $settings['preview_on_client'] : 0,
-        '#description' => t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when previewing an edited chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and this supplying the data with which to generate the html.'),
+        '#description' => t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when previewing an edited chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and thus supplying the data with which to generate the html.'),
       );
     }
 
