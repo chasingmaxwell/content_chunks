@@ -65,6 +65,18 @@ function chunks_field_instance_settings_form($field, $instance) {
       $type_settings += $chunk_type->default_type_settings;
 
       $type_form = $chunk_type->getTypeSettingsForm($field, $type_settings);
+
+      // Provide the preview_on_client setting for any client-themeable chunk
+      // type.
+      if ($chunk_type->client_themeable) {
+        $type_form['preview_on_client'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Preview this chunk type using the client-side, JavaScript theme implementation.'),
+          '#default_value' => isset($type_settings['preview_on_client']) ? $type_settings['preview_on_client'] : 0,
+          '#description' => t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when previewing an edited chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and thus supplying the data with which to generate the html.'),
+        );
+      }
+
       if ($type_form) {
         $form['chunk_type_settings'][$chunk_type->name] = array(
           '#type' => 'fieldset',
