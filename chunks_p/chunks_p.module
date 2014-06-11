@@ -13,7 +13,7 @@ function chunks_p_chunk_types() {
     'p' => array(
       'title' => t('Paragraph'),
       'default configuration' => array(
-        'p' => t('Enter your paragraph here...'),
+        'p' => '',
       ),
       'default type settings' => array(
         'edit_in_place' => 1,
@@ -97,6 +97,10 @@ function chunks_p_p_chunk_form(&$configuration, $settings, $form, &$form_state, 
     if ($library['installed']) {
 
       $configuration['edit_in_place'] = TRUE;
+
+      // Provide default values if the configuration is empty so the
+      // contenteditable element will be visible on the page.
+      $configuration['p'] = !empty($configuration['p']) ? $configuration['p'] : t('Enter your paragraph here...');
 
       $config_form['editor'] = array(
         '#theme' => 'chunk',
