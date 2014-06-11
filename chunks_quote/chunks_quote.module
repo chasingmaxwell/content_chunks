@@ -178,6 +178,7 @@ function chunks_quote_quote_chunk_form_validate($configuration, &$form_state, $f
  */
 function chunks_quote_preprocess_chunk(&$variables) {
   if ($variables['chunk_type']->name == 'quote') {
-    $variables['cite_attribute'] = !empty($variables['configuration']['attribution_location']) ? ' cite="' . $variables['configuration']['attribution_location'] . '"' : '';
+    $attribution_location = trim(check_plain($variables['configuration']['attribution_location']));
+    $variables['cite_attribute'] = !empty($attribution_location) ? ' cite="' . $attribution_location . '"' : '';
   }
 }
