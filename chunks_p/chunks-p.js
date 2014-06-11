@@ -43,11 +43,17 @@
             // Hide the regular textarea.
             $(this).parent().find('.form-textarea-wrapper').hide();
 
-            // Update hidden textarea on keyup and blur.
-            $(this).bind('keyup.chunksPInPlace blur.chunksPInPlace', function(e) {
-              // Each keystroke, copy the data back into the form item so it gets saved
-              // when the user submits the form.
-              $(this).parent().find('textarea').val($(this).html());
+            // Update hidden textarea on keyup, blur, paste, and cut events.
+            $(this).bind('keyup.chunksPInPlace blur.chunksPInPlace paste.chunksPInPlace cut.chunksPInPlace', function(e) {
+              var editableElement = this;
+
+              // Each time the configuration could have changed, copy the data
+              // back into the form item so it gets saved when the user submits
+              // the form. setTimeout is necessary because some events fire
+              // before the markup has changed.
+              setTimeout(function() {
+                $(editableElement).parent().find('textarea').val($(editableElement).html());
+              }, 0);
             });
 
             // Prevent <div></div> tags from being added when user presses

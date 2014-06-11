@@ -44,26 +44,25 @@
               // Hide the regular textarea.
               hiddenField = configWrapper.find('[name$="[quote][quote]"]');
               hiddenField.parent().parent().hide();
-
-              // Update hidden textarea on keyup and blur.
-              $(this).bind('keyup.chunksQuoteInPlace blur.chunksQuoteInPlace', function(e) {
-                // Each keystroke, copy the data back into the form item so it gets saved
-                // when the user submits the form.
-                hiddenField.val($(this).html());
-              });
             }
             else {
               // Hide the regular textfield.
               hiddenField = configWrapper.find('[name$="[quote][attribution]"]');
               hiddenField.parent().hide();
-
-              // Update hidden textfield on keyup and blur.
-              $(this).bind('keyup.chunksQuoteInPlace blur.chunksQuoteInPlace', function(e) {
-                // Each keystroke, copy the data back into the form item so it gets saved
-                // when the user submits the form.
-                hiddenField.val($(this).html());
-              });
             }
+
+            // Update hidden field on keyup, blur, paste, and cut events.
+            $(this).bind('keyup.chunksQuoteInPlace blur.chunksQuoteInPlace paste.chunksQuoteInPlace cut.chunksQuoteInPlace', function(e) {
+              var editableElement = this;
+
+              // Each time the configuration could have changed, copy the data
+              // back into the form item so it gets saved when the user submits
+              // the form. setTimeout is necessary because some events fire
+              // before the markup has changed.
+              setTimeout(function() {
+                hiddenField.val($(editableElement).html());
+              }, 0);
+            });
 
             // Prevent <div></div> tags from being added when user presses
             // "Enter".
