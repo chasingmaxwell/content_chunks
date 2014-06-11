@@ -13,8 +13,8 @@ function chunks_quote_chunk_types() {
     'quote' => array(
       'title' => t('Quote'),
       'default configuration' => array(
-        'quote' => t('Enter quotation here...'),
-        'attribution' => t('Enter attribution here...'),
+        'quote' => '',
+        'attribution' => '',
         'attribution_location' => '',
       ),
       'default type settings' => array(
@@ -104,6 +104,11 @@ function chunks_quote_quote_chunk_form(&$configuration, $settings, $form, &$form
     if ($library['installed']) {
 
       $configuration['edit_in_place'] = TRUE;
+
+      // Provide default values if the configuration is empty so the
+      // contenteditable element will be visible on the page.
+      $configuration['quote'] = !empty($configuration['quote']) ? $configuration['quote'] : t('Enter the quotation here...');
+      $configuration['attribution'] = !empty($configuration['attribution']) ? $configuration['attribution'] : t('Enter attribution here...');
 
       $config_form['editor'] = array(
         '#theme' => 'chunk',
