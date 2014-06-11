@@ -14,7 +14,7 @@ function chunks_list_chunk_types() {
       'title' => t('List'),
       'default configuration' => array(
         'style' => 'ul',
-        'list' => array('Enter list items here...'),
+        'list' => array(''),
         'edit_in_place' => 0,
       ),
       'default type settings' => array(
@@ -152,6 +152,17 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
     if ($library['installed']) {
 
       $configuration['edit_in_place'] = TRUE;
+
+      // If we have no list items, provide a placeholder item so the
+      // contenteditable element is visible.
+      $empty = TRUE;
+      foreach ($configuration['list'] as $list) {
+        if (!empty($list)) {
+          $empty = FALSE;
+          break;
+        }
+      }
+      $configuration['list'] = !$empty ? $configuration['list'] : array('Enter list items here...');
 
       $config_form['inplace_items'] = array(
         '#theme' => 'chunk',
