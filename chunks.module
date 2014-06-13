@@ -83,8 +83,8 @@ function chunk_types_load() {
 
         // Check if the template file exists.
         if (!file_exists(DRUPAL_ROOT . '/' . $data['template path'] . '/' . $data['template'] . '.tpl.php')) {
-          $message = 'The %module module did not provide a properly named template file for the %type chunk type. The %type chunk type will not be available.';
-          $variables = array('%module' => $module, '%type' => $name);
+          $message = 'The %module module did not provide a properly named template file (suggestion: "%suggestion") for the %type chunk type. The %type chunk type will not be available.';
+          $variables = array('%module' => $module, '%type' => $name, '%suggestion' => $data['template path'] . '/' . $data['template'] . '.tpl.php');
           watchdog('chunks', $message, $variables, WATCHDOG_ERROR);
           // Do not register this chunk type.
           continue;
