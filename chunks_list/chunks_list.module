@@ -168,7 +168,7 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
         '#theme' => 'chunk',
         '#chunk_type' => $form['#chunk_types']['list'],
         '#chunk_configuration' => $configuration,
-        '#type_settings' => $settings,
+        '#instance_settings' => $settings,
         '#field_name' => $field['field_name'],
         '#langcode' => $langcode,
         '#delta' => $delta,

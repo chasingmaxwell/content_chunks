@@ -11,6 +11,13 @@
 function chunks_field_schema($field) {
   if ($field['type'] == 'chunks') {
     $schema = array();
+    $schema['columns']['instance'] = array(
+      'type' => 'varchar',
+      'length' => '32',
+      'not null' => TRUE,
+      'default' => '',
+      'description' => "The name of the chunk's instance.",
+    );
     $schema['columns']['type'] = array(
       'type' => 'varchar',
       'length' => '32',

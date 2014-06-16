@@ -17,7 +17,7 @@ function chunks_field_info() {
       'description' => t('Structured and reusable content chunks.'),
       'default_widget' => 'chunks_default',
       'settings' => array(),
-      'instance_settings' => array('chunk_types' => array()),
+      'instance_settings' => array('chunk_types' => array(), 'chunk_instances' => array()),
       'default_formatter' => 'chunks_default',
     ),
   );
@@ -39,62 +39,185 @@ function chunks_field_instance_settings_form($field, $instance) {
 
   if ($field['type'] == 'chunks') {
 
-    $form['chunk_types'] = array(
-      '#type' => 'checkboxes',
-      '#title' => t('Allowed chunk types'),
-      '#options' => array(),
-      '#default_value' => $settings['chunk_types'],
-      '#description' => t('Select the chunk types which can be added through this field instance.'),
+    $chunk_types = chunk_types_load();
+
+    $form['chunk_instances'] = array(
+      '#theme' => 'chunks_instances_form',
+      '#field' => $field,
+      '#chunk_types' => $chunk_types,
     );
 
-    $form['chunk_type_settings'] = array(
-      '#type' => 'container',
+    $type_options = array();
+    foreach($chunk_types as $name => $chunk_type) {
+      $type_options[$name] = $chunk_type->title;
+    }
+
+    // Allow additional instances to be added.
+    $form['add_chunk_instance'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Add chunk instance'),
+      'type' => array(
+        '#type' => 'select',
+        '#title' => t('Chunk type'),
+        '#options' => $type_options,
+      ),
+      'button' => array(
+        '#type' => 'submit',
+        '#value' => t('Add'),
+        '#limit_validation_errors' => array(
+          array('instance', 'settings', 'add_chunk_instance'),
+          array('instance', 'settings', 'chunk_instances'),
+        ),
+        '#submit' => array('chunks_field_add_chunk_instance'),
+      ),
     );
+  }
+
+  return $form;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * This is necessary because $form_state is not available inside
+ * hook_field_instance_settings_form().
+ */
+function chunks_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+  if ($form['#field']['type'] == 'chunks') {
 
     $chunk_types = chunk_types_load();
-    foreach ($chunk_types as $chunk_type) {
-      // Add an option for each chunk type.
-      $form['chunk_types']['#options'][$chunk_type->name] = $chunk_type->title;
+    $settings = $form['#instance']['settings'];
 
-      // Add chunk type specific settings.
-      $type_settings = array();
-      if (isset($settings['chunk_type_settings'][$chunk_type->name]['settings'])) {
-        $type_settings += $settings['chunk_type_settings'][$chunk_type->name]['settings'];
-      }
+    // Grab chunk instances from form_state if it exists, and from the settings
+    // if it does not.
+    if (isset($form_state['values'])) {
+      $instances = $form_state['values']['instance']['settings']['chunk_instances'];
+    }
+    else {
+      $instances = $settings['chunk_instances'];
+    }
+
+    // Sort chunk instances by weight.
+    uasort($instances, 'drupal_sort_weight');
+
+    // Build chunk instance form elements.
+    foreach ($instances as $delta => $instance) {
+      $chunk_type = $chunk_types[$instance['type']];
+
       // Provide defaults for any missing settings.
-      $type_settings += $chunk_type->default_type_settings;
+      $instance['settings'] = isset($instance['settings']) ? $instance['settings'] : array();
+      $instance['settings'] += $chunk_type->default_type_settings;
 
-      $type_form = $chunk_type->getTypeSettingsForm($field, $type_settings);
+      $instance_form = $chunk_type->getTypeSettingsForm($form['#field'], $instance['settings']);
 
       // Provide the preview_on_client setting for any client-themeable chunk
       // type.
       if ($chunk_type->client_themeable) {
-        $type_form['preview_on_client'] = array(
+        $instance_form['preview_on_client'] = array(
           '#type' => 'checkbox',
-          '#title' => t('Preview this chunk type using the client-side, JavaScript theme implementation.'),
-          '#default_value' => isset($type_settings['preview_on_client']) ? $type_settings['preview_on_client'] : 0,
+          '#title' => t('Preview this chunk instance using the client-side, JavaScript theme implementation.'),
+          '#default_value' => isset($instance['settings']['preview_on_client']) ? $instance['settings']['preview_on_client'] : 0,
           '#description' => t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when previewing an edited chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and thus supplying the data with which to generate the html.'),
         );
       }
 
-      if ($type_form) {
-        $form['chunk_type_settings'][$chunk_type->name] = array(
-          '#type' => 'fieldset',
-          '#title' => t('%type chunk type settings', array('%type' => $chunk_type->title)),
-          '#collapsible' => TRUE,
-          '#collapsed' => TRUE,
-          '#states' => array(
-            'visible' => array(
-              ':input[name="instance[settings][chunk_types][' . $chunk_type->name . ']"]' => array('checked' => TRUE),
-            ),
+      $form['instance']['settings']['chunk_instances'][] = array(
+        'label' => array(
+          '#type' => 'textfield',
+          '#title' => t('Label'),
+          '#default_value' => isset($instance['label']) ? $instance['label'] : '',
+          '#required' => TRUE,
+          '#description' => t('The label which will be displayed to the user.'),
+        ),
+        'name' => array(
+          '#type' => 'machine_name',
+          '#title' => 'Machine name',
+          '#default_value' => isset($instance['name']) ? $instance['name'] : '',
+          '#machine_name' => array(
+            'exists' => 'chunks_instance_name_exists',
+            'source' => array('instance', 'settings', 'chunk_instances', $delta, 'label'),
           ),
-          'settings' => $type_form,
-        );
-      }
+        ),
+        'type' => array(
+          '#type' => 'value',
+          '#value' => $instance['type'],
+        ),
+        'type_display' => array(
+          '#markup' => $chunk_type->title,
+        ),
+        'settings' => $instance_form,
+        'weight' => array(
+          '#type' => 'weight',
+          '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
+          '#delta' => count($instances),
+          '#default_value' => $delta,
+          '#attributes' => array(
+            'class' => array($form['#field']['field_name'] . '-chunk-instances-order'),
+          ),
+        ),
+        'remove' => array(
+          '#type' => 'submit',
+          '#value' => t('Remove'),
+          '#submit' => array('chunks_field_remove_chunk_instance'),
+          '#name' => 'remove-chunk-instance-' . $delta,
+        ),
+      );
     }
   }
+}
 
-  return $form;
+/**
+ * #empty callback for chunk instance machine name field.
+ */
+function chunks_instance_name_exists($value, $element, &$form_state) {
+  // Retrieve the delta of the current instance.
+  end($element['#array_parents']);
+  $delta = prev($element['#array_parents']);
+
+  // Return true if the name exists in the current form_state.
+  foreach ($form_state['values']['instance']['settings']['chunk_instances'] as $compare_delta => $instance) {
+    if ($value === $instance['name'] && $delta !== $compare_delta) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * #submit callback for adding new chunk instances to a field instance.
+ */
+function chunks_field_add_chunk_instance($form, &$form_state) {
+
+  // Make sure the chunk_instances array exists.
+  if (!isset($form_state['values']['instance']['settings']['chunk_instances'])) {
+    $form_state['values']['instance']['settings']['chunk_instances'] = array();
+  }
+
+  $form_state['values']['instance']['settings']['chunk_instances'][] = array(
+    'label' => '',
+    'name' => '',
+    'type' => $form_state['values']['instance']['settings']['add_chunk_instance']['type'],
+    'weight' => count($form_state['values']['instance']['settings']['chunk_instances']) + 1,
+  );
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * #submit callback for removing chunk instances from a field instance.
+ */
+function chunks_field_remove_chunk_instance($form, &$form_state) {
+  // Retrieve the index of the instance to remove.
+  $parents = $form_state['triggering_element']['#array_parents'];
+  end($parents);
+  $delta = prev($parents);
+
+  // Remove the instance and reset the index.
+  unset($form_state['values']['instance']['settings']['chunk_instances'][$delta]);
+  unset($form_state['input']['instance']['settings']['chunk_instances'][$delta]);
+  $form_state['values']['instance']['settings']['chunk_instances'] = array_values($form_state['values']['instance']['settings']['chunk_instances']);
+  $form_state['input']['instance']['settings']['chunk_instances'] = array_values($form_state['input']['instance']['settings']['chunk_instances']);
+
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
@@ -132,17 +255,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   $js_settings = array(
     'chunks' => array(
       $field_name => array(
-        'types' => array(),
+        'instances' => array(),
       ),
       'callbacks' => array(),
     ),
   );
 
-  // Process chunk types and provide additional properties.
+  // Process chunk types.
   foreach ($chunk_types as $name => $chunk_type) {
-    // Add chunk type settings defined on the field isntance to each chunk type
-    // for easy access in the rest of the widget.
-    $chunk_types[$name]->instance_type_settings = isset($instance['settings']['chunk_type_settings'][$name]['settings']) ? $instance['settings']['chunk_type_settings'][$name]['settings'] : array();
 
     // Store information about each chunk type in JavaScript settings.
     $js_settings['chunks'][$field_name]['types'][$name] = $chunk_type;
@@ -157,18 +277,18 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // Save chunk types in the form so they can be accessed easily later.
   $form['#chunk_types'] = $chunk_types;
 
-  // Filter allowed chunk types by permissions and instance settings.
-  $form['#allowed_chunk_types'] = array();
-  foreach ($chunk_types as $name => $chunk_type) {
-    if ((!isset($instance['settings']['chunk_types'][$name]) || !$instance['settings']['chunk_types'][$name]) ||
-      !user_access('use_' . $chunk_type->name . '_chunk') ||
-      !$chunk_type->isAllowed($chunk_type->instance_type_settings, $field, $instance, $langcode)) {
+  $form['#chunk_instances'] = array();
+  foreach ($instance['settings']['chunk_instances'] as $name => $chunk_instance) {
 
-      // Do not add to allowed types.
+    $chunk_instance['chunk_type'] = $chunk_types[$chunk_instance['type']];
+
+    if (!user_access('use_' . $chunk_type->name . '_chunk') || !$chunk_type->isAllowed($chunk_instance['settings'], $field, $instance, $langcode)) {
+
+      // Do not add to #chunk_instances.
       continue;
     }
 
-    $form['#allowed_chunk_types'][$chunk_type->name] = $chunk_type;
+    $form['#chunk_instances'][$name] = $chunk_instance;
   }
 
   // Retrieve items from the field state since they may not exist in the form
@@ -247,14 +367,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     // callback.
     $row += array(
       '#element_validate' => array('chunks_field_widget_values_validate'),
-      '#instance_settings' => $instance['settings'],
+      '#instance_settings' => $instance['settings']['chunk_instances'],
       '#prefix' => '<div id="' . $field_name . '-' . $delta . '-chunk' . '" class="chunk-wrapper" delta="' . $delta . '">',
       '#suffix' => '</div>'
     );
 
     // Set some defaults for $chunk_state
     $chunk_state = array(
-      'view' => 'type_selection',
+      'view' => 'instance_selection',
       'configuration' => array(),
     );
 
@@ -266,25 +386,31 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       if (!isset($form_state['values']) && isset($chunk_state['data'])) {
         // Retrieve and reset the configuration from $chunk_state['data'].
         $data = unserialize($chunk_state['data']);
-        $chunk_state['configuration'][$chunk_state['type']] = $data['configuration'];
+        $chunk_state['configuration'][$chunk_state['instance']] = $data['configuration'];
         // Set view to preview.
         $chunk_state['view'] = 'preview';
       }
     }
 
-    // Add default configuration for each chunk type's configuration.
-    foreach ($chunk_types as $name => $chunk_type) {
+    // Set correct values if the user has selected an instance.
+    if (isset($chunk_state['instance'])) {
+      $chunk_state['type'] = $form['#chunk_instances'][$chunk_state['instance']]['type'];
+      $chunk_state['module'] = $chunk_types[$row['type']['#value']]->module;
+    }
+
+    // Add default configuration for each chunk instances' configuration.
+    foreach ($form['#chunk_instances'] as $name => $chunk_instance) {
       if (isset($chunk_state['configuration'][$name])) {
-        $chunk_state['configuration'][$name] += $chunk_type->default_configuration;
+        $chunk_state['configuration'][$name] += $chunk_instance['chunk_type']->default_configuration;
       }
       else {
-        $chunk_state['configuration'][$name] = $chunk_type->default_configuration;
+        $chunk_state['configuration'][$name] = $chunk_instance['chunk_type']->default_configuration;
       }
     }
 
     // Determine whether this chunk is editable by the current user.
-    if (!isset($chunk_state['type']) ||
-        (isset($chunk_state['type']) && isset($form['#allowed_chunk_types'][$chunk_state['type']]))) {
+    if (!isset($chunk_state['instance']) ||
+        (isset($chunk_state['instance']) && isset($form['#chunk_instances'][$chunk_state['instance']]))) {
       $chunk_state['allowed'] = TRUE;
     }
     else {
@@ -333,43 +459,48 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       $row['view']['#value'] = 'staged';
     }
 
-    // If this chunk is editable by the current user, build the type selection
-    // form element.
+    // If this chunk is editable by the current user, build the instance
+    // selection form element.
     if ($chunk_state['allowed']) {
-      // Filter available chunk types by allowed chunk types.
+
       $options = array();
-      foreach ($form['#allowed_chunk_types'] as $chunk_type) {
-        $options[$chunk_type->name] = $chunk_type->title;
+      foreach ($form['#chunk_instances'] as $name => $chunk_instance) {
+        $options[$name] = check_plain($chunk_instance['label']);
       }
 
-      $row['type'] = array(
+      $row['instance'] = array(
         '#type' => 'radios',
-        '#title' => t('I\'m adding'),
+        '#title' => t('I\'m adding...'),
         '#attributes' => array(
-          'class' => array('chunk-type-selection'),
+          'class' => array('chunk-instance-selection'),
         ),
         '#options' => $options,
-        '#default_value' => isset($chunk_state['type']) ? $chunk_state['type'] : NULL,
+        '#default_value' => isset($chunk_state['instance']) ? $chunk_state['instance'] : NULL,
         '#disabled' => $chunk_state['view'] == 'staged',
         '#states' => array(
           'visible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'type_selection'),
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'instance_selection'),
           ),
         ),
       );
     }
-    // If this chunk is not editable by the current user, store the type in a
-    // hidden form element.
+    // If this chunk is not editable by the current user, store the instance in
+    // a hidden form element.
     else {
-      $row['type'] = array(
+      $row['instance'] = array(
         '#type' => 'hidden',
-        '#value' => $chunk_state['type'],
+        '#value' => $chunk_state['instance'],
       );
     }
 
+    $row['type'] = array(
+      '#type' => 'hidden',
+      '#value' => isset($chunk_state['type']) ? $chunk_state['type'] : '',
+    );
+
     $row['module'] = array(
       '#type' => 'hidden',
-      '#value' => isset($chunk_state['type']) ? $chunk_types[$chunk_state['type']]->module : '',
+      '#value' => isset($chunk_state['type']) ? $chunk_state['type'] : '',
     );
 
     $row['configuration'] = array(
@@ -385,23 +516,26 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
     );
 
-    foreach ($form['#allowed_chunk_types'] as $name => $chunk_type) {
+    foreach ($form['#chunk_instances'] as $name => $chunk_instance) {
+
+      $chunk_type = $chunk_instance['chunk_type'];
+
       // If we are working with a chunk that already has configuration, use it.
-      if (isset($chunk_state['type']) && $chunk_state['type'] == $name) {
-        $configuration =  $chunk_state['configuration'][$chunk_state['type']];
+      if (isset($chunk_state['instance']) && $chunk_state['instance'] == $name) {
+        $configuration =  $chunk_state['configuration'][$chunk_state['instance']];
       }
       else {
         $configuration = $chunk_type->default_configuration;
       }
-      $row['configuration'][$chunk_type->name] = $chunk_type->getForm($configuration, $chunk_type->instance_type_settings, $form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
-      $row['configuration'][$chunk_type->name] += array(
+      $row['configuration'][$name] = $chunk_type->getForm($configuration, $chunk_instance['settings'], $form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
+      $row['configuration'][$name] += array(
         '#type' => 'container',
         '#attributes' => array(
           'class' => array($chunk_type->name . '-chunk-configuration'),
         ),
         '#states' => array(
           'visible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][type]"]' => array('value' => $chunk_type->name),
+            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][instance]"]' => array('value' => $name),
           ),
         ),
       );
@@ -418,7 +552,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-preview'),
       ),
       '#after_build' => array('chunks_field_build_preview'),
-      '#type_settings' => $instance['settings']['chunk_type_settings'],
+      '#chunk_instance' => $instance['settings']['chunk_instances'],
       '#field_name' => $field_name,
       '#langcode' => $langcode,
       '#delta' => $delta,
@@ -445,7 +579,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       ),
     );
 
-    // Display chunk editing actions if the current chunk is of an allowed type.
+    // Display chunk editing actions if the current chunk is of an allowed
+    // instance.
     if ($chunk_state['allowed']) {
 
       $row['chunk_actions']['edit'] = array(
@@ -548,23 +683,23 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 function chunks_field_build_preview($element, &$form_state) {
   $chunk_types = chunk_types_load();
   $chunk_state = drupal_array_get_nested_value($form_state['values'], array_slice($element['#array_parents'], 0, -1));
-  if (isset($chunk_state['type']) && isset($chunk_state['configuration'][$chunk_state['type']])) {
+  if (isset($chunk_state['instance']) && isset($chunk_state['configuration'][$chunk_state['instance']])) {
     $chunk_type = $chunk_types[$chunk_state['type']];
     $element['preview'] = array(
       '#theme' => 'chunk',
       '#chunk_type' => $chunk_type,
-      '#chunk_configuration' => $chunk_state['configuration'][$chunk_state['type']] + $chunk_type->default_configuration,
+      '#chunk_configuration' => $chunk_state['configuration'][$chunk_state['instance']] + $chunk_type->default_configuration,
       '#field_name' => $element['#field_name'],
       '#langcode' => $element['#langcode'],
       '#delta' => $element['#delta'],
     );
 
-    // Add type settings if they exist.
-    if (isset($element['#type_settings'][$chunk_state['type']]['settings'])) {
-      $element['preview']['#type_settings'] = $element['#type_settings'][$chunk_state['type']]['settings'];
+    // Add instance settings if they exist.
+    if (isset($element['#chunk_instances'][$chunk_state['instance']]['settings'])) {
+      $element['preview']['#instance_settings'] = $element['#chunk_instances'][$chunk_state['instance']]['settings'];
     }
     else {
-      $element['preview']['#type_settings'] = array();
+      $element['preview']['#instance_settings'] = array();
     }
   }
   return $element;
@@ -883,6 +1018,7 @@ function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $
     // Prepare chunk data.
     $item['data'] = unserialize($item['data']);
 
+    $chunk_instance = $instance['settings']['chunk_instances'][$item['data']['instance']];
     $chunk_type = $item['data']['type'];
 
     $element[0][$delta] = array(
@@ -896,12 +1032,12 @@ function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $
       '#delta' => $delta,
     );
 
-    // Add type settings if they exist.
-    if (isset($instance['settings']['chunk_type_settings'][$chunk_type->name]['settings'])) {
-      $element[0][$delta]['#type_settings'] = $instance['settings']['chunk_type_settings'][$chunk_type->name]['settings'];
+    // Add instance settings if they exist.
+    if (isset($instance['settings']['chunk_instances'][$chunk_instance['name']]['settings'])) {
+      $element[0][$delta]['#instance_settings'] = $instance['settings']['chunk_instances'][$chunk_instance['name']]['settings'];
     }
     else {
-      $element[0][$delta]['#type_settings'] = array();
+      $element[0][$delta]['#instance_settings'] = array();
     }
   }
 
@@ -915,9 +1051,10 @@ function chunks_field_is_empty($item, $field) {
   if ($field['type'] == 'chunks') {
 
     // Make sure we have values for each column.
-    if (empty($item['type']) ||
+    if (empty($item['instance']) ||
+        empty($item['type']) ||
         empty($item['module']) ||
-        empty($item['configuration'][$item['type']]) ||
+        empty($item['configuration'][$item['instance']]) ||
         $item['view'] == 'removed') {
 
       return TRUE;
@@ -929,7 +1066,7 @@ function chunks_field_is_empty($item, $field) {
 
     // Allow modules to check their chunk type's configuration and determine
     // whether or not it should be considered empty.
-    if ($chunk_type->configurationIsEmpty($item['configuration'][$item['type']], $item, $field)) {
+    if ($chunk_type->configurationIsEmpty($item['configuration'][$item['instance']], $item, $field)) {
       return TRUE;
     }
   }
@@ -950,18 +1087,18 @@ function chunks_field_presave($entity_type, $entity, $field, $instance, $langcod
       $chunk_type = $chunk_types[$item['type']];
 
       // Add any missing configuration values from default.
-      $configuration = $item['configuration'][$item['type']] + $chunk_type->default_configuration;
+      $configuration = $item['configuration'][$item['instance']] + $chunk_type->default_configuration;
 
-      if (isset($instance['settings']['chunk_type_settings'][$item['type']])) {
-        $type_settings = $instance['settings']['chunk_type_settings'][$item['type']]['settings'];
+      if (isset($instance['settings']['chunk_instances'][$item['instance']]['settings'])) {
+        $instance_settings = $instance['settings']['chunk_instances'][$item['instance']]['settings'];
       }
       else {
-        $type_settings = array();
+        $instance_settings = array();
       }
 
       // Add any missing type settings values from the default.
       if (isset($chunk_type->default_type_settings)) {
-        $type_settings = $type_settings + $chunk_type->default_type_settings;
+        $instance_settings = $instance_settings + $chunk_type->default_type_settings;
       }
 
       // Create and save the data field value since it does not have a
@@ -969,7 +1106,6 @@ function chunks_field_presave($entity_type, $entity, $field, $instance, $langcod
       $items[$delta]['data'] = array(
         'type' => $chunk_type,
         'configuration' => $configuration,
-        'type_settings' => $type_settings,
       );
 
       // Allow modules to act on chunk data before saving.
@@ -982,7 +1118,7 @@ function chunks_field_presave($entity_type, $entity, $field, $instance, $langcod
 }
 
 /**
- * Returns HTML for an individual form element.
+ * Returns HTML for a chunks field widget.
  *
  * Combine multiple chunks into a table with drag-n-drop reordering.
  *
@@ -1075,3 +1211,75 @@ function theme_chunks_field_widget_form($variables) {
 
   return $output;
 }
+
+/**
+ * Returns HTML for the chunks instances form.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form element.
+ *
+ * @ingroup themeable
+ */
+function theme_chunks_instances_form($variables) {
+  $element = $variables['element'];
+
+  $table_id = drupal_html_id($element['#field']['field_name'] . '-chunk-instances');
+  $order_class = $element['#field']['field_name'] . '-chunk-instances-order';
+
+  $chunk_types = chunk_types_load();
+
+  $header = array(
+    array(
+      'data' => t('Label'),
+      'colspan' => 2,
+    ),
+    t('Type'),
+    t('Settings'),
+    t('Order'),
+    t('Remove'),
+  );
+  $rows = array();
+
+  foreach (element_children($element) as $key) {
+
+    if (count(element_children($element[$key]['settings'])) > 0) {
+      $settings = array(
+        '#type' => 'fieldset',
+        '#title' => t('%type chunk type settings', array('%type' => $chunk_types[$element[$key]['type']['#value']]->title)),
+        '#attributes' => array(
+          'class' => array('collapsible', 'collapsed'),
+        ),
+        '#attached' => array(
+          'js' => array(
+            'misc/form.js',
+            'misc/collapse.js'
+          ),
+        ),
+        'settings' => $element[$key]['settings'],
+      );
+    }
+    else {
+      $settings = $element[$key]['settings'];
+    }
+
+    $cells = array(
+      array('class' => array('chunk-instance-drag')),
+      drupal_render($element[$key]['label']) . drupal_render($element[$key]['name']),
+      drupal_render($element[$key]['type_display']),
+      drupal_render($settings),
+      drupal_render($element[$key]['weight']),
+      drupal_render($element[$key]['remove']),
+    );
+
+    $rows[] = array(
+      'data' => $cells,
+      'class' => array('draggable'),
+    );
+  }
+
+  drupal_add_tabledrag($table_id, 'order', 'sibling', $order_class);
+
+  return theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => $table_id)));
+}
+
