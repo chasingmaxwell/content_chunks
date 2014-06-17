@@ -45,7 +45,13 @@
   </p>
   <?php if (!empty($configuration['attribution'])): ?>
     <footer>
-      <cite<?php if (isset($configuration['edit_in_place'])): ?> contenteditable<?php endif; ?>><?php print filter_xss(trim(preg_replace('/(\s|<br>|<\/?div>)+/', ' ', $configuration['attribution'])), array('a', 'b', 'em', 'i', 'strong', 'u')); ?></cite>
+      <?php if(isset($configuration['attribution_location'])):?>
+        <a href="<?php print filter_xss($configuration['attribution_location']); ?>">
+          <?php endif; ?>
+          <cite<?php if (isset($configuration['edit_in_place'])): ?> contenteditable<?php endif; ?>><?php print filter_xss(trim(preg_replace('/(\s|<br>|<\/?div>)+/', ' ', $configuration['attribution'])), array('a', 'b', 'em', 'i', 'strong', 'u')); ?></cite>
+          <?php if(isset($configuration['attribution_location'])):?>
+        </a>
+      <?php endif; ?>
     </footer>
   <?php endif; ?>
 </blockquote>
