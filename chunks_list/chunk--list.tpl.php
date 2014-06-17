@@ -26,6 +26,7 @@
  *
  * @see template_preprocess()
  * @see template_preprocess_chunk()
+ * @see chunks_list_preprocess_chunk()
  *
  * @ingroup themeable
  */
