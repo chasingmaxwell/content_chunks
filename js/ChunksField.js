@@ -56,8 +56,8 @@
         }
       }
 
-      // Change view to type_selection.
-      stagedChunk.setView('type_selection');
+      // Change view to instance_selection.
+      stagedChunk.setView('instance_selection');
 
       stagedRow = stagedChunk.chunk.parents('tr.staged');
       stagedRow.removeClass('staged');

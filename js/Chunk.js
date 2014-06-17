@@ -33,7 +33,8 @@
     this.delta = delta;
     this.classPrepend = '.' + field.classFieldName + '-' + delta + '-';
     this.namePrepend =  field.fieldName + '[' + field.langcode + '][' + delta + ']';
-    this.chunkType = $(':input[name="' + this.namePrepend + '[type]"]:checked').val();
+    this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
+    this.chunkType = $(':input[name="' + this.namePrepend + '[type]"]').val();
     this.viewElement = $(':input[name="' + this.namePrepend + '[view]"]');
     this.view = this.viewElement.val();
     this.active = $(element).hasClass('active');
@@ -56,9 +57,10 @@
 
     this.getConfigState = function() {
       var configuration = {};
-      this.chunkType = $(':input[name="' + this.namePrepend + '[type]"]:checked').val();
+      this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
+      this.ChunkType = Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].type;
 
-      $('[name^="' + this.namePrepend + '[configuration][' + this.chunkType + ']"]').each(function(i, element) {
+      $('[name^="' + this.namePrepend + '[configuration][' + this.chunkInstance + ']"]').each(function(i, element) {
         var name = $(element).attr('name');
         var configProp = name.match(/[^\[]*(?=]$)/)[0];
         configuration[configProp] = $(element).val();
@@ -68,12 +70,13 @@
     };
 
     this.saveConfig = function() {
-      this.chunkType = $(':input[name="' + this.namePrepend + '[type]"]:checked').val();
+      this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
+      this.ChunkType = Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].type;
 
-      $('[name^="' + this.namePrepend + '[configuration][' + this.chunkType + ']"]').each(function(i, element) {
+      $('[name^="' + this.namePrepend + '[configuration][' + this.chunkInstance + ']"]').each(function(i, element) {
         var name = $(element).attr('name');
         var configProp = name.match(/[^\[]*(?=]$)/)[0];
-        Drupal.settings.chunks[field.fieldName].chunks[delta].configuration[thisChunk.chunkType][configProp] = $(element).val();
+        Drupal.settings.chunks[field.fieldName].chunks[delta].configuration[thisChunk.chunkInstance][configProp] = $(element).val();
       });
 
       // Provide a callback with which to perform actions against the saved
@@ -84,12 +87,13 @@
     };
 
     this.restoreConfig = function() {
-      this.chunkType = $(':input[name="' + this.namePrepend + '[type]"]:checked').val();
+      this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
+      this.chunkType = Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].type;
 
       $('[name^="' + this.namePrepend + '[configuration]"]').each(function(i, element) {
         var name = $(element).attr('name');
         var configProp = name.match(/[^\[]*(?=]$)/)[0];
-        $(element).val(Drupal.settings.chunks[field.fieldName].chunks[delta].configuration[thisChunk.chunkType][configProp]);
+        $(element).val(Drupal.settings.chunks[field.fieldName].chunks[delta].configuration[thisChunk.chunkInstance][configProp]);
       });
 
       // Provide a callback with which to perform actions against the
@@ -120,11 +124,11 @@
      * Register some helpers.
      */
 
-    // Navigate types.
-    $(':input[name="' + this.namePrepend + '[type]"]', element).bind('keydown.chunkTypeNavigate', function(e) {
+    // Navigate instance radio buttons.
+    $(':input[name="' + this.namePrepend + '[instance]"]', element).bind('keydown.chunkInstanceNavigate', function(e) {
       if ((e.keyCode === 9 && !e.shiftKey) || e.keyCode === 39 || e.keyCode === 40) {
         // Navigate down.
-        var nextRadio = $(this).parent().next('.form-item').children('.chunk-type-selection');
+        var nextRadio = $(this).parent().next('.form-item').children('.chunk-instance-selection');
         if (nextRadio.length > 0) {
           e.preventDefault();
           nextRadio.focus();
@@ -132,7 +136,7 @@
       }
       else if ((e.keyCode === 9 && e.shiftKey) || e.keyCode === 37 || e.keyCode === 38) {
         // Navigate up.
-        var prevRadio = $(this).parent().prev('.form-item').children('.chunk-type-selection');
+        var prevRadio = $(this).parent().prev('.form-item').children('.chunk-instance-selection');
         if (prevRadio.length > 0) {
           e.preventDefault();
           prevRadio.focus();
@@ -140,8 +144,8 @@
       }
     });
 
-    // Type selection.
-    $(':input[name="' + this.namePrepend + '[type]"]', element).bind('keyup.chunkTypeSelected click.chunkTypeSelected', function(e) {
+    // Instance selection.
+    $(':input[name="' + this.namePrepend + '[instance]"]', element).bind('keyup.chunkInstanceSelected click.chunkInstanceSelected', function(e) {
       if (e.type === 'click' || e.type === 'keyup' && e.keyCode === 13) {
 
         // Make sure the proper radio is checked and the change event has
@@ -149,18 +153,19 @@
         this.checked = true;
         $(this).trigger('change');
 
-        // Update chunkType.
-        thisChunk.chunkType = $(':input[name="' + thisChunk.namePrepend + '[type]"]:checked').val();
+        // Update chunkInstance.
+        thisChunk.chunkInstance = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
+        thisChunk.chunkType = Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].type;
 
-        // Prepare form if the chunk type is to be themed on the client.
-        if (Drupal.settings.chunks[thisChunk.field.fieldName].types[thisChunk.chunkType].instance_type_settings.preview_on_client) {
+        // Prepare form if the chunk instance is to be themed on the client.
+        if (Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].settings.preview_on_client) {
 
           // Prevent default actions on preview button if we are theming on
           // the client.
           $(thisChunk.classPrepend + 'preview-button', element).unbind('click').unbind('keypress').bind('keypress', false);
 
           // Set module value since it may not be set in a form rebuild.
-          $('[name^="' + thisChunk.namePrepend + '[module]"]').val(Drupal.settings.chunks[thisChunk.field.fieldName].types[thisChunk.chunkType].module);
+          $('[name^="' + thisChunk.namePrepend + '[module]"]').val(Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].chunk_type.module);
         }
 
         // Switch to configuration view.
@@ -171,7 +176,7 @@
 
         // Add focus to first configuration item.
         setTimeout(function() {
-          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible').first().focus();
+          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible, [contenteditable]:visible', thisChunk.chunk).first().focus();
         }, 0);
       }
     });
@@ -188,18 +193,19 @@
         // Hide cancel button.
         $(thisChunk.classPrepend + 'cancel-button', element).hide();
 
-        // Update chunkType.
-        thisChunk.chunkType = $(':input[name="' + thisChunk.namePrepend + '[type]"]:checked').val();
+        // Update chunkInstance and chunkType.
+        thisChunk.chunkInstance = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
+        thisChunk.chunkType = Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].type;
 
         // If we should be using a client-side theme implementation,
         // prevent the ajax call and build the preview.
-        if (typeof thisChunk.chunkType !== 'undefined' && Drupal.settings.chunks[thisChunk.field.fieldName].types[thisChunk.chunkType].instance_type_settings.preview_on_client) {
+        if (typeof thisChunk.chunkInstance !== 'undefined' && Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].settings.preview_on_client) {
 
           // Save configuration data.
           thisChunk.saveConfig();
 
           // Build preview.
-          preview = Drupal.theme('chunk__' + thisChunk.chunkType, Drupal.settings.chunks[thisChunk.field.fieldName].chunks[thisChunk.delta].configuration[thisChunk.chunkType], thisChunk.field.fieldName, thisChunk.field.langcode, thisChunk.delta);
+          preview = Drupal.theme('chunk__' + thisChunk.chunkType, Drupal.settings.chunks[thisChunk.field.fieldName].chunks[thisChunk.delta].configuration[thisChunk.chunkInstance], thisChunk.field.fieldName, thisChunk.field.langcode, thisChunk.delta);
           $(thisChunk.classPrepend + 'preview')[0].innerHTML = preview;
 
           // Set focus to add chunk button.
@@ -226,7 +232,8 @@
     // Edit.
     $(this.classPrepend + 'edit-button', element).bind('keyup.chunkEdit mousedown.chunkEdit', function(e) {
       if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
-        thisChunk.chunkType = $(':input[name="' + thisChunk.namePrepend + '[type]"]:checked').val();
+        thisChunk.chunkInstance = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
+        thisChunk.chunkType = Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].type;
 
         // Show cancel button.
         $(thisChunk.classPrepend + 'cancel-button', element).show();
@@ -245,7 +252,7 @@
 
         // Add focus to first configuration item.
         setTimeout(function() {
-          $('[name^="' + thisChunk.namePrepend + '[configuration][' + thisChunk.chunkType + ']"]').first().focus();
+          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible, [contenteditable]:visible', thisChunk.chunk).first().focus();
         }, 0);
       }
     });
@@ -362,8 +369,8 @@
     // If there is already a selected type and that type is configured to
     // be themed on the client, prevent default actions on the preview
     // button.
-    if (typeof chunkType !== 'undefined' &&
-        Drupal.settings.chunks[field.fieldName].types[this.chunkType].instance_type_settings.preview_on_client) {
+    if (typeof chunkInstance !== 'undefined' &&
+        Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].settings.preview_on_client) {
 
       // Prevent default actions on preview button if we are theming on
       // the client.
@@ -374,7 +381,7 @@
     // element.
     if (delta === Drupal.settings.chunks[field.fieldName].newChunkIndex) {
       // Set focus.
-      $(':input[name="' + this.namePrepend + '[type]"]', element).first().focus();
+      $(':input[name="' + this.namePrepend + '[instance]"]', element).first().focus();
       // Reset index until we add another new chunk.
       Drupal.settings.chunks[field.fieldName].newChunkIndex = undefined;
     }
