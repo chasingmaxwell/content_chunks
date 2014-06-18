@@ -14,7 +14,7 @@ function chunks_list_chunk_types() {
       'title' => t('List'),
       'default configuration' => array(
         'style' => 'ul',
-        'list' => array('Enter list items here...'),
+        'list' => array(''),
         'edit_in_place' => 0,
       ),
       'default type settings' => array(
@@ -62,8 +62,11 @@ function chunks_list_list_chunk_type_settings_form($field, $settings) {
     '#type' => 'checkbox',
     '#title' => t('Edit list items in-place'),
     '#default_value' => $settings['edit_in_place'],
-    '#description' => t('This setting requires the libraries module (https://drupal.org/project/libraries) and the pen library (https://github.com/sofish/pen).'),
   );
+
+  $form['edit_in_place']['#description'] = t('This setting requires the libraries module (https://drupal.org/project/libraries) and the pen library (https://github.com/sofish/pen).');
+  $form['edit_in_place']['#description'] .= '<br>';
+  $form['edit_in_place']['#description'] .= t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when rendering an editable chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and thus supplying the data with which to generate the html.');
 
   // Do not allow the edit_in_place setting to be configured if the pen library
   // does not exist.
@@ -149,6 +152,17 @@ function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_s
     if ($library['installed']) {
 
       $configuration['edit_in_place'] = TRUE;
+
+      // If we have no list items, provide a placeholder item so the
+      // contenteditable element is visible.
+      $empty = TRUE;
+      foreach ($configuration['list'] as $list) {
+        if (!empty($list)) {
+          $empty = FALSE;
+          break;
+        }
+      }
+      $configuration['list'] = !$empty ? $configuration['list'] : array('Enter list items here...');
 
       $config_form['inplace_items'] = array(
         '#theme' => 'chunk',

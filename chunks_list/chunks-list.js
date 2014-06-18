@@ -38,14 +38,22 @@
             // Hide regular textarea.
             $(this).prev().hide();
 
-            // Update textarea on keyup and blur.
-            $(this).bind('keyup.chunksListInPlace blur.chunksListInPlace', function(e) {
-              var list_items = [];
-              $(this).find('li').each(function() {
-                list_items.push($(this).html().replace(/\r?\n|\r/g, ''));
-              });
-              list_items = list_items.join("\n");
-              $(this).parent().find('textarea').val(list_items);
+            // Update textarea on keyup, blur, paste, and cut events.
+            $(this).bind('keyup.chunksListInPlace blur.chunksListInPlace paste.chunksListInPlace cut.chunksListInPlace', function(e) {
+              var list_items = [],
+                  editableElement = this;
+
+              // Each time the configuration could have changed, copy the data
+              // back into the form item so it gets saved when the user submits
+              // the form. setTimeout is necessary because some events fire
+              // before the markup has changed.
+              setTimeout(function() {
+                $(editableElement).find('li').each(function() {
+                  list_items.push($(this).html().replace(/\r?\n|\r/g, ''));
+                });
+                list_items = list_items.join("\n");
+                $(editableElement).parent().find('textarea').val(list_items);
+              }, 0);
             });
           });
 
