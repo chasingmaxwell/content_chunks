@@ -9,93 +9,93 @@
  * Implements hook_chunk_types().
  */
 function chunks_entity_reference_chunk_types() {
-    return array(
-        'entity_reference' => array(
-            'title' => t('Entity reference'),
-            'default configuration' => array(
-                'reference' => '',
-            ),
-            'default type settings' => array(
-                'entity type' => '',
-                'bundles' => '',
-            ),
-            'client themeable' => TRUE,
-        ),
-    );
+  return array(
+    'entity_reference' => array(
+      'title' => t('Entity reference'),
+      'default configuration' => array(
+        'reference' => '',
+      ),
+      'default type settings' => array(
+        'entity type' => '',
+        'bundles' => '',
+      ),
+      'client themeable' => TRUE,
+    ),
+  );
 }
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
 function chunks_entity_reference_entity_reference_chunk_type_settings_form($field, $settings) {
-    $form = array();
-    $entities = array();
-    $bundles = array();
-    $view_modes = array();
+  $form = array();
+  $entities = array();
+  $bundles = array();
+  $view_modes = array();
 
-    foreach(entity_get_info() as $key => $entity) {
-        $entities[$key] = $entity['label'];
-        $bundles[$key] = array();
+  foreach(entity_get_info() as $key => $entity) {
+    $entities[$key] = $entity['label'];
+    $bundles[$key] = array();
 
-        foreach($entity['bundles'] as $bkey => $bundle) {
-            $bundles[$key][$bkey] = $bundle['label'];
-        }
-
-        foreach($entity['view modes'] as $vmkey => $vmode) {
-            $view_modes[$key][$vmkey] = $vmode['label'];
-        }
+    foreach($entity['bundles'] as $bkey => $bundle) {
+      $bundles[$key][$bkey] = $bundle['label'];
     }
 
-    $form['entity type'] = array(
-        '#type' => 'select',
-        '#title' => t('Entity Type'),
-        '#options' => $entities,
-        '#default_value' => $settings['entity type'],
+    foreach($entity['view modes'] as $vmkey => $vmode) {
+      $view_modes[$key][$vmkey] = $vmode['label'];
+    }
+  }
+
+  $form['entity type'] = array(
+    '#type' => 'select',
+    '#title' => t('Entity Type'),
+    '#options' => $entities,
+    '#default_value' => $settings['entity type'],
+  );
+
+  foreach($bundles as $type => $type_bundles) {
+    $form['bundles'][$type] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Bundles'),
+      '#options' => $type_bundles,
+      '#default_value' => isset($settings['bundles'][$type]) ? $settings['bundles'][$type] : '',
+      '#states' => array(
+        'visible' => array(
+          'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
+        ),
+      ),
     );
+  }
 
-    foreach($bundles as $type => $type_bundles) {
-        $form['bundles'][$type] = array(
-            '#type' => 'checkboxes',
-            '#title' => t('Bundles'),
-            '#options' => $type_bundles,
-            '#default_value' => isset($settings['bundles'][$type]) ? $settings['bundles'][$type] : '',
-            '#states' => array(
-                'visible' => array(
-                    'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
-                ),
-            ),
-        );
-    }
+  foreach($view_modes as $type=> $type_view_modes) {
+    $form['view mode'][$type] = array(
+      '#type' => 'select',
+      '#title' => t('View Mode'),
+      '#options' => $type_view_modes,
+      '#default_value' => isset($settings['view mode'][$type]) ? $settings['view mode'][$type] : '',
+      '#states' => array(
+        'visible' => array(
+          'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
+        ),
+      ),
+    );
+  }
 
-    foreach($view_modes as $type=> $type_view_modes) {
-        $form['view mode'][$type] = array(
-            '#type' => 'select',
-            '#title' => t('View Mode'),
-            '#options' => $type_view_modes,
-            '#default_value' => isset($settings['view mode'][$type]) ? $settings['view mode'][$type] : '',
-            '#states' => array(
-                'visible' => array(
-                    'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
-                ),
-            ),
-        );
-    }
+  foreach($view_modes as $type=> $type_view_modes) {
+    $form['view mode preview'][$type] = array(
+      '#type' => 'select',
+      '#title' => t('View Mode Preview'),
+      '#options' => $type_view_modes,
+      '#default_value' => isset($settings['view mode preview'][$type]) ? $settings['view mode preview'][$type] : '',
+      '#states' => array(
+        'visible' => array(
+          'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
+        ),
+      ),
+    );
+  }
 
-    foreach($view_modes as $type=> $type_view_modes) {
-        $form['view mode preview'][$type] = array(
-            '#type' => 'select',
-            '#title' => t('View Mode Preview'),
-            '#options' => $type_view_modes,
-            '#default_value' => isset($settings['view mode preview'][$type]) ? $settings['view mode preview'][$type] : '',
-            '#states' => array(
-                'visible' => array(
-                    'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
-                ),
-            ),
-        );
-    }
-
-    return $form;
+  return $form;
 }
 
 /**
@@ -103,64 +103,64 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
  */
 function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $settings, $form, &$form_state) {
 
-    $bundles = array();
+  $bundles = array();
 
-    foreach($settings['bundles'][$settings['entity type']] as $bundle) {
-        if($bundle) {
-            $bundles[] = $bundle;
-        }
+  foreach($settings['bundles'][$settings['entity type']] as $bundle) {
+    if($bundle) {
+      $bundles[] = $bundle;
     }
+  }
 
-    $eid = null;
+  $eid = null;
 
-    if(isset($configuration['reference']['entity_id'])) {
-        $eid = $configuration['reference']['entity_id'];
-    }
+  if(isset($configuration['reference']['entity_id'])) {
+    $eid = $configuration['reference']['entity_id'];
+  }
 
-    $config_form = array();
-    $config_form['reference'] = array(
-        '#type' => 'entityreference',
-        '#title' => t('Entity'),
-        '#default_value' => $eid,
-        '#description' => t('Search for entity.'),
-        '#era_entity_type' => $settings['entity type'],
+  $config_form = array();
+  $config_form['reference'] = array(
+    '#type' => 'entityreference',
+    '#title' => t('Entity'),
+    '#default_value' => $eid,
+    '#description' => t('Search for entity.'),
+    '#era_entity_type' => $settings['entity type'],
+  );
+
+  if(count($bundles > 0)) {
+    $config_form['reference']['#era_bundles'] = $bundles;
+  }
+
+  if ($settings['preview_on_client']) {
+    $config_form['#attached'] = array(
+      'js' => array(
+        drupal_get_path('module', 'chunks_entity_reference') . '/chunks-entity-reference.js',
+      ),
     );
+  }
 
-    if(count($bundles > 0)) {
-        $config_form['reference']['#era_bundles'] = $bundles;
-    }
-
-    if ($settings['preview_on_client']) {
-        $config_form['#attached'] = array(
-            'js' => array(
-                drupal_get_path('module', 'chunks_entity_reference') . '/chunks-entity-reference.js',
-            ),
-        );
-    }
-
-    return $config_form;
+  return $config_form;
 }
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
 function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, &$form_state, $form) {
-    if (empty($configuration['reference']['#value'])) {
-        form_error($configuration['reference'], t('Please select a node.'));
-        return FALSE;
-    }
+  if (empty($configuration['reference']['#value'])) {
+    form_error($configuration['reference'], t('Please select a node.'));
+    return FALSE;
+  }
 
-    return TRUE;
+  return TRUE;
 }
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_is_empty().
  */
 function chunks_entity_reference_entity_reference_chunk_is_empty($configuration, $item, $field) {
-    if (empty($configuration['reference'])) {
-        return TRUE;
-    }
-    return FALSE;
+  if (empty($configuration['reference'])) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -173,24 +173,24 @@ function chunks_entity_reference_entity_reference_chunk_is_empty($configuration,
  */
 function chunks_entity_reference_preprocess_chunk(&$variables, $hook) {
 
-    if ($variables['chunk_type']->name == 'entity_reference') {
+  if ($variables['chunk_type']->name == 'entity_reference') {
 
-        $settings = $variables['type_settings'];
-        $entity_type = $settings['entity type'];
-        $view_mode = $settings['view mode'][$entity_type];
+    $settings = $variables['type_settings'];
+    $entity_type = $settings['entity type'];
+    $view_mode = $settings['view mode'][$entity_type];
 
 
-        $config = $variables['configuration'];
-        $variables['entity'] = array();
+    $config = $variables['configuration'];
+    $variables['entity'] = array();
 
-        // Get the entity id
-        if(isset($config['reference']['entity_id']) && isset($config['reference']['entity_type'])) {
-            $eid = $config['reference']['entity_id'];
-            $entity = entity_load($entity_type, array($eid));
-            $variables['entity'] = entity_view($entity_type, $entity, $view_mode);
+    // Get the entity id
+    if(isset($config['reference']['entity_id']) && isset($config['reference']['entity_type'])) {
+      $eid = $config['reference']['entity_id'];
+      $entity = entity_load($entity_type, array($eid));
+      $variables['entity'] = entity_view($entity_type, $entity, $view_mode);
 
-        } else {
-            $variables['entity'] = $config['reference'];
-        }
+    } else {
+      $variables['entity'] = $config['reference'];
     }
+  }
 }
