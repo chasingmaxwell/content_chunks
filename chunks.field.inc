@@ -145,6 +145,7 @@ function chunks_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
       'label' => array(
         '#type' => 'textfield',
         '#title' => t('Label'),
+        '#size' => 21,
         '#default_value' => isset($instance['label']) ? $instance['label'] : '',
         '#required' => TRUE,
         '#description' => t('The label which will be displayed to the user.'),
@@ -152,6 +153,7 @@ function chunks_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
       'name' => array(
         '#type' => 'machine_name',
         '#title' => 'Machine name',
+        '#size' => 21,
         '#default_value' => isset($instance['name']) ? $instance['name'] : '',
         '#machine_name' => array(
           'exists' => 'chunks_instance_name_exists',
@@ -1351,12 +1353,29 @@ function theme_chunks_instances_form($variables) {
     }
 
     $cells = array(
-      array('class' => array('chunk-instance-drag')),
-      drupal_render($element[$key]['label']) . drupal_render($element[$key]['name']),
-      drupal_render($element[$key]['type_display']),
-      drupal_render($settings),
-      drupal_render($element[$key]['weight']),
-      drupal_render($element[$key]['remove']),
+      array(
+        'class' => array('chunk-instance-drag', 'fixed-small'),
+      ),
+      array(
+        'class' => array('fixed-large'),
+        'data' => drupal_render($element[$key]['label']) . drupal_render($element[$key]['name']),
+      ),
+      array(
+        'class' => array('fixed-medium'),
+        'data' => drupal_render($element[$key]['type_display']),
+      ),
+      array(
+        'class' => array('fluid'),
+        'data' => drupal_render($settings),
+      ),
+      array(
+        'class' => array('fixed-medium'),
+        'data' => drupal_render($element[$key]['weight']),
+      ),
+      array(
+        'class' => array('fixed-medium'),
+        'data' => drupal_render($element[$key]['remove']),
+      ),
     );
 
     $rows[] = array(
@@ -1365,8 +1384,27 @@ function theme_chunks_instances_form($variables) {
     );
   }
 
+  // Add tabledrag functionality.
   drupal_add_tabledrag($table_id, 'order', 'sibling', $order_class);
 
-  return theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => $table_id)));
+  // Add inline styles.
+  $styles = <<<EOT
+.chunk-instances td.fixed-small {
+  width: 60px;
+}
+.chunk-instances td.fixed-medium {
+  width: 110px;
+}
+.chunk-instances td.fixed-large {
+  width: 400px;
+}
+.chunk-instances td .form-item {
+  white-space: normal;
+}
+EOT;
+
+  drupal_add_css($styles, 'inline');
+
+  return theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => $table_id, 'class' => array('chunk-instances'))));
 }
 
