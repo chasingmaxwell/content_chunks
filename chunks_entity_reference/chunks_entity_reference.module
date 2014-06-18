@@ -175,7 +175,7 @@ function chunks_entity_reference_preprocess_chunk(&$variables, $hook) {
 
   if ($variables['chunk_type']->name == 'entity_reference') {
 
-    $settings = $variables['type_settings'];
+    $settings = $variables['instance_settings'];
     $entity_type = $settings['entity type'];
     $view_mode = $settings['view mode'][$entity_type];
 
