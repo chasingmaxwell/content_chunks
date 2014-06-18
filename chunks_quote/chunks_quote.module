@@ -100,7 +100,7 @@ function chunks_quote_quote_chunk_form(&$configuration, $settings, $form, &$form
 
   // This is the location for the cite attribute on the blockquote element.
   $config_form['attribution_location'] = array(
-    '#title' => t('Attribution location'),
+    '#title' => t('Source URL address'),
     '#type' => 'textfield',
     '#default_value' => $configuration['attribution_location'],
   );
@@ -166,7 +166,8 @@ function chunks_quote_quote_chunk_is_empty($configuration, $item, $field) {
  * their validation function.
  */
 function chunks_quote_quote_chunk_form_validate($configuration, &$form_state, $form) {
-  if (link_validate_url(trim($configuration['attribution_location']['#value'])) == FALSE) {
+  if (trim($configuration['attribution_location']['#value']) != '' &&
+    link_validate_url(trim($configuration['attribution_location']['#value'])) == FALSE) {
     form_error($configuration['attribution_location'], t('The URL for your attribution location is not valid.'));
     return FALSE;
   }
