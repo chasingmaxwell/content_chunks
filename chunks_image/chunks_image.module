@@ -253,14 +253,14 @@ function chunks_image_preprocess_chunk(&$variables, $hook) {
   if ($variables['chunk_type']->name == 'image') {
 
     $config = $variables['configuration'];
-    $type_settings = $variables['type_settings'];
+    $instance_settings = $variables['instance_settings'];
 
     // Retrive the file id either from the uploaded image or the default.
     if ($config['image']['fid']) {
       $fid = $config['image']['fid'];
     }
     else {
-      $fid = $type_settings['instance']['default_image'];
+      $fid = $instance_settings['instance']['default_image'];
     }
 
     // If we have either an uploaded image or a default image, theme it.

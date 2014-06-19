@@ -160,6 +160,10 @@ function chunks_theme($existing, $type, $theme, $path) {
       'render element' => 'chunk',
       'template' => 'chunk',
     ),
+    'chunks_instances_form' => array(
+      'render element' => 'element',
+      'file' => 'chunks.field.inc',
+    ),
     'chunks_field_widget_form' => array(
       'render element' => 'element',
       'file' => 'chunks.field.inc',
@@ -194,7 +198,7 @@ function template_preprocess_chunk(&$variables, $hook) {
   // Provide some intuitive top-level variables.
   $variables['chunk_type'] = $variables['chunk']['#chunk_type'];
   $variables['configuration'] = $variables['chunk']['#chunk_configuration'];
-  $variables['type_settings'] = $variables['chunk']['#type_settings'];
+  $variables['instance_settings'] = $variables['chunk']['#instance_settings'];
   $variables['field_name'] = $variables['chunk']['#field_name'];
   $variables['langcode'] = $variables['chunk']['#langcode'];
   $variables['delta'] = $variables['chunk']['#delta'];
