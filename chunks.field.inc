@@ -602,7 +602,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       else {
         $configuration = $chunk_type->default_configuration;
       }
-      $row['configuration'][$name] = $chunk_type->getForm($configuration, $chunk_instance['settings'], $form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
+      $row['configuration'][$name] = $chunk_type->getForm($configuration, $chunk_instance, $form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
       $row['configuration'][$name] += array(
         '#type' => 'container',
         '#attributes' => array(

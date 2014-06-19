@@ -112,9 +112,14 @@ function hook_CHUNK_TYPE_chunk_is_allowed($settings, $field, $instance, $langcod
  * @param $configuration
  *   An associative array representing the current state of the chunk's
  *   configuration.
- * @param $settings
- *   An associative array of settings for the chunk type instance. An empty
- *   array if no settings exist.
+ * @param $chunk_instance
+ *   An associative array representing an instance of a chunk type connected to
+ *   a field instance.
+ *   - label: The human-readable label for the chunk instance.
+ *   - name: The unique machin-readable name for the chunk instance.
+ *   - type: The name of the chunk type associated with the chunk instance.
+ *   - settings: An associative array of settings for the chunk type instance.
+ *     An empty array if no settings exist.
  * @param $form
  *   The edit form for the entity in which the chunks field exists.
  * @param $form_state
@@ -135,8 +140,10 @@ function hook_CHUNK_TYPE_chunk_is_allowed($settings, $field, $instance, $langcod
  *
  * @see chunks_field_widget_form().
  */
-function hook_CHUNK_TYPE_chunk_form(&$configuration, $settings, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+function hook_CHUNK_TYPE_chunk_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $config_form = array();
+
+  $settings = $chunk_instance['settings'];
 
   $config_form['text'] = array(
     '#type' => 'textarea',

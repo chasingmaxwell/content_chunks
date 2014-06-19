@@ -80,7 +80,10 @@ function chunks_p_p_chunk_type_settings_form($field, $settings) {
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_p_p_chunk_form(&$configuration, $settings, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+function chunks_p_p_chunk_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+
+  $settings = $chunk_instance['settings'];
+
   $config_form = array();
 
   // This field holds the data and interacts with Drupal. It will be hidden if

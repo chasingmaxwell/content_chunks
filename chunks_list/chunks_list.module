@@ -114,7 +114,10 @@ function chunks_list_list_chunk_is_allowed($settings, $field, $instance, $langco
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_list_list_chunk_form(&$configuration, $settings, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+function chunks_list_list_chunk_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+
+  $settings = $chunk_instance['settings'];
+
   $config_form = array();
 
   $config_form['style'] = array(

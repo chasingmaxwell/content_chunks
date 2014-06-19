@@ -79,7 +79,10 @@ function chunks_image_image_chunk_type_settings_form($field, $settings) {
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_image_image_chunk_form(&$configuration, $settings, $form, &$form_state) {
+function chunks_image_image_chunk_form(&$configuration, $chunk_instance, $form, &$form_state) {
+
+  $settings = $chunk_instance['settings'];
+
   $config_form = array();
 
   // Create fake field and instance arrays with just enough information to
