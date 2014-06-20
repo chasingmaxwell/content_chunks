@@ -38,7 +38,10 @@ function chunks_image_chunk_types() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
-function chunks_image_image_chunk_type_settings_form($field, $settings) {
+function chunks_image_image_chunk_type_settings_form($field, $chunk_instance, $delta) {
+
+  $settings = $chunk_instance['settings'];
+
   $form = array();
 
   // Get real defaults. We can't do this in chunks_image_chunk_types() because

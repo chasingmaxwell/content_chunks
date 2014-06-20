@@ -59,8 +59,16 @@ function hook_chunk_types() {
  *
  * @param $field
  *   The parent chunk field's structure.
- * @param $settings
- *   The current settings for the chunk type as an associative array.
+ * @param $chunk_instance
+ *   An associative array representing an instance of a chunk type connected to
+ *   a field instance.
+ *   - label: The human-readable label for the chunk instance.
+ *   - name: The unique machin-readable name for the chunk instance.
+ *   - type: The name of the chunk type associated with the chunk instance.
+ *   - settings: An associative array of settings for the chunk type instance.
+ *     An empty array if no settings exist.
+ * @param $delta
+ *   The order of the chunk instance in the array of chunk instances.
  *
  * @return
  *   A renderable array to insert into the parent field's instance settings
@@ -68,7 +76,8 @@ function hook_chunk_types() {
  *
  * @see chunks_field_instance_settings_form().
  */
-function hook_CHUNK_TYPE_chunk_type_settings_form($field, $settings) {
+function hook_CHUNK_TYPE_chunk_type_settings_form($field, $chunk_instance, $delta) {
+  $settings = $chunk_instance['settings'];
   $form = array();
   $form['default_text'] = array(
     '#type' => 'textarea',

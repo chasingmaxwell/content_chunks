@@ -127,7 +127,7 @@ function chunks_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
     $instance['settings'] = isset($instance['settings']) ? $instance['settings'] : array();
     $instance['settings'] += $chunk_type->default_type_settings;
 
-    $instance_form = $chunk_type->getTypeSettingsForm($form['#field'], $instance['settings']);
+    $instance_form = $chunk_type->getTypeSettingsForm($form['#field'], $instance, $delta);
 
     // Provide the preview_on_client setting for any client-themeable chunk
     // type.

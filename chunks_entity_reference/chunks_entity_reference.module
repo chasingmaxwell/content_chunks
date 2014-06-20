@@ -27,21 +27,23 @@ function chunks_entity_reference_chunk_types() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
-function chunks_entity_reference_entity_reference_chunk_type_settings_form($field, $settings) {
+function chunks_entity_reference_entity_reference_chunk_type_settings_form($field, $chunk_instance, $delta) {
   $form = array();
   $entities = array();
   $bundles = array();
   $view_modes = array();
 
-  foreach(entity_get_info() as $key => $entity) {
+  $settings = $chunk_instance['settings'];
+
+  foreach (entity_get_info() as $key => $entity) {
     $entities[$key] = $entity['label'];
     $bundles[$key] = array();
 
-    foreach($entity['bundles'] as $bkey => $bundle) {
+    foreach ($entity['bundles'] as $bkey => $bundle) {
       $bundles[$key][$bkey] = $bundle['label'];
     }
 
-    foreach($entity['view modes'] as $vmkey => $vmode) {
+    foreach ($entity['view modes'] as $vmkey => $vmode) {
       $view_modes[$key][$vmkey] = $vmode['label'];
     }
   }
@@ -53,21 +55,21 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
     '#default_value' => $settings['entity type'],
   );
 
-  foreach($bundles as $type => $type_bundles) {
+  foreach ($bundles as $type => $type_bundles) {
     $form['bundles'][$type] = array(
       '#type' => 'checkboxes',
       '#title' => t('Bundles'),
       '#options' => $type_bundles,
-      '#default_value' => isset($settings['bundles'][$type]) ? $settings['bundles'][$type] : '',
+      '#default_value' => isset($settings['bundles'][$type]) ? $settings['bundles'][$type] : array(),
       '#states' => array(
         'visible' => array(
-          'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
+          ':input[name="instance[settings][chunk_instances][instances][' . $delta . '][settings][entity type]"]' => array('value' => $type),
         ),
       ),
     );
   }
 
-  foreach($view_modes as $type=> $type_view_modes) {
+  foreach ($view_modes as $type => $type_view_modes) {
     $form['view mode'][$type] = array(
       '#type' => 'select',
       '#title' => t('View Mode'),
@@ -75,13 +77,13 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
       '#default_value' => isset($settings['view mode'][$type]) ? $settings['view mode'][$type] : '',
       '#states' => array(
         'visible' => array(
-          'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
+          ':input[name="instance[settings][chunk_instances][instances][' . $delta . '][settings][entity type]"]' => array('value' => $type),
         ),
       ),
     );
   }
 
-  foreach($view_modes as $type=> $type_view_modes) {
+  foreach ($view_modes as $type => $type_view_modes) {
     $form['view mode preview'][$type] = array(
       '#type' => 'select',
       '#title' => t('View Mode Preview'),
@@ -89,13 +91,46 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
       '#default_value' => isset($settings['view mode preview'][$type]) ? $settings['view mode preview'][$type] : '',
       '#states' => array(
         'visible' => array(
-          'select#edit-instance-settings-chunk-type-settings-entity-reference-settings-entity-type' => array('value' => $type),
+          ':input[name="instance[settings][chunk_instances][instances][' . $delta . '][settings][entity type]"]' => array('value' => $type),
         ),
       ),
     );
   }
 
+  $form['#element_validate'] = array('chunks_entity_reference_type_settings_validate');
+
   return $form;
+}
+
+/**
+ * #element_validate handler for the entity reference instance settings form.
+ */
+function chunks_entity_reference_type_settings_validate($element, &$form_state) {
+  $element_state = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
+
+  // Remove all the settings for unselected entities.
+  $bundles = $element_state['bundles'];
+  foreach ($bundles as $type => $type_bundles) {
+    if ($type !== $element_state['entity type']) {
+      unset($element_state['bundles'][$type]);
+    }
+  }
+
+  $view_modes = $element_state['view mode'];
+  foreach ($view_modes as $type => $type_view_modes) {
+    if ($type !== $element_state['entity type']) {
+      unset($element_state['view mode'][$type]);
+    }
+  }
+
+  $view_modes_preview = $element_state['view mode preview'];
+  foreach ($view_modes_preview as $type => $type_view_modes) {
+    if ($type !== $element_state['entity type']) {
+      unset($element_state['view mode preview'][$type]);
+    }
+  }
+
+  drupal_array_set_nested_value($form_state['values'], $element['#array_parents'], $element_state);
 }
 
 /**
@@ -107,7 +142,7 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
 
   $settings = $chunk_instance['settings'];
 
-  foreach($settings['bundles'][$settings['entity type']] as $bundle) {
+  foreach ($settings['bundles'][$settings['entity type']] as $bundle) {
     if($bundle) {
       $bundles[] = $bundle;
     }

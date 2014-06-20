@@ -52,7 +52,10 @@ function chunks_p_libraries_info() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
-function chunks_p_p_chunk_type_settings_form($field, $settings) {
+function chunks_p_p_chunk_type_settings_form($field, $chunk_instance, $delta) {
+
+  $settings = $chunk_instance['settings'];
+
   $form = array();
 
   $form['edit_in_place'] = array(

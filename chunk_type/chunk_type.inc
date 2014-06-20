@@ -173,8 +173,16 @@ class ChunkType {
    *
    * @param $field
    *   The parent chunk field's structure.
-   * @param $settings
-   *   The current settings for the chunk type as an associative array.
+   * @param $chunk_instance
+   *   An associative array representing an instance of a chunk type connected
+   *   to a field instance.
+   *   - label: The human-readable label for the chunk instance.
+   *   - name: The unique machin-readable name for the chunk instance.
+   *   - type: The name of the chunk type associated with the chunk instance.
+   *   - settings: An associative array of settings for the chunk type instance.
+   *     An empty array if no settings exist.
+   * @param $delta
+   *   The order of this chunk instance in the array of chunk instances.
    *
    * @return
    *   If the hook exists, return a rendereable array to insert into the field's
@@ -182,7 +190,7 @@ class ChunkType {
    *
    * @see chunks_field_instance_settings_form().
    */
-  public function getTypeSettingsForm($field, $settings) {
+  public function getTypeSettingsForm($field, $chunk_instance, $delta) {
 
     $form = array();
 
@@ -192,7 +200,7 @@ class ChunkType {
 
     $function = $this->module . '_' . $this->name . '_chunk_type_settings_form';
     if (function_exists($function)) {
-      $form += $function($field, $settings);
+      $form += $function($field, $chunk_instance, $delta);
     }
 
     return !empty($form) ? $form : FALSE;
