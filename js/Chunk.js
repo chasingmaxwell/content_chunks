@@ -12,7 +12,7 @@
    *
    * @prop {HTMLElement} element
    *   The DOM element which this Chunk ought to be tied to.
-   * @prop {ChunkType} field
+   * @prop {ChunksField} field
    *   The parent ChunkField object to which this Chunk belongs.
    * @prop {integer} delta
    *   The position of this chunk in relation to other chunks in this field.
@@ -58,7 +58,7 @@
     this.getConfigState = function() {
       var configuration = {};
       this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
-      this.ChunkType = Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].type;
+      this.chunkType = Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].type;
 
       $('[name^="' + this.namePrepend + '[configuration][' + this.chunkInstance + ']"]').each(function(i, element) {
         var name = $(element).attr('name');
@@ -71,7 +71,7 @@
 
     this.saveConfig = function() {
       this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
-      this.ChunkType = Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].type;
+      this.chunkType = Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].type;
 
       $('[name^="' + this.namePrepend + '[configuration][' + this.chunkInstance + ']"]').each(function(i, element) {
         var name = $(element).attr('name');
