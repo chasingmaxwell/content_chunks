@@ -146,9 +146,9 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, &$form_state, $form) {
-  if (empty($configuration['reference']['#value'])) {
-    form_error($configuration['reference'], t('Please select a node.'));
+function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, $chunk_instance, &$form_state, $form) {
+  if (empty($configuration['reference']['#value']['labels'])) {
+    form_error($configuration['reference'], t('Please select a %instance_name.', array('%instance_name' => $chunk_instance['name'])));
     return FALSE;
   }
 
@@ -159,7 +159,7 @@ function chunks_entity_reference_entity_reference_chunk_form_validate($configura
  * Implements hook_CHUNK_TYPE_chunk_is_empty().
  */
 function chunks_entity_reference_entity_reference_chunk_is_empty($configuration, $item, $field) {
-  if (empty($configuration['reference'])) {
+  if (!$configuration['reference']) {
     return TRUE;
   }
   return FALSE;

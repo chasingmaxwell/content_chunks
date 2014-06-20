@@ -36,7 +36,7 @@ function chunks_text_chunk_form(&$configuration, $chunk_instance, $form, &$form_
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_text_chunk_form_validate($configuration, &$form_state, $form) {
+function chunks_text_chunk_form_validate($configuration, $chunk_instance, &$form_state, $form) {
   if ($configuration['text']['#value'] == 'chunks') {
     form_error($configuration['text'], t('Enough chunks!'));
     return FALSE;

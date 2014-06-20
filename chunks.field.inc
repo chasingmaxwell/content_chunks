@@ -1038,9 +1038,11 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
   if (!empty($item['instance']) && $item['view'] != 'removed') {
 
+    $chunk_instance = $element['#chunk_instances'][$item['instance']];
+
     // Make sure type exists.
     if (empty($item['type'])) {
-      $item['type'] = $element['#chunk_instances'][$item['instance']]['type'];
+      $item['type'] = $chunk_instance['type'];
     }
 
     $chunk_type = $form['#chunk_types'][$item['type']];
@@ -1073,7 +1075,7 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     // Validation for chunk type's configuration values.
     if ($validate_configuration) {
-      $chunk_type->validateConfiguration($element['configuration'][$item['instance']], $form_state, $form);
+      $chunk_type->validateConfiguration($element['configuration'][$item['instance']], $chunk_instance, $form_state, $form);
     }
 
     // Save changes to the form state.
