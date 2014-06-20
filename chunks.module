@@ -3,6 +3,21 @@
 /**
  * @file
  * Allow content to be edited in structured and reusable chunks.
+ *
+ * @TODO:
+ *   - When you interact with the image widget it doesn't set the current chunk
+ *     to active.
+ *   - Make sure we don't get trouble when changing instance settings for the
+ *     entity_reference chunk when we already have entity_reference chunks out
+ *     in the wild.
+ *   - Make edit_in_place false by default everywhere.
+ *   - Prevent the adding of the current entity.
+ *   - What if an instance is removed with data?
+ *   - Make chunks work with only 1 value (even though that's weird).
+ *   - If a chunks module is disabled when there are no chunks of that type but
+ *     there are chunk instances of that type, pretend that chunk instance does
+ *     not exist when it is loaded in the field instance settings form or when
+ *     the field is edited.
  */
 
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
@@ -146,6 +161,83 @@ function chunks_chunk_types() {
       'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/text',
     ),
   );
+}
+
+/**
+ * Retrieve all entities containing a chunk of a given type.
+ *
+ * @param $type
+ *   The chunk type's machine name string.
+ *
+ * @return
+ *   An array of entity id's keyed by id or FALSE if none were found.
+ */
+function chunks_entities_containing_chunks_of_type($type) {
+
+  // Don't do anything if we received improper input.
+  if (!is_string($type)) {
+    return FALSE;
+  }
+
+  $entities = array();
+
+  $chunk_types = chunk_types_load();
+
+  // Ensure that the type exists.
+  if (!isset($chunk_types[$type])) {
+    return FALSE;
+  }
+
+  // Retrieve all chunks field instances.
+  $fields = field_read_fields(array('type' => 'chunks'));
+
+  // For each field, query the field_data_FIELD_NAME table for entities
+  // containing a chunk of the given type.
+  foreach ($fields as $name => $field) {
+    $result = db_select('field_data_' . $name, 'd')
+      ->fields('d', array('entity_id'))
+      ->condition($name . '_type', $type)
+      ->distinct()
+      ->execute();
+    while ($record = $result->fetchField()) {
+      $entities[$record] = $record;
+    }
+  }
+
+  // Return array of entity id's or FALSE if none were found.
+  return !empty($entities) ? $entities : FALSE;
+}
+
+/**
+ * Implements hook_system_info_alter().
+ *
+ * Prevent modules from being disabled when they provide chunk types currently
+ * in use.
+ */
+function chunks_system_info_alter(&$info, $file, $type) {
+  if ($type == 'module' && module_hook($file->name, 'chunk_types')) {
+    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunk_type/chunk_type.inc';
+
+    $function = $file->name . '_chunk_types';
+    $chunk_types_info = $function();
+    foreach (array_keys($chunk_types_info) as $type) {
+      $entities = chunks_entities_containing_chunks_of_type($type);
+      if ($entities) {
+        $info['required'] = TRUE;
+        $types_in_use[$type] = $type;
+      }
+    }
+    if (!empty($info['required'])) {
+      if (count($types_in_use) > 1) {
+        $last_type = array_pop($types_in_use);
+        $types_in_use = implode(', ', $types_in_use) . ' and ' . $last_type;
+        $info['explanation'] = t('The %types chunk types are still in use.', array('%types' => $types_in_use));
+      }
+      else {
+        $info['explanation'] = t('The %type chunk type is still in use.', array('%type' => current($types_in_use)));
+      }
+    }
+  }
 }
 
 /**
