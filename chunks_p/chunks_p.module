@@ -16,7 +16,7 @@ function chunks_p_chunk_types() {
         'p' => '',
       ),
       'default type settings' => array(
-        'edit_in_place' => 1,
+        'edit_in_place' => 0,
       ),
       'client themeable' => TRUE,
     ),

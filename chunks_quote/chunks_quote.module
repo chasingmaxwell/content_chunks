@@ -18,7 +18,7 @@ function chunks_quote_chunk_types() {
         'attribution_location' => '',
       ),
       'default type settings' => array(
-        'edit_in_place' => 1,
+        'edit_in_place' => 0,
       ),
       'client themeable' => TRUE,
     ),
