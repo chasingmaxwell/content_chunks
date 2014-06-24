@@ -190,13 +190,22 @@ function chunks_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
           'wrapper' => $instances_wrapper,
         ),
       ),
+      '#in_use' => isset($instance['name']) && chunks_instance_in_use($instance['name'], $form['#field']),
     );
+
+    // Make the chunk instance form easier to reference.
+    $chunk_instance_form = &$form['instance']['settings']['chunk_instances']['instances'][$delta];
+
+    if ($chunk_instance_form['#in_use']) {
+      $chunk_instance_form['name']['#value'] = $instance['name'];
+      $chunk_instance_form['name']['#disabled'] = TRUE;
+    }
 
     // Add #limit_validation_errors entries for each instance except for the
     // current one.
     for ($i = 0; $i < $instance_num; $i++) {
       if ($i !== $delta) {
-        $form['instance']['settings']['chunk_instances']['instances'][$delta]['remove']['#limit_validation_errors'][] = array('instance', 'settings', 'chunk_instances', 'instances', $i);
+        $chunk_instance_form['remove']['#limit_validation_errors'][] = array('instance', 'settings', 'chunk_instances', 'instances', $i);
       }
     }
   }
@@ -1349,6 +1358,9 @@ function theme_chunks_instances_form($variables) {
         ),
         'settings' => $element[$key]['settings'],
       );
+      if ($element[$key]['#in_use']) {
+        $settings['#suffix'] = '<div class="description">' . t('This chunk instances is being used by chunks on this field. Some settings may be unavailable.') . "</div>\n";
+      }
     }
     else {
       $settings = $element[$key]['settings'];

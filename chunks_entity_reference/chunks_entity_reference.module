@@ -35,6 +35,8 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
 
   $settings = $chunk_instance['settings'];
 
+  $in_use = chunks_instance_in_use($chunk_instance['name'], $field);
+
   foreach (entity_get_info() as $key => $entity) {
     $entities[$key] = $entity['label'];
     $bundles[$key] = array();
@@ -55,6 +57,12 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
     '#default_value' => $settings['entity type'],
   );
 
+  // Do not allow configuration if data exists.
+  if ($in_use) {
+    $form['entity type']['#value'] = $settings['entity type'];
+    $form['entity type']['#disabled'] = TRUE;
+  }
+
   foreach ($bundles as $type => $type_bundles) {
     $form['bundles'][$type] = array(
       '#type' => 'checkboxes',
@@ -67,6 +75,11 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
         ),
       ),
     );
+
+    // Do not allow configuration if data exists.
+    if ($in_use) {
+      $form['bundles'][$type]['#disabled'] = TRUE;
+    }
   }
 
   foreach ($view_modes as $type => $type_view_modes) {

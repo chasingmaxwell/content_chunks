@@ -7,10 +7,6 @@
  * @TODO:
  *   - When you interact with the image widget it doesn't set the current chunk
  *     to active.
- *   - Make sure we don't get trouble when changing instance settings for the
- *     entity_reference chunk when we already have entity_reference chunks out
- *     in the wild.
- *   - Make edit_in_place false by default everywhere.
  *   - Prevent the adding of the current entity.
  *   - What if an instance is removed with data?
  *   - Make chunks work with only 1 value (even though that's weird).
@@ -18,6 +14,7 @@
  *     there are chunk instances of that type, pretend that chunk instance does
  *     not exist when it is loaded in the field instance settings form or when
  *     the field is edited.
+ *   - Handle cache expiration.
  */
 
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
@@ -168,14 +165,17 @@ function chunks_chunk_types() {
  *
  * @param $type
  *   The chunk type's machine name string.
+ * @param $fields
+ *   An optional array of fields in which to search, keyed by field_name. Should
+ *   match the output of field_read_fields().
  *
  * @return
  *   An array of entity id's keyed by id or FALSE if none were found.
  */
-function chunks_entities_containing_chunks_of_type($type) {
+function chunks_entities_containing_chunks_of_type($type, $fields = array()) {
 
   // Don't do anything if we received improper input.
-  if (!is_string($type)) {
+  if (!is_string($type) || !is_array($fields)) {
     return FALSE;
   }
 
@@ -188,12 +188,24 @@ function chunks_entities_containing_chunks_of_type($type) {
     return FALSE;
   }
 
-  // Retrieve all chunks field instances.
-  $fields = field_read_fields(array('type' => 'chunks'));
+  if (empty($fields)) {
+    // Retrieve all chunks fields.
+    $fields = field_read_fields(array('type' => 'chunks'));
+  }
 
   // For each field, query the field_data_FIELD_NAME table for entities
   // containing a chunk of the given type.
   foreach ($fields as $name => $field) {
+
+    // Make sure we don't query non-chunks fields.
+    if (!isset($field['type']) || $field['type'] !== 'chunks') {
+      $message = 'The %name field is being queried for entities containing chunks of a given type, but is not a chunks field.';
+      $variables = array('%name' => $name);
+      watchdog('chunks', $message, $variables, WATCHDOG_WARNING);
+      continue;
+    }
+
+    // Retrieve the entity id's.
     $result = db_select('field_data_' . $name, 'd')
       ->fields('d', array('entity_id'))
       ->condition($name . '_type', $type)
@@ -209,6 +221,108 @@ function chunks_entities_containing_chunks_of_type($type) {
 }
 
 /**
+ * Check whether there is field data for a given chunk type.
+ *
+ * @param $type
+ *   The chunk type's machine name string.
+ * @param $fields
+ *   An optional array of fields in which to search, keyed by field_name. Should
+ *   match the output of field_read_fields().
+ *
+ * @return
+ *   TRUE if data was found and FALSE otherwise.
+ */
+function chunks_type_in_use($type, $fields = array()) {
+
+  // Don't do anything if we received improper input.
+  if (!is_string($type) || !is_array($fields)) {
+    return FALSE;
+  }
+
+  $chunk_types = chunk_types_load();
+
+  // Ensure that the type exists.
+  if (!isset($chunk_types[$type])) {
+    return FALSE;
+  }
+
+  if (empty($fields)) {
+    // Retrieve all chunks fields.
+    $fields = field_read_fields(array('type' => 'chunks'));
+  }
+
+  // For each field, query the field_data_FIELD_NAME table for at least one
+  // entity containing a chunk of the given type.
+  foreach ($fields as $name => $field) {
+
+    // Make sure we don't query non-chunks fields.
+    if (!isset($field['type']) || $field['type'] !== 'chunks') {
+      $message = 'The %name field is being queried for entities containing chunks of a given type, but is not a chunks field.';
+      $variables = array('%name' => $name);
+      watchdog('chunks', $message, $variables, WATCHDOG_WARNING);
+      continue;
+    }
+
+    // Check for field data.
+    $result = db_select('field_data_' . $name, 'd')
+      ->fields('d', array('entity_id'))
+      ->condition($name . '_type', $type)
+      ->range(0,1)
+      ->execute();
+    while ($record = $result->fetchField()) {
+      // We have data!
+      return TRUE;
+    }
+  }
+
+  // No field data was found for this chunk type.
+  return FALSE;
+}
+
+/**
+ * Check whether there is field data for a given chunk instance.
+ *
+ * @param $instance
+ *   The chunk instance's machine name string.
+ * @param $field
+ *   The field in which to search. Should match the output of
+ *   field_info_field().
+ *
+ * @return
+ *   TRUE if data was found and FALSE otherwise.
+ */
+function chunks_instance_in_use($instance, $field) {
+
+  // Don't do anything if we received improper input.
+  if (!is_string($instance) || !is_array($field)) {
+    return FALSE;
+  }
+
+  // Make sure we don't query non-chunks fields.
+  if (!isset($field['type']) || $field['type'] !== 'chunks') {
+    $message = 'The %name field is being queried for entities containing chunks of a given instance, but is not a chunks field.';
+    $variables = array('%name' => $field['name']);
+    watchdog('chunks', $message, $variables, WATCHDOG_WARNING);
+    continue;
+  }
+
+  // Query the field_data_FIELD_NAME table for at least one
+  // entity containing a chunk of the given instance.
+  $result = db_select('field_data_' . $field['field_name'], 'd')
+    ->fields('d', array('entity_id'))
+    ->condition($field['field_name'] . '_instance', $instance)
+    ->range(0,1)
+    ->execute();
+  while ($record = $result->fetchField()) {
+    // We have data!
+    return TRUE;
+  }
+
+  // No field data was found for this chunk instance.
+  return FALSE;
+}
+
+/**
  * Implements hook_system_info_alter().
  *
  * Prevent modules from being disabled when they provide chunk types currently
@@ -221,8 +335,7 @@ function chunks_system_info_alter(&$info, $file, $type) {
     $function = $file->name . '_chunk_types';
     $chunk_types_info = $function();
     foreach (array_keys($chunk_types_info) as $type) {
-      $entities = chunks_entities_containing_chunks_of_type($type);
-      if ($entities) {
+      if (chunks_type_in_use($type)) {
         $info['required'] = TRUE;
         $types_in_use[$type] = $type;
       }
