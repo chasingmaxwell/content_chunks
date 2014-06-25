@@ -27,15 +27,15 @@ function chunks_entity_reference_chunk_types() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
-function chunks_entity_reference_entity_reference_chunk_type_settings_form($field, $chunk_instance, $delta) {
-  $form = array();
+function chunks_entity_reference_entity_reference_chunk_type_settings_form($chunk_instance, $delta, $form, &$form_state) {
+  $instance_settings_form = array();
   $entities = array();
   $bundles = array();
   $view_modes = array();
 
   $settings = $chunk_instance['settings'];
 
-  $in_use = chunks_instance_in_use($chunk_instance['name'], $field);
+  $in_use = chunks_instance_in_use($chunk_instance['name'], $form['#instance']);
 
   foreach (entity_get_info() as $key => $entity) {
     $entities[$key] = $entity['label'];
@@ -50,7 +50,7 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
     }
   }
 
-  $form['entity type'] = array(
+  $instance_settings_form['entity type'] = array(
     '#type' => 'select',
     '#title' => t('Entity Type'),
     '#options' => $entities,
@@ -59,12 +59,12 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
 
   // Do not allow configuration if data exists.
   if ($in_use) {
-    $form['entity type']['#value'] = $settings['entity type'];
-    $form['entity type']['#disabled'] = TRUE;
+    $instance_settings_form['entity type']['#value'] = $settings['entity type'];
+    $instance_settings_form['entity type']['#disabled'] = TRUE;
   }
 
   foreach ($bundles as $type => $type_bundles) {
-    $form['bundles'][$type] = array(
+    $instance_settings_form['bundles'][$type] = array(
       '#type' => 'checkboxes',
       '#title' => t('Bundles'),
       '#options' => $type_bundles,
@@ -78,12 +78,12 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
 
     // Do not allow configuration if data exists.
     if ($in_use) {
-      $form['bundles'][$type]['#disabled'] = TRUE;
+      $instance_settings_form['bundles'][$type]['#disabled'] = TRUE;
     }
   }
 
   foreach ($view_modes as $type => $type_view_modes) {
-    $form['view mode'][$type] = array(
+    $instance_settings_form['view mode'][$type] = array(
       '#type' => 'select',
       '#title' => t('View Mode'),
       '#options' => $type_view_modes,
@@ -97,7 +97,7 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
   }
 
   foreach ($view_modes as $type => $type_view_modes) {
-    $form['view mode preview'][$type] = array(
+    $instance_settings_form['view mode preview'][$type] = array(
       '#type' => 'select',
       '#title' => t('View Mode Preview'),
       '#options' => $type_view_modes,
@@ -110,9 +110,9 @@ function chunks_entity_reference_entity_reference_chunk_type_settings_form($fiel
     );
   }
 
-  $form['#element_validate'] = array('chunks_entity_reference_type_settings_validate');
+  $instance_settings_form['#element_validate'] = array('chunks_entity_reference_type_settings_validate');
 
-  return $form;
+  return $instance_settings_form;
 }
 
 /**

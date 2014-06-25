@@ -20,6 +20,65 @@
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
 
 /**
+ * Implements hook_menu().
+ */
+function chunks_menu() {
+  $items = array();
+
+  // Create menu items for all possible bundles.
+  foreach (entity_get_info() as $entity_type => $entity_info) {
+    if ($entity_info['fieldable']) {
+      foreach($entity_info['bundles'] as $bundle_name => $bundle_info) {
+        if (isset($bundle_info['admin'])) {
+          // Extract path information from the bundle.
+          $path = $bundle_info['admin']['path'];
+          // Different bundles can appear on the same path (e.g. %node_type and
+          // %comment_node_type). To allow field_ui_menu_load() to extract the
+          // actual bundle object from the translated menu router path
+          // arguments, we need to identify the argument position of the bundle
+          // name string ('bundle argument') and pass that position to the menu
+          // loader. The position needs to be casted into a string; otherwise it
+          // would be replaced with the bundle name string.
+          if (isset($bundle_info['admin']['bundle argument'])) {
+            $bundle_arg = $bundle_info['admin']['bundle argument'];
+            $bundle_pos = (string) $bundle_arg;
+          }
+          else {
+            $bundle_arg = $bundle_name;
+            $bundle_pos = '0';
+          }
+          // This is the position of the %field_ui_menu placeholder in the
+          // items below.
+          $previous = count(explode('/', $path));
+          $field_position = $previous + 1;
+          $instance_position = $previous + 3;
+
+          // Extract access information, providing defaults.
+          $access = array_intersect_key($bundle_info['admin'], drupal_map_assoc(array('access callback', 'access arguments')));
+          $access += array(
+            'access callback' => 'user_access',
+            'access arguments' => array('administer site configuration'),
+          );
+
+          // @TODO: This path is pretty long which can cause trouble if it
+          // exceeds MENU_MAX_PARTS. Consider another path that isn't appended
+          // onto the field instance edit path.
+          $items["$path/fields/%field_ui_menu/chunk_instance_remove/%"] = array(
+            'load arguments' => array($entity_type, $bundle_arg, $bundle_pos, '%map'),
+            'title' => 'Remove chunk instance',
+            'page callback' => 'drupal_get_form',
+            'page arguments' => array('chunks_chunk_instance_remove_form', $field_position, $instance_position),
+            'file' => 'chunks.field.inc',
+          ) + $access;
+        }
+      }
+    }
+  }
+
+  return $items;
+}
+
+/**
  * Validate and load all chunk types defined by hook_chunk_types().
  *
  * @return
@@ -221,6 +280,52 @@ function chunks_entities_containing_chunks_of_type($type, $fields = array()) {
 }
 
 /**
+ * Retrieve all entities and field item deltas corresponding to chunks of a
+ * given instance.
+ *
+ * @param $chunk_instance
+ *   The chunk instance's machine name string.
+ * @param $field_instance
+ *   The field instance in which to search. Should match the output of
+ *   field_read_instance().
+ *
+ * @return
+ *   An array of deltas keyed by entity id or FALSE if none were found.
+ */
+function chunks_entities_containing_chunks_of_instance($chunk_instance, $field_instance) {
+
+  // Don't do anything if we received improper input.
+  if (!is_string($chunk_instance) || !is_array($field_instance)) {
+    return FALSE;
+  }
+
+  $field = field_info_field($field_instance['field_name']);
+
+  $entities = array();
+
+  // Make sure we don't query non-chunks fields.
+  if (!isset($field['type']) || $field['type'] !== 'chunks') {
+    $message = 'The %name field is being queried for entities containing chunks of a given type, but is not a chunks field.';
+    $variables = array('%name' => $field['field_name']);
+    watchdog('chunks', $message, $variables, WATCHDOG_WARNING);
+    return FALSE;
+  }
+
+  // Retrieve the entity id's and deltas.
+  $result = db_select('field_data_' . $field['field_name'], 'd')
+    ->fields('d', array('entity_id', 'delta'))
+    ->condition($field['field_name'] . '_instance', $chunk_instance)
+    ->condition('bundle', $field_instance['bundle'])
+    ->execute();
+  while ($record = $result->fetchAssoc()) {
+    $entities[$record['entity_id']][] = $record['delta'];
+  }
+
+  // Return array of entity id's or FALSE if none were found.
+  return !empty($entities) ? $entities : FALSE;
+}
+
+/**
  * Check whether there is field data for a given chunk type.
  *
  * @param $type
@@ -282,35 +387,38 @@ function chunks_type_in_use($type, $fields = array()) {
 /**
  * Check whether there is field data for a given chunk instance.
  *
- * @param $instance
+ * @param $chunk_instance
  *   The chunk instance's machine name string.
- * @param $field
- *   The field in which to search. Should match the output of
- *   field_info_field().
+ * @param $field_instance
+ *   The field instance in which to search. Should match the output of
+ *   field_read_instance().
  *
  * @return
  *   TRUE if data was found and FALSE otherwise.
  */
-function chunks_instance_in_use($instance, $field) {
+function chunks_instance_in_use($chunk_instance, $field_instance) {
 
   // Don't do anything if we received improper input.
-  if (!is_string($instance) || !is_array($field)) {
+  if (!is_string($chunk_instance) || !is_array($field_instance)) {
     return FALSE;
   }
+
+  $field = field_info_field($field_instance['field_name']);
 
   // Make sure we don't query non-chunks fields.
   if (!isset($field['type']) || $field['type'] !== 'chunks') {
     $message = 'The %name field is being queried for entities containing chunks of a given instance, but is not a chunks field.';
     $variables = array('%name' => $field['name']);
     watchdog('chunks', $message, $variables, WATCHDOG_WARNING);
-    continue;
+    return FALSE;
   }
 
   // Query the field_data_FIELD_NAME table for at least one
   // entity containing a chunk of the given instance.
   $result = db_select('field_data_' . $field['field_name'], 'd')
     ->fields('d', array('entity_id'))
-    ->condition($field['field_name'] . '_instance', $instance)
+    ->condition($field['field_name'] . '_instance', $chunk_instance)
+    ->condition('bundle', $field_instance['bundle'])
     ->range(0,1)
     ->execute();
   while ($record = $result->fetchField()) {

@@ -54,32 +54,32 @@ function chunks_quote_libraries_info() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
-function chunks_quote_quote_chunk_type_settings_form($field, $chunk_instance, $delta) {
+function chunks_quote_quote_chunk_type_settings_form($chunk_instance, $delta, $form, &$form_state) {
 
   $settings = $chunk_instance['settings'];
 
-  $form = array();
+  $instance_settings_form = array();
 
-  $form['edit_in_place'] = array(
+  $instance_settings_form['edit_in_place'] = array(
     '#type' => 'checkbox',
     '#title' => t('Edit paragraphs in-place'),
     '#default_value' => $settings['edit_in_place'],
   );
 
-  $form['edit_in_place']['#description'] = t('This setting requires the libraries module (https://drupal.org/project/libraries) and the pen library (https://github.com/sofish/pen).');
-  $form['edit_in_place']['#description'] .= '<br>';
-  $form['edit_in_place']['#description'] .= t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when rendering an editable chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and thus supplying the data with which to generate the html.');
+  $instance_settings_form['edit_in_place']['#description'] = t('This setting requires the libraries module (https://drupal.org/project/libraries) and the pen library (https://github.com/sofish/pen).');
+  $instance_settings_form['edit_in_place']['#description'] .= '<br>';
+  $instance_settings_form['edit_in_place']['#description'] .= t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when rendering an editable chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and thus supplying the data with which to generate the html.');
 
   // Do not allow the edit_in_place setting to be configured if the pen library
   // does not exist.
   $library = module_exists('libraries') ? libraries_detect('pen') : array('installed' => FALSE);
   if (!$library['installed']) {
-    $form['edit_in_place']['#default_value'] = 0;
-    $form['edit_in_place']['#value'] = 0;
-    $form['edit_in_place']['#disabled'] = TRUE;
+    $instance_settings_form['edit_in_place']['#default_value'] = 0;
+    $instance_settings_form['edit_in_place']['#value'] = 0;
+    $instance_settings_form['edit_in_place']['#disabled'] = TRUE;
   }
 
-  return $form;
+  return $instance_settings_form;
 }
 
 /**

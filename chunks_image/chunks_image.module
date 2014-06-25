@@ -38,11 +38,11 @@ function chunks_image_chunk_types() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
-function chunks_image_image_chunk_type_settings_form($field, $chunk_instance, $delta) {
+function chunks_image_image_chunk_type_settings_form($chunk_instance, $delta, $form, &$form_state) {
 
   $settings = $chunk_instance['settings'];
 
-  $form = array();
+  $instance_settings_form = array();
 
   // Get real defaults. We can't do this in chunks_image_chunk_types() because
   // the image field info settings aren't ready yet at that point.
@@ -64,19 +64,19 @@ function chunks_image_image_chunk_type_settings_form($field, $chunk_instance, $d
   );
 
   // Embed settings forms for the image field.
-  $form['field'] = image_field_settings_form($image_field, $image_instance);
-  $form['instance'] = image_field_instance_settings_form($image_field, $image_instance);
-  $form['widget'] = image_field_widget_settings_form($image_field, $image_instance);
+  $instance_settings_form['field'] = image_field_settings_form($image_field, $image_instance);
+  $instance_settings_form['instance'] = image_field_instance_settings_form($image_field, $image_instance);
+  $instance_settings_form['widget'] = image_field_widget_settings_form($image_field, $image_instance);
 
   // Hide default_image from field settings since we get a duplicate in
   // instance settings.
-  $form['field']['default_image']['#access'] = FALSE;
+  $instance_settings_form['field']['default_image']['#access'] = FALSE;
 
   // Hide preview_image_style from widget settings since we have our own
   // chunky preview functionality.
-  $form['widget']['preview_image_style']['#access'] = FALSE;
+  $instance_settings_form['widget']['preview_image_style']['#access'] = FALSE;
 
-  return $form;
+  return $instance_settings_form;
 }
 
 /**
