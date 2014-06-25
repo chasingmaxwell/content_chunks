@@ -8,13 +8,15 @@
  *   - When you interact with the image widget it doesn't set the current chunk
  *     to active.
  *   - Prevent the adding of the current entity.
- *   - What if an instance is removed with data?
+ *   - Distinguish between view and preview when theming a chunk (use for view
+ *     modes in entity_reference chunk type).
  *   - Make chunks work with only 1 value (even though that's weird).
  *   - If a chunks module is disabled when there are no chunks of that type but
  *     there are chunk instances of that type, pretend that chunk instance does
  *     not exist when it is loaded in the field instance settings form or when
  *     the field is edited.
- *   - Handle cache expiration.
+ *   - Handle cache invalidation.
+ *   - Make sure CTA chunk is up-to-date with API changes.
  */
 
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
