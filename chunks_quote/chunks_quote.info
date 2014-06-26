@@ -1,6 +1,0 @@
-name = Chunks quote
-description = Supplies the Blockquote chunk type.
-core = 7.x
-dependencies[] = chunks
-dependencies[] = field
-dependencies[] = link
