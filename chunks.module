@@ -194,26 +194,6 @@ function chunks_permission() {
 }
 
 /**
- * Implements hook_chunk_types() to provide a simple text chunk.
- *
- * @TODO: The text chunk type is only provided for demonstration and testing
- * during development. Delete it once it is no longer necessary.
- */
-function chunks_chunk_types() {
-  return array(
-    'text' => array(
-      'title' => t('Text'),
-      'default configuration' => array(
-        'text' => '',
-      ),
-      'client themeable' => TRUE,
-      'file' => 'chunk_types/text/chunks.chunk_types.text.inc',
-      'template path' => drupal_get_path('module', 'chunks') . '/chunk_types/text',
-    ),
-  );
-}
-
-/**
  * Retrieve all entities containing a chunk of a given type.
  *
  * @param $type
