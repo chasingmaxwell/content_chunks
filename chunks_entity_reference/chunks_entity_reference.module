@@ -191,9 +191,23 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
 function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, $chunk_instance, &$form_state, $form) {
+
+  // Do not allow the reference field to be empty.
   if (empty($configuration['reference']['#value']['labels'])) {
     form_error($configuration['reference'], t('Please select a %instance_name.', array('%instance_name' => $chunk_instance['name'])));
     return FALSE;
+  }
+
+  // Do not allow the current entity to be referenced.
+  if ($form['#entity'] && $form['#entity_type']) {
+    $current_id = array_shift(entity_extract_ids($form['#entity_type'], $form['#entity']));
+    if (preg_match("/.+\((\d+)\)/", $configuration['reference']['#value']['labels'], $matches)) {
+      $reference_id = $matches[1];
+      if ($reference_id === $current_id) {
+        form_error($configuration['reference'], t('You can not reference the current entity.'));
+        return FALSE;
+      }
+    }
   }
 
   return TRUE;

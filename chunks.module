@@ -7,9 +7,6 @@
  * @TODO:
  *   - When you interact with the image widget it doesn't set the current chunk
  *     to active.
- *   - Prevent the adding of the current entity.
- *   - Distinguish between view and preview when theming a chunk (use for view
- *     modes in entity_reference chunk type).
  *   - Make chunks work with only 1 value (even though that's weird).
  *   - If a chunks module is disabled when there are no chunks of that type but
  *     there are chunk instances of that type, pretend that chunk instance does
