@@ -390,6 +390,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     $chunk_instance['chunk_type'] = $chunk_type;
     $chunk_instances[$name]['chunk_type'] = $chunk_type;
 
+    // Add default settings.
+    $chunk_instance['settings'] = isset($chunk_instance['settings']) ? $chunk_instance['settings'] : array();
+    if (isset($chunk_type->default_type_settings)) {
+      $chunk_instance['settings'] += $chunk_type->default_type_settings;
+    }
+
     // Store each chunk instance in JavaScript settings.
     $js_settings['chunks'][$field_name]['instances'][$name] = $chunk_instance;
 
