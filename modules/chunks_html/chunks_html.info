@@ -1,0 +1,6 @@
+name = Chunks HTML
+description = Provides a full HTML chunk type.
+core = 7.x
+dependencies[] = chunks
+dependencies[] = field
+

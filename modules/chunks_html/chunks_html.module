@@ -1,0 +1,82 @@
+<?php
+
+/**
+ * @file
+ * Provide a full HTML chunk type.
+ */
+
+/**
+ * Implements hook_chunk_types().
+ */
+function chunks_html_chunk_types() {
+  return array(
+    'html' => array(
+      'title' => t('Full HTML'),
+      'default configuration' => array(
+        'html' => '',
+      ),
+      'client themeable' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_allowed().
+ */
+function chunks_html_html_chunk_is_allowed($settings, $field, $instance, $langcode) {
+  $format = filter_format_load('full_html');
+  if (!filter_access($format)) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form().
+ */
+function chunks_html_html_chunk_form(&$configuration, $chunk_instance, $form, &$form_state) {
+
+  $settings = $chunk_instance['settings'];
+
+  $config_form = array();
+
+  $format = filter_format_load('full_html');
+
+  $config_form['html'] = array(
+    '#type' => 'textarea',
+    '#title' => t('HTML'),
+    '#default_value' => $configuration['html'],
+    '#description' => theme('filter_guidelines', array('format' => $format)),
+  );
+
+  if ($settings['preview_on_client']) {
+    $config_form['#attached'] = array(
+      'js' => array(
+        drupal_get_path('module', 'chunks_html'). '/chunks-html.js',
+      ),
+    );
+  }
+
+  return $config_form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form_validate().
+ */
+function chunks_html_html_chunk_form_validate($configuration, $chunk_instance, &$form_state, $form) {
+  if (empty($configuration['html']['#value'])) {
+    form_error($configuration['text'], t('Please enter HTML markup.'));
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_empty().
+ */
+function chunks_html_html_chunk_is_empty($configuration, $item, $field) {
+  if (empty($configuration['html'])) {
+    return TRUE;
+  }
+  return FALSE;
+}
