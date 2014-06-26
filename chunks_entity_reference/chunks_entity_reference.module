@@ -19,7 +19,6 @@ function chunks_entity_reference_chunk_types() {
         'entity type' => '',
         'bundles' => '',
       ),
-      'client themeable' => TRUE,
     ),
   );
 }
@@ -167,25 +166,22 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
     $eid = $configuration['reference']['entity_id'];
   }
 
+  // Prepare a list of bundles in text form.
+  $bundle_description = $bundles;
+  $last_bundle = array_pop($bundle_description);
+  $bundle_description = count($bundle_description) ? implode(', ', $bundle_description) . ' or ' . $last_bundle : $last_bundle;
+
   $config_form = array();
   $config_form['reference'] = array(
     '#type' => 'entityreference',
-    '#title' => t('Entity'),
+    '#title' => check_plain($chunk_instance['label']),
     '#default_value' => $eid,
-    '#description' => t('Search for entity.'),
+    '#description' => t('Search for %bundles.', array('%bundles' => $bundle_description)),
     '#era_entity_type' => $settings['entity type'],
   );
 
   if(count($bundles > 0)) {
     $config_form['reference']['#era_bundles'] = $bundles;
-  }
-
-  if ($settings['preview_on_client']) {
-    $config_form['#attached'] = array(
-      'js' => array(
-        drupal_get_path('module', 'chunks_entity_reference') . '/chunks-entity-reference.js',
-      ),
-    );
   }
 
   return $config_form;
