@@ -8,7 +8,12 @@
  *   - When you interact with the image widget it doesn't set the current chunk
  *     to active.
  *   - Make chunks work with only 1 value (even though that's weird).
- *   - Handle cache invalidation.
+ *   - Delete references to deleted entities.
+ *     See relevant information from entityreference module:
+ *       issue: https://www.drupal.org/node/1368386
+ *       patch: https://www.drupal.org/files/entityreference-n1368386-47.patch
+ *   - Prevent recursive rendering in entity reference chunk (see
+ *     entityreference.module line 1259)
  */
 
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
