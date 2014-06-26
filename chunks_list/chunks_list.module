@@ -178,6 +178,7 @@ function chunks_list_list_chunk_form(&$configuration, $chunk_instance, $form, &$
         '#field_name' => $field['field_name'],
         '#langcode' => $langcode,
         '#delta' => $delta,
+        '#preview' => TRUE,
         '#after_build' => array('chunks_list_fill_inplace_items'),
         '#attached' => array(
           'libraries_load' => array(

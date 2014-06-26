@@ -227,7 +227,7 @@ function chunks_entity_reference_preprocess_chunk(&$variables, $hook) {
 
     $settings = $variables['instance_settings'];
     $entity_type = $settings['entity type'];
-    $view_mode = $settings['view mode'][$entity_type];
+    $view_mode = $variables['preview'] ? $settings['view mode preview'][$entity_type] : $settings['view mode'][$entity_type];
 
 
     $config = $variables['configuration'];

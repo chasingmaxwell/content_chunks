@@ -812,6 +812,7 @@ function chunks_field_build_preview($element, &$form_state) {
       '#field_name' => $element['#field_name'],
       '#langcode' => $element['#langcode'],
       '#delta' => $element['#delta'],
+      '#preview' => TRUE,
     );
 
     // Add instance settings if they exist.
@@ -1159,6 +1160,7 @@ function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $
       '#field_name' => $field['field_name'],
       '#langcode' => $langcode,
       '#delta' => $delta,
+      '#preview' => FALSE,
     );
 
     // Add instance settings if they exist.
