@@ -12,8 +12,6 @@
  *     See relevant information from entityreference module:
  *       issue: https://www.drupal.org/node/1368386
  *       patch: https://www.drupal.org/files/entityreference-n1368386-47.patch
- *   - Use EntityFieldQuery stuff.
- *   - Order of instances is not updating correctly.
  */
 
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';

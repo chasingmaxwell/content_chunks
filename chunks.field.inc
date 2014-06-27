@@ -325,6 +325,11 @@ function chunks_field_chunk_instances_presave($form, &$form_state) {
   foreach ($form_state['values']['instance']['settings']['chunk_instances']['instances'] as $instance) {
     $chunk_instances[$instance['name']] = $instance;
   }
+
+  // Sort chunk instances by weight.
+  uasort($chunk_instances, 'drupal_sort_weight');
+
+  // Save chunk instances in the form_state.
   $form_state['values']['instance']['settings']['chunk_instances'] = $chunk_instances;
 }
 
