@@ -12,8 +12,8 @@
  *     See relevant information from entityreference module:
  *       issue: https://www.drupal.org/node/1368386
  *       patch: https://www.drupal.org/files/entityreference-n1368386-47.patch
- *   - Prevent recursive rendering in entity reference chunk (see
- *     entityreference.module line 1259)
+ *   - Use EntityFieldQuery stuff.
+ *   - Order of instances is not updating correctly.
  */
 
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
@@ -495,8 +495,8 @@ function template_preprocess_chunk(&$variables, $hook) {
   $variables['langcode'] = $variables['chunk']['#langcode'];
   $variables['delta'] = $variables['chunk']['#delta'];
   $variables['preview'] = $variables['chunk']['#preview'];
-  $variables['entity'] = isset($variables['chunk']['#entity']) ? $variables['chunk']['#entity'] : FALSE;
-  $variables['entity_type'] = isset($variables['chunk']['#entity_type']) ? $variables['chunk']['#entity_type'] : FALSE;
+  $variables['entity'] = $variables['chunk']['#entity'];
+  $variables['entity_type'] = $variables['chunk']['#entity_type'];
 
   // Add theme hook suggestions.
   $variables['theme_hook_suggestions'][] = 'chunk';
