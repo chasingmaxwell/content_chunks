@@ -238,19 +238,50 @@ function chunks_entity_reference_preprocess_chunk(&$variables, $hook) {
     $settings = $variables['instance_settings'];
     $entity_type = $settings['entity type'];
     $view_mode = $variables['preview'] ? $settings['view mode preview'][$entity_type] : $settings['view mode'][$entity_type];
-
-
     $config = $variables['configuration'];
-    $variables['entity'] = array();
+    $eid = $config['reference']['entity_id'];
 
-    // Get the entity id
-    if(isset($config['reference']['entity_id']) && isset($config['reference']['entity_type'])) {
-      $eid = $config['reference']['entity_id'];
-      $entity = entity_load($entity_type, array($eid));
-      $variables['entity'] = entity_view($entity_type, $entity, $view_mode);
-
-    } else {
-      $variables['entity'] = $config['reference'];
+    // Detect and prevent recursive rendering.
+    static $original_parent = 0;
+    static $depth = 0;
+    static $references = array();
+    if ($parent_id = array_shift(entity_extract_ids($variables['entity_type'], $variables['entity']))) {
+      $depth++;
+      $references[$parent_id] = $parent_id;
+      if ($depth === 1) {
+        $original_parent = $parent_id;
+      }
+      if ($depth > variable_get('chunks_entity_reference_maximum_depth', 3) || isset($references[$eid])) {
+        $message = 'Recursive rendering detected when rendering entity @entity_type(@entity_id). Aborting rendering.';
+        $message_vars = array(
+          '@entity_type' => $variables['entity_type'],
+          '@entity_id' => $parent_id,
+        );
+        throw new ChunksEntityReferenceRecursiveRenderingException(t($message, $message_vars));
+      }
     }
+
+    // Load referenced entity.
+    $entity = entity_load($entity_type, array($eid));
+
+    // Store entities render array.
+    $variables['referenced_entity_view'] = entity_view($entity_type, $entity, $view_mode);
+
+    // Render the entity and store the output. This is necessary in the
+    // preprocess step because it must happen before we reset the recursion
+    // detection.
+    $variables['referenced_entity'] = render($variables['referenced_entity_view']);
+
+    // Reset recursion detection.
+    if ($parent_id === $original_parent) {
+      $references = array();
+    }
+    $depth--;
   }
 }
+
+/**
+ * Exception thrown when the entity view renderer goes into a potentially
+ * infinite loop.
+ */
+class ChunksEntityReferenceRecursiveRenderingException extends Exception {}
