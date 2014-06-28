@@ -1129,7 +1129,7 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     // Validation for chunk type's configuration values.
     if ($validate_configuration) {
-      $chunk_type->validateConfiguration($element['configuration'][$item['instance']], $chunk_instance, $form_state, $form);
+      $chunk_type->validateConfiguration($element['configuration'][$item['instance']], $item, $chunk_instance, $form_state, $form);
     }
 
     // Save changes to the form state.

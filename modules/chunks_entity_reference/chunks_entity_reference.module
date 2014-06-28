@@ -14,6 +14,7 @@ function chunks_entity_reference_chunk_types() {
       'title' => t('Entity reference'),
       'default configuration' => array(
         'reference' => '',
+        'eid' => '',
       ),
       'default type settings' => array(
         'entity type' => '',
@@ -162,8 +163,11 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
 
   $eid = null;
 
-  if(isset($configuration['reference']['entity_id'])) {
-    $eid = $configuration['reference']['entity_id'];
+  if (isset($configuration['reference']['entity_id'])) {
+    $entity = entity_load($settings['entity type'], array($configuration['reference']['entity_id']));
+    if ($entity) {
+      $eid = $configuration['reference']['entity_id'];
+    }
   }
 
   // Prepare a list of bundles in text form.
@@ -180,6 +184,14 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
     '#era_entity_type' => $settings['entity type'],
   );
 
+  // The entityreference element type strips away configuration values when it
+  // updates the values for the element. Use this form element to keep a
+  // persistent record of the eid.
+  $config_form['eid'] = array(
+    '#type' => 'hidden',
+    '#value' => $configuration['eid'],
+  );
+
   if(count($bundles > 0)) {
     $config_form['reference']['#era_bundles'] = $bundles;
   }
@@ -190,7 +202,9 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, $chunk_instance, &$form_state, $form) {
+function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+
+  $config_state = &$chunk_state['configuration'][$chunk_instance['name']];
 
   // Do not allow the reference field to be empty.
   if (empty($configuration['reference']['#value']['labels'])) {
@@ -209,6 +223,9 @@ function chunks_entity_reference_entity_reference_chunk_form_validate($configura
       }
     }
   }
+
+  // Set eid value.
+  $config_state['eid'] = isset($config_state['reference']['entity_id']) ? $config_state['reference']['entity_id'] : '';
 
   return TRUE;
 }
@@ -264,13 +281,34 @@ function chunks_entity_reference_preprocess_chunk(&$variables, $hook) {
     // Load referenced entity.
     $entity = entity_load($entity_type, array($eid));
 
-    // Store entities render array.
-    $variables['referenced_entity_view'] = entity_view($entity_type, $entity, $view_mode);
+    // If the referenced entity exists, use it to populate the proper variables.
+    if ($entity) {
+      // Store entities render array.
+      $variables['referenced_entity_view'] = entity_view($entity_type, $entity, $view_mode);
 
-    // Render the entity and store the output. This is necessary in the
-    // preprocess step because it must happen before we reset the recursion
-    // detection.
-    $variables['referenced_entity'] = render($variables['referenced_entity_view']);
+      // Render the entity and store the output. This is necessary in the
+      // preprocess step because it must happen before we reset the recursion
+      // detection.
+      $variables['referenced_entity'] = render($variables['referenced_entity_view']);
+    }
+    // The referenced entity does not exist, log it in watchdog and populate the
+    // proper variables with placeholders.
+    else {
+      $message = '@type(@id) has an entity reference chunk referencing @target_type(@target_id) which no longer exists.';
+      $vars = array(
+        '@type' => $variables['entity_type'],
+        '@id' => array_shift(entity_extract_ids($variables['entity_type'], $variables['entity'])),
+        '@target_type' => $settings['entity type'],
+        '@target_id' => $config['eid'],
+      );
+      watchdog('chunks_entity_reference', $message, $vars, WATCHDOG_WARNING);
+
+      $variables['referenced_entity_view'] = array();
+
+      $message = 'The referenced @type (@id) has been deleted. Please edit or remove this content.';
+      $vars = array('@type' => $settings['entity type'], '@id' => $config['eid']);
+      $variables['referenced_entity'] = t($message, $vars);
+    }
 
     // Reset recursion detection.
     if ($parent_id === $original_parent) {

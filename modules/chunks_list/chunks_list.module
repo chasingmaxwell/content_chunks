@@ -257,7 +257,7 @@ function chunks_list_fill_inplace_items($element) {
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_list_list_chunk_form_validate($configuration, $chunk_instance, &$form_state, $form) {
+function chunks_list_list_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
   // This should never happen because the chunk type should not be displayed to
   // users who do not have access to the filter format. Still, let's be safe.
   $format = filter_format_load($configuration['list']['#format']);

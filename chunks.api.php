@@ -176,6 +176,9 @@ function hook_CHUNK_TYPE_chunk_form(&$configuration, $chunk_instance, $form, &$f
   *
   * @param $configuration
   *   The chunk type's configuration form as a renderable array with #values.
+  * @param $chunk_state
+  *   An associative array representing the current state of the chunk being
+  *   validated.
   * @param $chunk_instance
   *   An associative array representing an instance of a chunk type connected to
   *   a field instance.
@@ -195,7 +198,7 @@ function hook_CHUNK_TYPE_chunk_form(&$configuration, $chunk_instance, $form, &$f
   *
   * @see chunks_field_widget_values_validate().
   */
-function hook_CHUNK_TYPE_chunk_form_validate($configuration, $chunk_instance, &$form_state, $form) {
+function hook_CHUNK_TYPE_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
   if ($configuration['text']['#value'] == 'chunks') {
     form_error($configuration['text'], t('Enough chunks!'));
     return FALSE;

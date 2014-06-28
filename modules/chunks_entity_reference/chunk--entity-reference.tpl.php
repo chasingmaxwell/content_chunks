@@ -9,8 +9,9 @@
  *   template_preprocess().
  * - $configuration: The associative array representing the chunk's
  *   configuration.
- * - $referenced_entity: The rendereable array representing the referenced
+ * - $referenced_entity_view: The rendereable array representing the referenced
  *   entity to display.
+ * - $referenced_entity: The rendered referenced entity.
  * - $instance_settings: An associative array representing the chunk instance
  *   settings
  *   connected to the chunk field's instance.
@@ -31,4 +32,6 @@
  */
 ?>
 
-<div class="<?php print $classes; ?>"><?php print $referenced_entity; ?></div>
+<?php if (!empty($reference_entity_view) || $preview): ?>
+  <div class="<?php print $classes; ?>"><?php print $referenced_entity; ?></div>
+<?php endif; ?>

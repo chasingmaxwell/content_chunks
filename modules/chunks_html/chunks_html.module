@@ -63,7 +63,7 @@ function chunks_html_html_chunk_form(&$configuration, $chunk_instance, $form, &$
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_html_html_chunk_form_validate($configuration, $chunk_instance, &$form_state, $form) {
+function chunks_html_html_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
   if (empty($configuration['html']['#value'])) {
     form_error($configuration['text'], t('Please enter HTML markup.'));
     return FALSE;
