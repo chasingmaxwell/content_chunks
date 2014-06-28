@@ -33,6 +33,6 @@
  */
 ?>
 
-<?php if (!empty($reference_entity_view) || $preview): ?>
+<?php if (!empty($referenced_entity_view) || $preview): ?>
   <div class="<?php print $classes; ?>"><?php print $referenced_entity; ?></div>
 <?php endif; ?>
