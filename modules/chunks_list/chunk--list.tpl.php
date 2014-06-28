@@ -24,6 +24,7 @@
  * - $field_name: The field name for the parent chunks field.
  * - $langcode: The language code for the parent chunks field.
  * - $delta: The delta for the current chunk within the parent chunks field.
+ * - $preview: A boolean indicating whether or not the chunk is being previewed.
  *
  * @see template_preprocess()
  * @see template_preprocess_chunk()

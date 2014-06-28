@@ -21,6 +21,7 @@
  * - $langcode: The language code for the parent chunks field.
  * - $delta: The delta for the current chunk within the parent chunks field.
  * - $image: A rendereable array for the image to be displayed for this chunk.
+ * - $preview: A boolean indicating whether or not the chunk is being previewed.
  *
  * @see template_preprocess()
  * @see template_preprocess_chunk()
