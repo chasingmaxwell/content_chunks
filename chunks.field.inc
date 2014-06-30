@@ -709,7 +709,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
     // Handle the remove button differently depending on the cardinality
     // settings.
-    if ($field['cardinality'] !== FIELD_CARDINALITY_UNLIMITED) {
+    if ($field['cardinality'] != FIELD_CARDINALITY_UNLIMITED) {
       $row['chunk_actions']['remove']['#ajax'] = array(
         'callback' => 'chunks_field_form_callback',
         'wrapper' => $wrapper_id,
