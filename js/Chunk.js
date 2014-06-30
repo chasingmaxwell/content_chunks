@@ -346,7 +346,7 @@
 
     // The edit, cancel, and remove buttons should never reload the page
     // if javascript is enabled.
-    $(this.classPrepend + 'edit-button, ' + this.classPrepend + 'cancel-button, ' + this.classPrepend + 'remove-button', this.element).click(function(e) {
+    $(this.classPrepend + 'edit-button, ' + this.classPrepend + 'cancel-button, ' + this.classPrepend + 'remove-button.unlimited', this.element).click(function(e) {
       e.preventDefault();
     });
 

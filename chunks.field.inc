@@ -412,7 +412,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     }
 
     // Only store instances in #chunk_instances if the user has access to edit.
-    $form['#chunk_instances'][$name] = $chunk_instance;
+    $form['#allowed_chunk_instances'][$field_name][$name] = $chunk_instance;
   }
 
   // Retrieve items from the field state since they may not exist in the form
@@ -534,14 +534,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
     // Determine whether this chunk is editable by the current user.
     if (!isset($chunk_state['instance']) ||
-        (isset($chunk_state['instance']) && isset($form['#chunk_instances'][$chunk_state['instance']]))) {
+        (isset($chunk_state['instance']) && isset($form['#allowed_chunk_instances'][$field_name][$chunk_state['instance']]))) {
       $chunk_state['allowed'] = TRUE;
     }
     else {
       $chunk_state['allowed'] = FALSE;
     }
 
-    if ($delta == $max) {
+    if ($delta == $max && $field['cardinality'] !== '1') {
       // The last chunk should be hidden. It will appear when adding a new chunk
       // so that the editor will see an immediate response.
       $chunk_state['view'] = 'staged';
@@ -561,15 +561,17 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       'type' => 'setting',
     );
 
-    // Add input for reordering.
-    $row['_weight'] = array(
-      '#type' => 'weight',
-      '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
-      '#delta' => $max,
-      '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta]['_weight'] : $delta,
+    if ($field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+      // Add input for reordering.
+      $row['_weight'] = array(
+        '#type' => 'weight',
+        '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
+        '#delta' => $max,
+        '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta]['_weight'] : $delta,
         '#disabled' => $chunk_state['view'] == 'staged',
-      '#weight' => 100,
-    );
+        '#weight' => 100,
+      );
+    }
 
     // Include hidden field value for the view to display. This will give us
     // better control over our #states.
@@ -588,7 +590,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     if ($chunk_state['allowed']) {
 
       $options = array();
-      foreach ($form['#chunk_instances'] as $name => $chunk_instance) {
+      foreach ($form['#allowed_chunk_instances'][$field_name] as $name => $chunk_instance) {
         $options[$name] = check_plain($chunk_instance['label']);
       }
 
@@ -662,7 +664,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
             ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][instance]"]' => array('value' => $name),
           ),
         ),
-        '#access' => isset($form['#chunk_instances'][$name]),
+        '#access' => isset($form['#allowed_chunk_instances'][$field_name][$name]),
       );
     }
 
@@ -694,7 +696,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       'remove' => array(
         '#type' => 'submit',
         '#name' => $id_prefix . '-' . $delta . '-remove',
-        '#value' => t('Remove'),
         '#submit' => array('chunks_field_form_submit'),
         '#op' => 'remove',
         '#weight' => 1,
@@ -705,6 +706,21 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         ),
       ),
     );
+
+    // Handle the remove button differently depending on the cardinality
+    // settings.
+    if ($field['cardinality'] !== FIELD_CARDINALITY_UNLIMITED) {
+      $row['chunk_actions']['remove']['#ajax'] = array(
+        'callback' => 'chunks_field_form_callback',
+        'wrapper' => $wrapper_id,
+      );
+      $row['chunk_actions']['remove']['#attributes']['class'][] = 'limited';
+      $row['chunk_actions']['remove']['#value'] = t('Reset');
+    }
+    else {
+      $row['chunk_actions']['remove']['#attributes']['class'][] = 'unlimited';
+      $row['chunk_actions']['remove']['#value'] = t('Remove');
+    }
 
     // Display chunk editing actions if the current chunk is of an allowed
     // instance.
@@ -1354,6 +1370,10 @@ function theme_chunks_field_widget_form($variables) {
   $element = $variables['element'];
   $output = '';
 
+  $required = !empty($element['#required']) ? theme('form_required_marker', $variables) : '';
+
+  // This chunks field accepts multiple values. Theme the widget as a table with
+  // draggable rows.
   if ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
     $table_id = drupal_html_id($element['#field_name'] . '_values');
     $table_class = array('field-multiple-table');
@@ -1361,7 +1381,6 @@ function theme_chunks_field_widget_form($variables) {
       $table_class[] = 'field-unlimited-table';
     }
     $order_class = $element['#field_name'] . '-delta-order';
-    $required = !empty($element['#required']) ? theme('form_required_marker', $variables) : '';
 
     $header = array(
       array(
@@ -1425,10 +1444,17 @@ function theme_chunks_field_widget_form($variables) {
 
     drupal_add_tabledrag($table_id, 'order', 'sibling', $order_class);
   }
+  // The field cardinality is set to 1. Render a single chunk widget.
   else {
+    $output = '<div class="form-item">';
+    $output .= '<label>' . t('!title !required', array('!title' => $element['#title'], '!required' => $required)) . "</label>";
+
     foreach (element_children($element) as $key) {
       $output .= drupal_render($element[$key]);
     }
+
+    $output .= $element['#description'] ? '<div class="description">' . $element['#description'] . '</div>' : '';
+    $output .= '</div>';
   }
 
   return $output;
