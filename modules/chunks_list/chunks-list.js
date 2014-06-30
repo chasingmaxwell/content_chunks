@@ -119,12 +119,12 @@
     attach: function(context, settings) {
 
       // No need to do anything if we've already created the callback.
-      if (typeof Drupal.settings.chunks.callbacks.list.restoreConfig !== 'undefined') {
+      if (typeof Drupal.settings.chunks.callbacks.restoreConfig.list !== 'undefined') {
         return;
       }
 
       // Implements the restoreConfig callback to restore list configuration.
-      Drupal.settings.chunks.callbacks.list.restoreConfig = function(fieldName, langcode, delta) {
+      Drupal.settings.chunks.callbacks.restoreConfig.list = function(fieldName, langcode, delta) {
         var chunkInstance;
 
         // Retrieve the chunk instance.

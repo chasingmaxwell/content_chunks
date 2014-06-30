@@ -7,6 +7,8 @@
 
   'use strict';
 
+  var autoAddChunk = {};
+
   // Instantiates the Pen editor.
   Drupal.behaviors.chunksPInPlace = {
     attach: function(context, settings) {
@@ -96,45 +98,73 @@
   Drupal.behaviors.chunksPCallbacks = {
     attach: function(context, settings) {
 
-      // No need to do anything if we've already created the callback.
-      if (typeof Drupal.settings.chunks.callbacks.p.restoreConfig !== 'undefined') {
-        return;
+      if (typeof Drupal.settings.chunks.callbacks.restoreConfig.p === 'undefined') {
+        // Implements the restoreConfig callback to restore saved configuration.
+        Drupal.settings.chunks.callbacks.restoreConfig.p = function(fieldName, langcode, delta) {
+          var chunkInstance;
+
+          // Retrieve the chunk instance.
+          chunkInstance = Drupal.chunks.fields[fieldName].chunks[delta].chunkInstance;
+
+          // Only do anything if this instance of the chunk type is set to be
+          // edited in-place.
+          if (Drupal.settings.chunks[fieldName].instances[chunkInstance].settings.edit_in_place) {
+            var classFieldName, pConfig, configuration, configState, inPlaceEditor;
+
+            classFieldName = fieldName.replace(/_/g, '-');
+            pConfig = $('#' + fieldName + '-' + delta + '-chunk .p-chunk-configuration');
+
+            // Make a copy of the configuration and add the edit_in_place
+            // property so we can render a contenteditable paragraph chunk
+            // without changing the configuration settings for the chunk.
+            configState = Drupal.settings.chunks[fieldName].chunks[delta].configuration[chunkInstance];
+            configuration = {};
+            for (var prop in configState) {
+              configuration[prop] = configState[prop];
+            }
+            configuration.edit_in_place = true;
+
+            // Generate new markup.
+            inPlaceEditor = Drupal.theme.prototype.chunk__p(configuration, fieldName, langcode, delta);
+
+            // Insert that new markup into the editor.
+            pConfig.find('.p-chunk').remove();
+            pConfig.append(inPlaceEditor);
+            Drupal.behaviors.chunksPInPlace.attach(pConfig.parents('.field-type-chunks'), Drupal.settings);
+          }
+        };
       }
 
-      // Implements the restoreConfig callback to restore saved configuration.
-      Drupal.settings.chunks.callbacks.p.restoreConfig = function(fieldName, langcode, delta) {
-        var chunkInstance;
+      if (typeof Drupal.settings.chunks.callbacks.initialize.p === 'undefined') {
+        // Implements the initialize callback to perform actions on a paragraph
+        // Chunk object upon initialization.
+        Drupal.settings.chunks.callbacks.initialize.p = function(chunk) {
 
-        // Retrieve the chunk instance.
-        chunkInstance = Drupal.chunks.fields[fieldName].chunks[delta].chunkInstance;
-
-        // Only do anything if this instance of the chunk type is set to be
-        // edited in-place.
-        if (Drupal.settings.chunks[fieldName].instances[chunkInstance].settings.edit_in_place) {
-          var classFieldName, pConfig, configuration, configState, inPlaceEditor;
-
-          classFieldName = fieldName.replace(/_/g, '-');
-          pConfig = $('#' + fieldName + '-' + delta + '-chunk .p-chunk-configuration');
-
-          // Make a copy of the configuration and add the edit_in_place
-          // property so we can render a contenteditable paragraph chunk
-          // without changing the configuration settings for the chunk.
-          configState = Drupal.settings.chunks[fieldName].chunks[delta].configuration[chunkInstance];
-          configuration = {};
-          for (var prop in configState) {
-            configuration[prop] = configState[prop];
+          // If the chunk has no type or is of type 'p', listen for shortcut.
+          if (chunk.chunkType === '' || chunk.chunkType === 'p') {
+            $('.p-chunk-configuration .p-chunk[contenteditable], .p-chunk-configuration textarea', chunk.element).bind('keyup.chunksPShortcut', function() {
+              if (event.keyCode === 13 && event.shiftKey) {
+                // Add a new chunk and queue it to be added automatically as a
+                // paragraph chunk.
+                chunk.addButton.trigger('mousedown');
+                $(this).trigger('blur');
+                autoAddChunk = {
+                  delta: chunk.delta + 1,
+              chunkInstance: chunk.chunkInstance
+                };
+              }
+            });
           }
-          configuration.edit_in_place = true;
 
-          // Generate new markup.
-          inPlaceEditor = Drupal.theme.prototype.chunk__p(configuration, fieldName, langcode, delta);
-
-          // Insert that new markup into the editor.
-          pConfig.find('.p-chunk').remove();
-          pConfig.append(inPlaceEditor);
-          Drupal.behaviors.chunksPInPlace.attach(pConfig.parents('.field-type-chunks'), Drupal.settings);
-        }
-      };
+          // If the chunk has no type, chunk if it was added automatically.
+          if (chunk.chunkType === '') {
+            if (chunk.delta === autoAddChunk.delta) {
+              $(':input[name="' + chunk.namePrepend + '[instance]"][value="' + autoAddChunk.chunkInstance + '"]', chunk.element).trigger('click.chunkInstanceSelected');
+              autoAddChunk = {};
+            }
+          }
+        };
+      }
     },
   };
 

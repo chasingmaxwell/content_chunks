@@ -59,7 +59,7 @@
       // Change view to instance_selection.
       stagedChunk.setView('instance_selection');
 
-      stagedRow = stagedChunk.chunk.parents('tr.staged');
+      stagedRow = stagedChunk.element.parents('tr.staged');
       stagedRow.removeClass('staged');
       stagedRow.insertAfter(prevSibling);
       stagedRow.show();

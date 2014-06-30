@@ -367,7 +367,11 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       $field_name => array(
         'instances' => array(),
       ),
-      'callbacks' => array(),
+      'callbacks' => array(
+        'initialize' => new stdClass(),
+        'saveConfig' => new stdClass(),
+        'restoreConfig' => new stdClass(),
+      ),
     ),
   );
 
@@ -376,11 +380,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
   // Save chunk types in the form so they can be accessed easily later.
   $form['#chunk_types'] = $chunk_types;
-
-  // Add a space for registering callbacks for each chunk type.
-  foreach ($chunk_types as $name => $chunk_type) {
-    $js_settings['chunks']['callbacks'][$name] = array();
-  }
 
   // Force the list of chunks to be a dictionary instead of an array.
   $js_settings['chunks'][$field_name]['chunks']['empty'] = '';

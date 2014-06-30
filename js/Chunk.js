@@ -28,7 +28,7 @@
      * Public properties.
      */
 
-    this.chunk = $(element);
+    this.element = $(element);
     this.field = field;
     this.delta = delta;
     this.classPrepend = '.' + field.classFieldName + '-' + delta + '-';
@@ -46,12 +46,12 @@
      */
 
     this.setAsActive = function() {
-      this.chunk.addClass('active');
+      this.element.addClass('active');
       this.active = true;
     };
 
     this.setAsUnactive = function() {
-      this.chunk.removeClass('active');
+      this.element.removeClass('active');
       this.active = false;
     };
 
@@ -81,8 +81,8 @@
 
       // Provide a callback with which to perform actions against the saved
       // configuration.
-      if (typeof Drupal.settings.chunks.callbacks[this.chunkType].saveConfig === 'function') {
-        Drupal.settings.chunks.callbacks[this.chunkType].saveConfig(field.fieldName, field.langcode, delta);
+      if (typeof Drupal.settings.chunks.callbacks.saveConfig[this.chunkType] === 'function') {
+        Drupal.settings.chunks.callbacks.saveConfig[this.chunkType](field.fieldName, field.langcode, delta);
       }
     };
 
@@ -98,8 +98,8 @@
 
       // Provide a callback with which to perform actions against the
       // restored configuration.
-      if (typeof Drupal.settings.chunks.callbacks[this.chunkType].restoreConfig === 'function') {
-        Drupal.settings.chunks.callbacks[this.chunkType].restoreConfig(field.fieldName, field.langcode, delta);
+      if (typeof Drupal.settings.chunks.callbacks.restoreConfig[this.chunkType] === 'function') {
+        Drupal.settings.chunks.callbacks.restoreConfig[this.chunkType](field.fieldName, field.langcode, delta);
       }
     };
 
@@ -176,7 +176,7 @@
 
         // Add focus to first configuration item.
         setTimeout(function() {
-          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible, [contenteditable]:visible', thisChunk.chunk).first().focus();
+          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible, [contenteditable]:visible', thisChunk.element).first().focus();
         }, 0);
       }
     });
@@ -252,7 +252,7 @@
 
         // Add focus to first configuration item.
         setTimeout(function() {
-          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible, [contenteditable]:visible', thisChunk.chunk).first().focus();
+          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible, [contenteditable]:visible', thisChunk.element).first().focus();
         }, 0);
       }
     });
@@ -357,7 +357,7 @@
 
     // If this chunk is staged, hide it.
     if (this.view == 'staged') {
-      this.chunk.parents('#' + field.fieldName + '-' + delta + '-chunk-row').hide();
+      this.element.parents('#' + field.fieldName + '-' + delta + '-chunk-row').hide();
     }
 
     // If this chunk is being viewed in configuration view initially, save
@@ -397,6 +397,24 @@
     // button.
     else if (this.active) {
       this.addButton.focus();
+    }
+
+    // Allow other modules to perform actions on a chunk upon it's
+    // initialization.
+    if (this.chunkType === '') {
+      // Run the callback for every type if the chunk does not currently have
+      // one assigned.
+      for (var chunkType in Drupal.settings.chunks.callbacks.initialize) {
+        if (typeof Drupal.settings.chunks.callbacks.initialize[chunkType] === 'function') {
+          Drupal.settings.chunks.callbacks.initialize[chunkType](this);
+        }
+      }
+    }
+    else {
+      // Run the callback only for the type assigned to the chunk.
+      if (typeof Drupal.settings.chunks.callbacks.initialize[this.chunkType] === 'function') {
+        Drupal.settings.chunks.callbacks.initialize[this.chunkType](this);
+      }
     }
   };
 })(this, jQuery);

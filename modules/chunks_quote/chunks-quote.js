@@ -108,12 +108,12 @@
     attach: function(context, settings) {
 
       // No need to do anything if we've already created the callback.
-      if (typeof Drupal.settings.chunks.callbacks.quote.restoreConfig !== 'undefined') {
+      if (typeof Drupal.settings.chunks.callbacks.restoreConfig.quote !== 'undefined') {
         return;
       }
 
       // Implements the restoreConfig callback to restore saved configuration.
-      Drupal.settings.chunks.callbacks.quote.restoreConfig = function(fieldName, langcode, delta) {
+      Drupal.settings.chunks.callbacks.restoreConfig.quote = function(fieldName, langcode, delta) {
         var chunkInstance;
 
         // Retrieve the chunk instance.
