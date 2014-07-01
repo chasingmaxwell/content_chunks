@@ -56,7 +56,7 @@
 
           editor = new Pen(editorConfig);
 
-          configWrapper = $(this).parents('.quote-chunk-configuration');
+          configWrapper = $(this).parents('.quote-chunk-type-configuration');
 
           if (this.nodeName === 'P') {
             // Hide the regular textarea.
@@ -124,7 +124,7 @@
           var classFieldName, quoteConfig, configuration, configState, inPlaceEditor;
 
           classFieldName = fieldName.replace(/_/g, '-');
-          quoteConfig = $('#' + fieldName + '-' + delta + '-chunk .quote-chunk-configuration');
+          quoteConfig = $('#' + fieldName + '-' + delta + '-chunk .quote-chunk-type-configuration');
 
           // Make a copy of the configuration and add the edit_in_place
           // property so we can render a contenteditable quote chunk

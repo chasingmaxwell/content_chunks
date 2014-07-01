@@ -572,8 +572,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       );
     }
 
-    // Include hidden field value for the view to display. This will give us
-    // better control over our #states.
+    // Include hidden field value for the view to display.
     $row['view'] = array(
       '#type' => 'hidden',
       '#default_value' => $chunk_state['view'],
@@ -602,11 +601,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#options' => $options,
         '#default_value' => isset($chunk_state['instance']) ? $chunk_state['instance'] : NULL,
         '#disabled' => $chunk_state['view'] == 'staged',
-        '#states' => array(
-          'visible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'instance_selection'),
-          ),
-        ),
       );
     }
     // If this chunk is not editable by the current user, store the instance in
@@ -634,11 +628,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#attributes' => array(
         'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-configuration'),
       ),
-      '#states' => array(
-        'invisible' => array(
-          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('!value' => 'configuration'),
-        ),
-      ),
     );
 
     foreach ($chunk_instances as $name => $chunk_instance) {
@@ -660,11 +649,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       $row['configuration'][$name] += array(
         '#type' => 'container',
         '#attributes' => array(
-          'class' => array($chunk_type->name . '-chunk-configuration'),
-        ),
-        '#states' => array(
-          'visible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][instance]"]' => array('value' => $name),
+          'class' => array(
+            $chunk_type->name . '-chunk-type-configuration',
+            $name . '-chunk-instance-configuration',
           ),
         ),
         '#access' => isset($form['#allowed_chunk_instances'][$field_name][$name]),
@@ -673,11 +660,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
     $row['preview_wrapper'] = array(
       '#type' => 'container',
-      '#states' => array(
-        'visible' => array(
-          ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'preview'),
-        ),
-      ),
       '#attributes' => array(
         'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-preview'),
       ),
@@ -739,11 +721,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#attributes' => array(
           'class' => array('chunk-edit-button', str_replace('_', '-', $field_name) . '-' . $delta . '-edit-button'),
         ),
-        '#states' => array(
-          'visible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'preview'),
-          ),
-        ),
       );
 
       $row['chunk_actions']['preview'] = array(
@@ -754,17 +731,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#op' => 'preview',
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-preview-button'),
+          'class' => array('chunk-preview-button', str_replace('_', '-', $field_name) . '-' . $delta . '-preview-button'),
         ),
         '#ajax' => array(
           'callback' => 'chunks_field_preview_callback',
           'wrapper' => $field_name . '-' . $delta . '-chunk',
           'event' => 'click',
-        ),
-        '#states' => array(
-          'visible' => array(
-            ':input[name="' . $field_name . '[' . $langcode . '][' . $delta . '][view]"]' => array('value' => 'configuration'),
-          ),
         ),
       );
 

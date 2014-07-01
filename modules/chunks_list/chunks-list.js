@@ -82,7 +82,7 @@
 
             chunkWrapper = $(this).parents('.chunk-wrapper');
             delta = parseInt(chunkWrapper.attr('delta'), 10);
-            listConfig = $(this).parents('.list-chunk-configuration');
+            listConfig = $(this).parents('.list-chunk-type-configuration');
 
             // Retrieve the configuration state from the form.
             configuration = Drupal.chunks.fields[fieldName].chunks[delta].getConfigState();
@@ -136,7 +136,7 @@
           var classFieldName, listConfig, configState, configuration, inPlaceEditor;
 
           classFieldName = fieldName.replace(/_/g, '-');
-          listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-configuration');
+          listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-type-configuration');
 
           // Make a copy of the configuration and add the edit_in_place
           // property so we can render a contenteditable list chunk

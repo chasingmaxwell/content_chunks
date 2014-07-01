@@ -112,7 +112,7 @@
             var classFieldName, pConfig, configuration, configState, inPlaceEditor;
 
             classFieldName = fieldName.replace(/_/g, '-');
-            pConfig = $('#' + fieldName + '-' + delta + '-chunk .p-chunk-configuration');
+            pConfig = $('#' + fieldName + '-' + delta + '-chunk .p-chunk-type-configuration');
 
             // Make a copy of the configuration and add the edit_in_place
             // property so we can render a contenteditable paragraph chunk
@@ -142,7 +142,7 @@
 
           // If the chunk has no type or is of type 'p', listen for shortcut.
           if (chunk.chunkType === '' || chunk.chunkType === 'p') {
-            $('.p-chunk-configuration .p-chunk[contenteditable], .p-chunk-configuration textarea', chunk.element).bind('keyup.chunksPShortcut', function() {
+            $('.p-chunk-type-configuration .p-chunk[contenteditable], .p-chunk-type-configuration textarea', chunk.element).bind('keyup.chunksPShortcut', function() {
               if (event.keyCode === 13 && event.shiftKey) {
                 // Add a new chunk and queue it to be added automatically as a
                 // paragraph chunk.

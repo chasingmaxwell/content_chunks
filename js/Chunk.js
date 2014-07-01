@@ -39,7 +39,12 @@
     this.view = this.viewElement.val();
     this.active = $(element).hasClass('active');
     this.addButton = $(':input[name="' + field.fieldName + '-' + delta + '-add-after"]');
-
+    this.viewWrappers = {
+      'instance_selection': $('> .form-item-' + field.classFieldName + '-' + field.langcode + '-' + this.delta + '-instance', this.element),
+      'configuration': $(this.classPrepend + 'configuration', this.element),
+      'preview': $(this.classPrepend + 'preview', this.element),
+    };
+    this.conditionalButtons = $('.chunk-edit-button, .chunk-preview-button, .chunk-cancel-button', this.element);
 
     /**
      * Public methods.
@@ -107,6 +112,48 @@
       this.view = view;
       this.viewElement.val(view);
       this.viewElement.trigger('change');
+
+      // Hide all conditionally visible buttons.
+      this.conditionalButtons.hide();
+
+      switch (view) {
+        case 'staged':
+          // Hide staged chunks from the parent row.
+          this.element.parents('#' + field.fieldName + '-' + this.delta + '-chunk-row').hide();
+          break;
+
+        case 'instance_selection':
+          break;
+
+        case 'configuration':
+          // Save configuration so it can be restored later if the edit is
+          // cancelled.
+          this.saveConfig();
+
+          // Hide unused configuration forms.
+          if (typeof this.chunkInstance !== 'undefined') {
+            $('.fieldset-wrapper > div', this.viewWrappers.configuration).hide();
+            $('.' + this.chunkInstance + '-chunk-instance-configuration', this.viewWrappers.configuration).show();
+          }
+
+          // Show preview and cancel buttons.
+          this.conditionalButtons.filter('.chunk-cancel-button, .chunk-preview-button').show();
+          break;
+
+        case 'preview':
+          // Show edit button.
+          this.conditionalButtons.filter('.chunk-edit-button').show();
+          break;
+      }
+
+      // Show wrapper element associated with the given view. Hide all others.
+      for (var wrapper in this.viewWrappers) {
+        if (wrapper === view) {
+          this.viewWrappers[view].show();
+          continue;
+        }
+        this.viewWrappers[wrapper].hide();
+      }
     };
 
     // Remove active state from element by briefly removing it from the DOM.
@@ -176,7 +223,7 @@
 
         // Add focus to first configuration item.
         setTimeout(function() {
-          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible, [contenteditable]:visible', thisChunk.element).first().focus();
+          $('.' + thisChunk.chunkType + '-chunk-type-configuration :input:visible, [contenteditable]:visible', thisChunk.element).first().focus();
         }, 0);
       }
     });
@@ -247,12 +294,9 @@
         // Remove active state on button.
         thisChunk.removeActiveElementState(this);
 
-        // Save configuration so we can restore it if we cancel.
-        thisChunk.saveConfig();
-
         // Add focus to first configuration item.
         setTimeout(function() {
-          $('.' + thisChunk.chunkType + '-chunk-configuration :input:visible, [contenteditable]:visible', thisChunk.element).first().focus();
+          $('.' + thisChunk.chunkType + '-chunk-type-configuration :input:visible, [contenteditable]:visible', thisChunk.element).first().focus();
         }, 0);
       }
     });
@@ -355,27 +399,7 @@
      * Perform initial operations.
      */
 
-    // If this chunk is staged, hide it.
-    if (this.view == 'staged') {
-      this.element.parents('#' + field.fieldName + '-' + delta + '-chunk-row').hide();
-    }
-
-    // If this chunk is being viewed in configuration view initially, save
-    // the configuration so that the "cancel" button will revert changes.
-    if (this.view == 'configuration') {
-      this.saveConfig();
-    }
-
-    // If there is already a selected type and that type is configured to
-    // be themed on the client, prevent default actions on the preview
-    // button.
-    if (typeof chunkInstance !== 'undefined' &&
-        Drupal.settings.chunks[field.fieldName].instances[this.chunkInstance].settings.preview_on_client) {
-
-      // Prevent default actions on preview button if we are theming on
-      // the client.
-      $(classPrepend + 'preview-button', element).unbind('click').unbind('keypress').bind('keypress', false);
-    }
+    this.setView(this.view);
 
     // If this chunk was just added, focus the type selection form
     // element.
@@ -388,10 +412,8 @@
 
     // Switch to configuration view and save configuration when errors are detected.
     if ($(this.classPrepend + 'configuration .error', element).length > 0) {
-      this.viewElement.val('configuration');
-      this.viewElement.trigger('change');
+      this.setView('configuration');
       $(':input.error', element).first().focus();
-      this.saveConfig();
     }
     // If no errors were detected, set the focus to the active chunk's add
     // button.

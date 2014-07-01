@@ -12,7 +12,7 @@
       $('.image-widget .form-submit[value="' + Drupal.t('Remove') + '"]', context).bind('mousedown.removeChunkImage', function(e) {
         // Only do this if we are operating on an image chunk. Other chunk types
         // may provide an image widget.
-        if ($(this).parents('.image-chunk-configuration').length > 0) {
+        if ($(this).parents('.image-chunk-type-configuration').length > 0) {
           $(this).parents('.chunk-wrapper').find('.chunk-cancel-button').hide();
         }
       });
