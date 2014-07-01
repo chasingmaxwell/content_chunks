@@ -483,6 +483,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // Loop through $items and create their interface.
   for ($delta = 0; $delta <= $max; $delta++) {
 
+    $class_prepend = str_replace('_', '-', $field_name) . '-' . $delta . '-';
+
     // Make a copy of the base element so we can reuse it for each chunk.
     $row = $element;
 
@@ -626,7 +628,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#type' => 'fieldset',
       '#title' => t('Configuration'),
       '#attributes' => array(
-        'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-configuration'),
+        'class' => array($class_prepend . 'configuration'),
       ),
     );
 
@@ -661,7 +663,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     $row['preview_wrapper'] = array(
       '#type' => 'container',
       '#attributes' => array(
-        'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-preview'),
+        'class' => array($class_prepend . 'preview'),
       ),
       '#after_build' => array('chunks_field_build_preview'),
       '#entity' => $element['#entity'],
@@ -687,7 +689,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#disabled' => $chunk_state['view'] == 'staged',
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-remove-button'),
+          'class' => array($class_prepend . 'remove-button'),
         ),
       ),
     );
@@ -719,7 +721,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#op' => 'edit',
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array('chunk-edit-button', str_replace('_', '-', $field_name) . '-' . $delta . '-edit-button'),
+          'class' => array('chunk-edit-button', $class_prepend . 'edit-button'),
         ),
       );
 
@@ -731,7 +733,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#op' => 'preview',
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array('chunk-preview-button', str_replace('_', '-', $field_name) . '-' . $delta . '-preview-button'),
+          'class' => array('chunk-preview-button', $class_prepend . 'preview-button'),
         ),
         '#ajax' => array(
           'callback' => 'chunks_field_preview_callback',
@@ -749,7 +751,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#weight' => -1,
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array('chunk-cancel-button', str_replace('_', '-', $field_name) . '-' . $delta . '-cancel-button'),
+          'class' => array('chunk-cancel-button', $class_prepend . 'cancel-button'),
           'style' => 'display: none;',
         ),
       );
@@ -772,7 +774,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           '#op' => 'add_after',
           '#limit_validation_errors' => array(array($field_name)),
           '#attributes' => array(
-            'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-add-after-button'),
+            'class' => array($class_prepend . 'add-after-button'),
           ),
           '#weight' => 2,
           '#ajax' => array(

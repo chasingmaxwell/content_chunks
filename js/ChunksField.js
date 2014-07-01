@@ -36,14 +36,15 @@
      */
 
     this.setActiveChunk = function(delta) {
+      var active;
       for (var d in this.chunks) {
-        if (parseInt(d, 10) !== delta) {
-          this.chunks[d].setAsUnactive();
-        }
-        else {
-          this.chunks[d].setAsActive();
-        }
+        active = parseInt(d, 10) === delta;
+        this.chunks[d].setActiveState(active);
       }
+    };
+
+    this.setActiveField = function() {
+      Drupal.settings.chunks.activeField = this.fieldName;
     };
 
     this.showStagedChunk = function(prevSibling) {

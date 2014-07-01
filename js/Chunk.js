@@ -50,14 +50,14 @@
      * Public methods.
      */
 
-    this.setAsActive = function() {
-      this.element.addClass('active');
-      this.active = true;
-    };
-
-    this.setAsUnactive = function() {
-      this.element.removeClass('active');
-      this.active = false;
+    this.setActiveState = function(active) {
+      this.active = active;
+      if (active) {
+        this.element.addClass('active');
+      }
+      else {
+        this.element.removeClass('active');
+      }
     };
 
     this.getConfigState = function() {
@@ -220,6 +220,7 @@
 
         // Set active class on the last chunk with user interaction.
         thisChunk.field.setActiveChunk(thisChunk.delta);
+        thisChunk.field.setActiveField();
 
         // Add focus to first configuration item.
         setTimeout(function() {
@@ -273,6 +274,7 @@
 
         // Set active class on the last chunk with user interaction.
         thisChunk.field.setActiveChunk(thisChunk.delta);
+        thisChunk.field.setActiveField();
       }
     });
 
@@ -290,6 +292,7 @@
 
         // Set active class on the last chunk with user interaction.
         thisChunk.field.setActiveChunk(thisChunk.delta);
+        thisChunk.field.setActiveField();
 
         // Remove active state on button.
         thisChunk.removeActiveElementState(this);
@@ -313,6 +316,7 @@
 
         // Set active class on the last chunk with user interaction.
         thisChunk.field.setActiveChunk(thisChunk.delta);
+        thisChunk.field.setActiveField();
 
         // Remove active state on button.
         thisChunk.removeActiveElementState(this);
@@ -327,7 +331,7 @@
       }
     });
 
-    // Remove.
+    // Remove (or Reset).
     $(this.classPrepend + 'remove-button', element).bind('keyup.chunkRemove mousedown.chunkRemove', function(e) {
       if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
 
@@ -364,6 +368,10 @@
 
         // Reset odd/even striping on whole chunks field.
         thisChunk.field.resetStripes();
+
+        // Set active field to prevent focus from jumping to a different chunks
+        // field.
+        thisChunk.field.setActiveField();
       }
     });
 
@@ -417,8 +425,9 @@
     }
     // If no errors were detected, set the focus to the active chunk's add
     // button.
-    else if (this.active) {
+    else if (this.active && Drupal.settings.chunks.activeField === this.field.fieldName) {
       this.addButton.focus();
+      this.setActiveState(false);
     }
 
     // Allow other modules to perform actions on a chunk upon it's
