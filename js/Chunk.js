@@ -286,11 +286,11 @@
         thisChunk.chunkInstance = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
         thisChunk.chunkType = Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].type;
 
-        // Show cancel button.
-        thisChunk.conditionalButtons.filter('.chunk-cancel-button', thisChunk.element).show();
-
         // Switch to configuration view.
         thisChunk.setView('configuration');
+
+        // Show cancel button.
+        thisChunk.conditionalButtons.filter('.chunk-cancel-button').show();
 
         // Set active class on the last chunk with user interaction.
         thisChunk.field.setActiveChunk(thisChunk.delta);
