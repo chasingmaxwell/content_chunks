@@ -23,12 +23,13 @@
      * Public properties.
      */
 
-    this.field = $(element);
-    this.fieldName = this.field.attr('field_name');
-    this.classFieldName = this.field.attr('field_name').replace(/_/g, '-');
-    this.langcode = this.field.attr('langcode');
+    this.element = $(element);
+    this.fieldName = this.element.attr('field_name');
+    this.classFieldName = this.element.attr('field_name').replace(/_/g, '-');
+    this.langcode = this.element.attr('langcode');
     this.chunksElements = $('.chunk-wrapper', element);
     this.chunks = {};
+    this.events = [];
 
 
     /**
@@ -69,7 +70,7 @@
 
     // Reset odd/even striping on visible chunk rows.
     this.resetStripes = function() {
-      var visibleChunks = $('.chunk-wrapper:visible', this.field);
+      var visibleChunks = $('.chunk-wrapper:visible', this.element);
       visibleChunks.each(function(i, element) {
         var delta, parentRow;
 
@@ -85,21 +86,48 @@
       });
     };
 
+    // Initiate event handlers.
+    this.initiateEventHandlers = function() {
+      var currentEvent;
+      for (var i = 0; i < this.events.length; i++) {
+        currentEvent = this.events[i];
+        $(currentEvent.selector, this.element).bind(currentEvent.events, currentEvent.handler);
+      }
+    };
+
+    // Destroy event handlers.
+    this.destroyEventHandlers = function() {
+      var currentEvent;
+      for (var i = 0; i < this.events.length; i++) {
+        currentEvent = this.events[i];
+        $(currentEvent.selector, this.element).unbind(currentEvent.events);
+      }
+
+      // Destroy event handlers for chunks in the field.
+      for (var delta in this.chunks) {
+        this.chunks[delta].destroyEventHandlers();
+      }
+    };
+
 
     /**
-     * Register some helpers
+     * Register event handlers.
      */
 
     // add here (before)
-    $(':input[name="' + this.fieldName + '-add-before"]', element).bind('keyup.chunkadd mousedown.chunkadd', function(e) {
-      if (e.type === 'mousedown' || e.type === 'keyup' && e.keycode === 13) {
+    this.events.push({
+      'selector': ':input[name="' + this.fieldName + '-add-before"]',
+      'events': 'keyup.chunkadd mousedown.chunkadd',
+      'handler': function(e) {
+        if (e.type === 'mousedown' || e.type === 'keyup' && e.keycode === 13) {
 
-        // show the currently hidden staged chunk above every other chunk.
-        thisField.showStagedChunk('#' + thisField.fieldName + '-chunks-field .add-chunk-action-before-row');
+          // show the currently hidden staged chunk above every other chunk.
+          thisField.showStagedChunk('#' + thisField.fieldName + '-chunks-field .add-chunk-action-before-row');
 
-        // set the newchunkindex to 0 so we can properly focus it when the
-        // field is rebuilt.
-        Drupal.settings.chunks[thisField.fieldName].newChunkIndex = 0;
+          // set the newchunkindex to 0 so we can properly focus it when the
+          // field is rebuilt.
+          Drupal.settings.chunks[thisField.fieldName].newChunkIndex = 0;
+        }
       }
     });
 
@@ -107,6 +135,9 @@
     /**
      * Perform initial operations.
      */
+
+    // Initiate event handlers.
+    this.initiateEventHandlers();
 
     // Retrieve chunks within this field. This will be immediately run when the
     // ChunkField object is constructed and again whenever we need to refresh

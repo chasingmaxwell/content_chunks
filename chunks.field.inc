@@ -778,8 +778,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           ),
           '#weight' => 2,
           '#ajax' => array(
-            'callback' => 'chunks_field_form_callback',
-            'wrapper' => $wrapper_id,
+            'callback' => 'chunks_field_add_new_chunk_callback',
           ),
         ),
       );
@@ -884,6 +883,61 @@ function chunks_field_preview_callback($form, $form_state) {
   $element['#prefix'] = '<div id="' . $element['#field_name'] . '-' . $delta . '-chunk' . '" class="chunk-wrapper active" delta="' . $delta . '">';
 
   return drupal_render($element);
+}
+
+/**
+ * Ajax callback for adding a new chunk.
+ */
+function chunks_field_add_new_chunk_callback($form, $form_state) {
+  $triggering_element = $form_state['triggering_element'];
+  $parents = $triggering_element['#array_parents'];
+  $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+  $items = element_children($field);
+  $delta = array_pop($items);
+  $item = $field[$delta];
+
+  // Build row.
+  $item['_weight']['#attributes']['class'] = array($field['#field_name'] . '-delta-order');
+  $delta_element = drupal_render($item['_weight']);
+  $cells = array(
+    array('data' => '', 'class' => array('field-multiple-drag')),
+    array('data' => drupal_render($item), 'class' => array('item')),
+    array('data' => $delta_element, 'class' => array('delta-order')),
+  );
+  $row = array(
+    'data' => $cells,
+    'class' => array('draggable', 'staged'),
+    'id' => $field['#field_name'] . '-' . $delta . '-chunk-row',
+  );
+  $attributes = $row;
+  unset($attributes['data']);
+
+  // Build header.
+  $header = array(
+    array(
+      'data' => t('Label'),
+      'colspan' => 2,
+    ),
+    t('Type'),
+    t('Settings'),
+    t('Order'),
+    t('Remove'),
+  );
+
+  $ts = tablesort_init($header);
+
+  $output = ' <tr' . drupal_attributes($attributes) . '>';
+  $i = 0;
+  foreach ($row['data'] as $cell) {
+    $cell = tablesort_cell($cell, $header, $ts, $i++);
+    $output .= _theme_table_cell($cell);
+  }
+  $output .= " </tr>\n";
+
+  $commands = array();
+  $commands[] = ajax_command_invoke('#' . str_replace('_', '-', $field['#field_name']) . '-values tbody', 'append', array($output));
+
+  return array('#type' => 'ajax', '#commands' => $commands);
 }
 
 /**

@@ -26,6 +26,17 @@
         Drupal.chunks.fields[fieldName] = new ChunksField(this);
 
       });
+    },
+    detach: function(context, settings) {
+      $('.chunks-field', context).each(function(i, e) {
+        var fieldName, chunksField;
+
+        fieldName = $(this).attr('field_name');
+        chunksField = Drupal.chunks.fields[fieldName];
+
+        // Unbind all event handlers.
+        chunksField.destroyEventHandlers();
+      });
     }
   };
 })(jQuery);
