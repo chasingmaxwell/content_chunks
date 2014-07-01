@@ -643,10 +643,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
     foreach ($chunk_instances as $name => $chunk_instance) {
 
+      if (isset($chunk_state['instance']) && $chunk_state['instance'] != $name) {
+        continue;
+      }
+
       $chunk_type = $chunk_instance['chunk_type'];
 
       // If we are working with a chunk that already has configuration, use it.
-      if (isset($chunk_state['instance']) && $chunk_state['instance'] == $name) {
+      if (isset($chunk_state['instance'])) {
         $configuration = $chunk_state['configuration'][$name];
       }
       else {
