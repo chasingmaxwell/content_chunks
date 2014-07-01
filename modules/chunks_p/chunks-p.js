@@ -140,8 +140,14 @@
         // Chunk object upon initialization.
         Drupal.settings.chunks.callbacks.initialize.p = function(chunk) {
 
-          // If the chunk has no type or is of type 'p', listen for shortcut.
+          // Only perform certain actions if the current chunk is not assigned
+          // to a different type.
           if (chunk.chunkType === '' || chunk.chunkType === 'p') {
+
+            // Add tip so users know about the shortcut.
+            $('.p-chunk-type-configuration', chunk.element).append('<div class="description"><strong>Tip:</strong> press <em>Shift + Enter</em> to start writing a new paragraph below this one.</div>');
+
+            // Listen for the shortcut.
             $('.p-chunk-type-configuration .p-chunk[contenteditable], .p-chunk-type-configuration textarea', chunk.element).bind('keyup.chunksPShortcut', function() {
               if (event.keyCode === 13 && event.shiftKey) {
                 // Add a new chunk and queue it to be added automatically as a
@@ -150,13 +156,13 @@
                 $(this).trigger('blur');
                 autoAddChunk = {
                   delta: chunk.delta + 1,
-              chunkInstance: chunk.chunkInstance
+                  chunkInstance: chunk.chunkInstance
                 };
               }
             });
           }
 
-          // If the chunk has no type, chunk if it was added automatically.
+          // If the chunk has no type, check if it was added automatically.
           if (chunk.chunkType === '') {
             if (chunk.delta === autoAddChunk.delta) {
               $(':input[name="' + chunk.namePrepend + '[instance]"][value="' + autoAddChunk.chunkInstance + '"]', chunk.element).trigger('click.chunkInstanceSelected');

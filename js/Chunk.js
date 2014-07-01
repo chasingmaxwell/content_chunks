@@ -136,8 +136,10 @@
             $('.' + this.chunkInstance + '-chunk-instance-configuration', this.viewWrappers.configuration).show();
           }
 
-          // Show preview and cancel buttons.
-          this.conditionalButtons.filter('.chunk-cancel-button, .chunk-preview-button').show();
+          // Show preview button. The cancel button is handled by the event
+          // handler for the "Edit" button to avoid showing the cancel button
+          // upon instance selection.
+          this.conditionalButtons.filter('.chunk-preview-button').show();
           break;
 
         case 'preview':
@@ -285,7 +287,7 @@
         thisChunk.chunkType = Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].type;
 
         // Show cancel button.
-        $(thisChunk.classPrepend + 'cancel-button', element).show();
+        thisChunk.conditionalButtons.filter('.chunk-cancel-button', thisChunk.element).show();
 
         // Switch to configuration view.
         thisChunk.setView('configuration');
