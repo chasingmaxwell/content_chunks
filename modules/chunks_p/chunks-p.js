@@ -148,8 +148,11 @@
             $('.p-chunk-type-configuration', chunk.element).append('<div class="description"><strong>Tip:</strong> press <em>Shift + Enter</em> to start writing a new paragraph below this one.</div>');
 
             // Listen for the shortcut.
-            $('.p-chunk-type-configuration .p-chunk[contenteditable], .p-chunk-type-configuration textarea', chunk.element).bind('keyup.chunksPShortcut', function() {
+            $('.p-chunk-type-configuration .p-chunk[contenteditable], .p-chunk-type-configuration textarea', chunk.element).bind('keydown.chunksPShortcut', function(e) {
               if (event.keyCode === 13 && event.shiftKey) {
+
+                e.preventDefault();
+
                 // Add a new chunk and queue it to be added automatically as a
                 // paragraph chunk.
                 chunk.addButton.trigger('mousedown');
