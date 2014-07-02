@@ -569,7 +569,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
         '#delta' => $max,
         '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta]['_weight'] : $delta,
-        '#disabled' => $chunk_state['view'] == 'staged',
         '#weight' => 100,
       );
     }
@@ -579,11 +578,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       '#type' => 'hidden',
       '#default_value' => $chunk_state['view'],
     );
-
-    // Force the last chunk to always have a staged view.
-    if ($chunk_state['view'] == 'staged') {
-      $row['view']['#value'] = 'staged';
-    }
 
     // If this chunk is editable by the current user, build the instance
     // selection form element.
@@ -602,7 +596,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         ),
         '#options' => $options,
         '#default_value' => isset($chunk_state['instance']) ? $chunk_state['instance'] : NULL,
-        '#disabled' => $chunk_state['view'] == 'staged',
       );
     }
     // If this chunk is not editable by the current user, store the instance in
@@ -686,7 +679,6 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#submit' => array('chunks_field_form_submit'),
         '#op' => 'remove',
         '#weight' => 1,
-        '#disabled' => $chunk_state['view'] == 'staged',
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
           'class' => array($class_prepend . 'remove-button'),
@@ -778,7 +770,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           ),
           '#weight' => 2,
           '#ajax' => array(
-            'callback' => 'chunks_field_add_new_chunk_callback',
+            'callback' => 'chunks_field_add_chunk_callback',
+            'progress' => array('type' => 'none')
           ),
         ),
       );
@@ -888,7 +881,7 @@ function chunks_field_preview_callback($form, $form_state) {
 /**
  * Ajax callback for adding a new chunk.
  */
-function chunks_field_add_new_chunk_callback($form, $form_state) {
+function chunks_field_add_chunk_callback($form, $form_state) {
   $triggering_element = $form_state['triggering_element'];
   $parents = $triggering_element['#array_parents'];
   $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
@@ -902,11 +895,12 @@ function chunks_field_add_new_chunk_callback($form, $form_state) {
   $cells = array(
     array('data' => '', 'class' => array('field-multiple-drag')),
     array('data' => drupal_render($item), 'class' => array('item')),
-    array('data' => $delta_element, 'class' => array('delta-order')),
+    array('data' => $delta_element, 'class' => array('delta-order', 'tabledrag-hide')),
   );
+  $striping = ($delta + 1) % 2 == 0 ? 'even': 'odd';
   $row = array(
     'data' => $cells,
-    'class' => array('draggable', 'staged'),
+    'class' => array('draggable', 'chunk-row', 'staged', 'ajax-loaded', $striping),
     'id' => $field['#field_name'] . '-' . $delta . '-chunk-row',
   );
   $attributes = $row;
@@ -995,25 +989,6 @@ function chunks_field_form_submit($form, &$form_state) {
 
       case 'add_after':
 
-        // Remove any chunks from the form_state which have been removed on the
-        // client side through javascript.
-        $items_copy = $items;
-        $removed = FALSE;
-        foreach ($items_copy as $key => $item) {
-          if ($item['view'] == 'removed') {
-            // remove the chunk.
-            unset($items[$key]);
-            $removed = TRUE;
-
-            // decrement the items count and store the items in the field state.
-            $field_state['items_count']--;
-          }
-        }
-        if ($removed) {
-          $items = array_values($items);
-        }
-
-
         // Set weight for new chunk.
         $weight = $chunk_state['_weight'] + 1;
 
@@ -1031,15 +1006,6 @@ function chunks_field_form_submit($form, &$form_state) {
           '_weight' => $weight,
           'chunk' => array(),
         );
-
-        // Reset weights since the number of possible values (#delta) has
-        // changed and the current values might be out of scope.
-        usort($items, '_field_sort_items_helper');
-        foreach ($items as $key => $item) {
-          if (is_array($items[$key]) && isset($items[$key]['_weight'])) {
-            $items[$key]['_weight'] = $key;
-          }
-        }
 
         // Increment the items count and store the items in the field state.
         $field_state['items_count']++;
@@ -1457,15 +1423,16 @@ function theme_chunks_field_widget_form($variables) {
         array('data' => drupal_render($item), 'class' => array('item')),
         array('data' => $delta_element, 'class' => array('delta-order')),
       );
-      $row_class = array('draggable');
-      if ($item['view']['#value'] == 'staged') {
-        $row_class[] = 'staged';
-      }
+      $row_class = array('draggable', 'chunk-row');
       $rows[] = array(
         'data' => $cells,
         'class' => $row_class,
         'id' => $element['#field_name'] . '-' .  $key . '-chunk-row',
       );
+      if ($item['view']['#value'] == 'staged') {
+        $rows[$key + 1]['class'][] = 'staged';
+        $rows[$key + 1]['style'] = 'display: none;';
+      }
     }
 
     $output = '<div class="form-item">';

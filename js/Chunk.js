@@ -174,16 +174,12 @@
       var currentEvent;
       for (var i = 0; i < this.events.length; i++) {
         currentEvent = this.events[i];
-        $(currentEvent.selector, this.element).bind(currentEvent.events, currentEvent.handler);
-      }
-    };
 
-    // Destroy event handlers.
-    this.destroyEventHandlers = function() {
-      var currentEvent;
-      for (var i = 0; i < this.events.length; i++) {
-        currentEvent = this.events[i];
+        // Remove old event handler.
         $(currentEvent.selector, this.element).unbind(currentEvent.events);
+
+        // Bind the new events.
+        $(currentEvent.selector, this.element).bind(currentEvent.events, currentEvent.handler);
       }
     };
 
@@ -246,8 +242,8 @@
           // Switch to configuration view.
           thisChunk.setView('configuration');
 
-          // Set active class on the last chunk with user interaction.
-          thisChunk.field.setActiveChunk(thisChunk.delta);
+          // Set active field to prevent focus from jumping to a different chunks
+          // field.
           thisChunk.field.setActiveField();
 
           // Add focus to first configuration item.
@@ -326,8 +322,8 @@
           // Show cancel button.
           thisChunk.conditionalButtons.filter('.chunk-cancel-button').show();
 
-          // Set active class on the last chunk with user interaction.
-          thisChunk.field.setActiveChunk(thisChunk.delta);
+          // Set active field to prevent focus from jumping to a different chunks
+          // field.
           thisChunk.field.setActiveField();
 
           // Remove active state on button.
@@ -354,8 +350,8 @@
           // Switch to preview view.
           thisChunk.setView('preview');
 
-          // Set active class on the last chunk with user interaction.
-          thisChunk.field.setActiveChunk(thisChunk.delta);
+          // Set active field to prevent focus from jumping to a different chunks
+          // field.
           thisChunk.field.setActiveField();
 
           // Remove active state on button.
@@ -430,17 +426,8 @@
           // Show the currently hidden staged chunk after the current one.
           thisChunk.field.showStagedChunk('#' + thisChunk.field.fieldName + '-' + thisChunk.delta + '-chunk-row');
 
-          // Iterate over visible chunks to find the new chunk index which
-          // indicates which chunk will receive focus when the field is
-          // rebuilt. We cannot rely on deltas since they can change when
-          // the field is reloaded (for instance, if there are chunks queued
-          // for removal above this current chunk).
-          $('.chunk-wrapper:visible', thisChunk.field.field).each(function(vi, ve) {
-            if (parseInt($(ve).attr('delta'), 10) === thisChunk.delta) {
-              Drupal.settings.chunks[thisChunk.field.fieldName].newChunkIndex = vi + 1;
-              return false;
-            }
-          });
+          // Set all chunks to inactive so focus doesn't jump around.
+          thisChunk.field.deactivateChunks();
         }
       }
     });
@@ -465,15 +452,6 @@
 
     // Set initial view.
     this.setView(this.view);
-
-    // If this chunk was just added, focus the type selection form
-    // element.
-    if (delta === Drupal.settings.chunks[field.fieldName].newChunkIndex) {
-      // Set focus.
-      $(':input[name="' + this.namePrepend + '[instance]"]', element).first().focus();
-      // Reset index until we add another new chunk.
-      Drupal.settings.chunks[field.fieldName].newChunkIndex = undefined;
-    }
 
     // Switch to configuration view and save configuration when errors are detected.
     if ($(this.classPrepend + 'configuration .error', element).length > 0) {

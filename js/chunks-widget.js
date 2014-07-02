@@ -18,24 +18,20 @@
 
       // Create a new ChunksField object for each chunks field.
       $('.chunks-field', context).each(function(i, e) {
-        var fieldName;
+        var fieldName, chunksField;
 
         fieldName = $(this).attr('field_name');
 
         // Create a new instance of ChunksField.
-        Drupal.chunks.fields[fieldName] = new ChunksField(this);
+        chunksField = Drupal.chunks.fields[fieldName] = new ChunksField(this);
 
-      });
-    },
-    detach: function(context, settings) {
-      $('.chunks-field', context).each(function(i, e) {
-        var fieldName, chunksField;
+        // Prep any new staged chunks.
+        $('tr.staged.ajax-loaded', e).once(function() {
+          var chunksTable = Drupal.tableDrag[chunksField.classFieldName + '-values'];
+          chunksTable.makeDraggable(this);
+          chunksTable.hideColumns();
+        });
 
-        fieldName = $(this).attr('field_name');
-        chunksField = Drupal.chunks.fields[fieldName];
-
-        // Unbind all event handlers.
-        chunksField.destroyEventHandlers();
       });
     }
   };

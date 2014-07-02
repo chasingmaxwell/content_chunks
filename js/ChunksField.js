@@ -44,6 +44,12 @@
       }
     };
 
+    this.deactivateChunks = function() {
+      for (var d in this.chunks) {
+        this.chunks[d].setActiveState(false);
+      }
+    };
+
     this.setActiveField = function() {
       Drupal.settings.chunks.activeField = this.fieldName;
     };
@@ -60,12 +66,45 @@
 
       // Change view to instance_selection.
       stagedChunk.setView('instance_selection');
-
       stagedRow = stagedChunk.element.parents('tr.staged');
       stagedRow.removeClass('staged');
       stagedRow.insertAfter(prevSibling);
+      this.resetWeights();
       stagedRow.show();
+      // @TODO: This is causing the first radio in the instance selection field
+      // to be selected automatically when the user hits "enter". For some
+      // reason the usual setTimeout trick isn't working.
+      // $(':input[name="' + stagedChunk.namePrepend + '[instance]"]', stagedChunk.element).first().focus();
       this.resetStripes();
+    };
+
+    // Reset weights on chunk rows.
+    this.resetWeights = function() {
+      var options, total, value, rows, select, i, d, selected;
+
+      options = {};
+      total = ((this.chunksElements.length - 1) * 2) + 1;
+      value = -(this.chunksElements.length - 1);
+
+      // Create options.
+      for (i = 0; i < total; i++) {
+        options[i] = {
+          text: value,
+          value: value,
+        };
+        value++;
+      }
+
+      // Assign options to select elements.
+      rows = $('.chunk-row', this.element);
+      for (d = 0; d < rows.length; d++) {
+        select = $('.' + this.fieldName + '-delta-order', rows[d])[0];
+        select.options.length = 0;
+        for (i in options) {
+          selected = parseInt(i, 10) === d;
+          select.options[i] = new Option(options[i].text, options[i].value, false, selected);
+        }
+      }
     };
 
     // Reset odd/even striping on visible chunk rows.
@@ -75,7 +114,7 @@
         var delta, parentRow;
 
         delta = parseInt($(element).attr('delta'), 10);
-        parentRow = $('#' + this.fieldName + '-' + delta + '-chunk-row');
+        parentRow = $('#' + thisField.fieldName + '-' + delta + '-chunk-row');
 
         if (((i + 1) % 2) == 1) {
           parentRow.removeClass('even').addClass('odd');
@@ -91,24 +130,14 @@
       var currentEvent;
       for (var i = 0; i < this.events.length; i++) {
         currentEvent = this.events[i];
+
+        // Remove old event handler.
+        $(currentEvent.selector, this.element).unbind(currentEvent.events);
+
+        // Bind the new events.
         $(currentEvent.selector, this.element).bind(currentEvent.events, currentEvent.handler);
       }
     };
-
-    // Destroy event handlers.
-    this.destroyEventHandlers = function() {
-      var currentEvent;
-      for (var i = 0; i < this.events.length; i++) {
-        currentEvent = this.events[i];
-        $(currentEvent.selector, this.element).unbind(currentEvent.events);
-      }
-
-      // Destroy event handlers for chunks in the field.
-      for (var delta in this.chunks) {
-        this.chunks[delta].destroyEventHandlers();
-      }
-    };
-
 
     /**
      * Register event handlers.
@@ -123,10 +152,6 @@
 
           // show the currently hidden staged chunk above every other chunk.
           thisField.showStagedChunk('#' + thisField.fieldName + '-chunks-field .add-chunk-action-before-row');
-
-          // set the newchunkindex to 0 so we can properly focus it when the
-          // field is rebuilt.
-          Drupal.settings.chunks[thisField.fieldName].newChunkIndex = 0;
         }
       }
     });
@@ -139,9 +164,7 @@
     // Initiate event handlers.
     this.initiateEventHandlers();
 
-    // Retrieve chunks within this field. This will be immediately run when the
-    // ChunkField object is constructed and again whenever we need to refresh
-    // the Chunk objects connected to it.
+    // Retrieve chunks within this field.
     this.chunksElements.each(function() {
       var delta = parseInt($(this).attr('delta'), 10);
       thisField.chunks[delta] = new Chunk(this, thisField, delta);
