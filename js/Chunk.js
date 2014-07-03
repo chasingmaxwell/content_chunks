@@ -188,6 +188,10 @@
      * Register event handlers.
      */
 
+    // Unbind the click event for all buttons with ajax handlers so we can
+    // control that behavior manually.
+    $(this.classPrepend + 'preview-button, ' + this.classPrepend + 'remove-button.unlimited, ' + this.classPrepend + 'add-after-button', this.element).unbind('click');
+
     // Navigate instance radio buttons.
     this.events.push({
       'selector': ':input[name="' + this.namePrepend + '[instance]"]',
