@@ -368,9 +368,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'instances' => array(),
       ),
       'callbacks' => array(
-        'initialize' => new stdClass(),
-        'saveConfig' => new stdClass(),
-        'restoreConfig' => new stdClass(),
+        'initialize' => new stdClass,
+        'saveConfig' => new stdClass,
+        'restoreConfig' => new stdClass,
       ),
     ),
   );
@@ -555,6 +555,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           $field_name => array(
             'chunks' => array(
               $delta => $chunk_state,
+              'empty' => '',
             ),
           ),
         ),
@@ -771,6 +772,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           '#weight' => 2,
           '#ajax' => array(
             'callback' => 'chunks_field_add_chunk_callback',
+            'event' => 'click',
             'progress' => array('type' => 'none')
           ),
         ),
@@ -901,6 +903,7 @@ function chunks_field_add_chunk_callback($form, $form_state) {
   $row = array(
     'data' => $cells,
     'class' => array('draggable', 'chunk-row', 'staged', 'ajax-loaded', $striping),
+    'style' => 'display: none;',
     'id' => $field['#field_name'] . '-' . $delta . '-chunk-row',
   );
   $attributes = $row;

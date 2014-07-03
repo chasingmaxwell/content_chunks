@@ -29,6 +29,7 @@
     this.langcode = this.element.attr('langcode');
     this.chunksElements = $('.chunk-wrapper', element);
     this.chunks = {};
+    this.activeChunk = null;
     this.events = [];
 
 
@@ -41,6 +42,9 @@
       for (var d in this.chunks) {
         active = parseInt(d, 10) === delta;
         this.chunks[d].setActiveState(active);
+        if (active) {
+          this.activeChunk = this.chunks[d];
+        }
       }
     };
 
@@ -71,10 +75,7 @@
       stagedRow.insertAfter(prevSibling);
       this.resetWeights();
       stagedRow.show();
-      // @TODO: This is causing the first radio in the instance selection field
-      // to be selected automatically when the user hits "enter". For some
-      // reason the usual setTimeout trick isn't working.
-      // $(':input[name="' + stagedChunk.namePrepend + '[instance]"]', stagedChunk.element).first().focus();
+      this.setActiveChunk(stagedChunk.delta);
       this.resetStripes();
     };
 

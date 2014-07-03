@@ -262,10 +262,6 @@
         if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
           var preview;
 
-          // We will trigger the click event manually if we want this button
-          // to do anything outside this function.
-          e.preventDefault();
-
           // Hide cancel button.
           $(thisChunk.classPrepend + 'cancel-button', element).hide();
 
@@ -283,18 +279,10 @@
             // Build preview.
             preview = Drupal.theme('chunk__' + thisChunk.chunkType, Drupal.settings.chunks[thisChunk.field.fieldName].chunks[thisChunk.delta].configuration[thisChunk.chunkInstance], thisChunk.field.fieldName, thisChunk.field.langcode, thisChunk.delta);
             $(thisChunk.classPrepend + 'preview')[0].innerHTML = preview;
-
-            // Set focus to add chunk button.
-            setTimeout(function() {
-              thisChunk.addButton.focus();
-            }, 0);
-
-            // Remove active state on button.
-            thisChunk.removeActiveElementState(this);
           }
           else {
-            // Trigger click event so ajax call will fire.
-            $(this).trigger('click');
+            // Manually request an ajax event response.
+            Drupal.ajax[this.id].eventResponse(this, e);
           }
 
           // Switch to preview view.
@@ -303,6 +291,14 @@
           // Set active class on the last chunk with user interaction.
           thisChunk.field.setActiveChunk(thisChunk.delta);
           thisChunk.field.setActiveField();
+
+          // Set focus to add chunk button.
+          setTimeout(function() {
+            thisChunk.addButton.focus();
+          }, 0);
+
+          // Remove active state on button.
+          thisChunk.removeActiveElementState(this);
         }
       }
     });
@@ -421,24 +417,46 @@
       'selector': this.classPrepend + 'add-after-button',
       'events': 'keyup.chunkAdd mousedown.chunkAdd',
       'handler': function(e) {
-        if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+        if (e.type === 'mousedown' || (e.type === 'keyup' && e.keyCode === 13)) {
+
+          var fieldSettings = Drupal.settings.chunks[thisChunk.field.fieldName];
+
+          // Show a throbber if we have no staged chunk to show.
+          if (fieldSettings.loadingStaged) {
+            if (fieldSettings.queueNext === false) {
+              $(this).after('<div class="ajax-progress ajax-progress-throbber nothing-staged"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
+              fieldSettings.queueNext = thisChunk.delta;
+            }
+            return;
+          }
 
           // Show the currently hidden staged chunk after the current one.
           thisChunk.field.showStagedChunk('#' + thisChunk.field.fieldName + '-' + thisChunk.delta + '-chunk-row');
 
           // Set all chunks to inactive so focus doesn't jump around.
           thisChunk.field.deactivateChunks();
+
+          // Manually request an ajax event response.
+          Drupal.ajax[this.id].eventResponse(this, e);
+
+          setTimeout(function() {
+            var newChunk = thisChunk.field.activeChunk;
+            $(':input[name="' + newChunk.namePrepend + '[instance]"]', newChunk.element).first().focus();
+          }, 0);
+
+          fieldSettings.loadingStaged = true;
         }
       }
     });
 
-    // The edit, cancel, and remove buttons should never reload the page
-    // if javascript is enabled.
+    // Buttons shouldn't submit the form or make an ajax call unless we say so.
     this.events.push({
-      'selector': this.classPrepend + 'edit-button, ' + this.classPrepend + 'cancel-button, ' + this.classPrepend + 'remove-button.unlimited',
-      'events': 'click',
+      'selector': this.classPrepend + 'preview-button, ' + this.classPrepend + 'edit-button, ' + this.classPrepend + 'cancel-button, ' + this.classPrepend + 'remove-button.unlimited, ' + this.classPrepend + 'add-after-button',
+      'events': 'click.chunksPreventDefault keydown.chunksPreventDefault',
       'handler': function(e) {
-        e.preventDefault();
+        if (e.type === 'click' || e.type === 'keydown' && e.keyCode === 13) {
+          e.preventDefault();
+        }
       }
     });
 
@@ -460,7 +478,7 @@
     }
     // If no errors were detected, set the focus to the active chunk's add
     // button.
-    else if (this.active && Drupal.settings.chunks.activeField === this.field.fieldName) {
+    else if (document.activeElement.tagName === 'BODY' && this.active && Drupal.settings.chunks.activeField === this.field.fieldName) {
       this.addButton.focus();
       this.setActiveState(false);
     }
