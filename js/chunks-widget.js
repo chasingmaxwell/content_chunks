@@ -30,6 +30,8 @@
           // unset "empty" property. It's only purpose is to make sure the chunks
           // property is a dictionary instead of an array.
           delete fieldSettings.chunks.empty;
+
+          fieldSettings.queueNext = false;
         }
         // If we already have a ChunksField, perform update operations.
         else {

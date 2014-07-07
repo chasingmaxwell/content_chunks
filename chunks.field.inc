@@ -373,6 +373,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'initialize' => new stdClass,
         'saveConfig' => new stdClass,
         'restoreConfig' => new stdClass,
+        'stagedChunkShown' => new stdClass,
       ),
     ),
   );

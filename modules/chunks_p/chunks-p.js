@@ -7,7 +7,7 @@
 
   'use strict';
 
-  var autoAddChunk = {};
+  var autoAddChunks = [];
 
   // Instantiates the Pen editor.
   Drupal.behaviors.chunksPInPlace = {
@@ -150,27 +150,27 @@
             // Listen for the shortcut.
             $('.p-chunk-type-configuration .p-chunk[contenteditable], .p-chunk-type-configuration textarea', chunk.element).bind('keydown.chunksPShortcut', function(e) {
               if (event.keyCode === 13 && event.shiftKey) {
-
                 e.preventDefault();
 
-                // Add a new chunk and queue it to be added automatically as a
+                // Queue the staged chunk to be added automatically as a
                 // paragraph chunk.
-                chunk.addButton.trigger('mousedown');
+                autoAddChunks.push({chunkInstance: chunk.chunkInstance});
+                chunk.addButton.trigger({type: 'mousedown', which: 1});
                 $(this).trigger('blur');
-                autoAddChunk = {
-                  delta: chunk.delta + 1,
-                  chunkInstance: chunk.chunkInstance
-                };
               }
             });
           }
+        };
+      }
 
-          // If the chunk has no type, check if it was added automatically.
-          if (chunk.chunkType === '') {
-            if (chunk.delta === autoAddChunk.delta) {
-              $(':input[name="' + chunk.namePrepend + '[instance]"][value="' + autoAddChunk.chunkInstance + '"]', chunk.element).trigger('click.chunkInstanceSelected');
-              autoAddChunk = {};
-            }
+      if (typeof Drupal.settings.chunks.callbacks.stagedChunkShown.p === 'undefined') {
+        // Implements the stagedChunkShown callback to automatically add the
+        // staged chunk as a paragraph chunk if the shortcut set in the
+        // initialize callback was invoked.
+        Drupal.settings.chunks.callbacks.stagedChunkShown.p = function(chunk) {
+          if (autoAddChunks.length > 0) {
+            var addedChunk = autoAddChunks.shift();
+            $(':input[name="' + chunk.namePrepend + '[instance]"][value="' + addedChunk.chunkInstance + '"]', chunk.element).trigger('click.chunkInstanceSelected');
           }
         };
       }

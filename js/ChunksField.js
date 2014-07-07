@@ -71,6 +71,13 @@
       stagedRow.show();
       this.setActiveChunk(stagedChunk.delta);
       this.resetStripes();
+
+      // Provide a callback reacting against the showing of a staged chunk.
+      for (var chunkType in Drupal.settings.chunks.callbacks.stagedChunkShown) {
+        if (typeof Drupal.settings.chunks.callbacks.stagedChunkShown[chunkType] === 'function') {
+          Drupal.settings.chunks.callbacks.stagedChunkShown[chunkType](stagedChunk);
+        }
+      }
     };
 
     // Reset weights on chunk rows.
