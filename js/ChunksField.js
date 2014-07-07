@@ -16,26 +16,20 @@
   globals.ChunksField = function(element) {
 
     // Make it easier to reference this ChunksField when scope changes.
-    var thisField = this;
+    var thisField;
 
-
-    /**
-     * Public properties.
-     */
-
-    this.element = $(element);
-    this.fieldName = this.element.attr('field_name');
-    this.classFieldName = this.element.attr('field_name').replace(/_/g, '-');
-    this.langcode = this.element.attr('langcode');
-    this.chunksElements = $('.chunk-wrapper', element);
-    this.chunks = {};
-    this.activeChunk = null;
-    this.events = [];
-
-
-    /**
-     * Public methods.
-     */
+    this.setProperties = function(element) {
+      thisField = this;
+      this.element = $(element);
+      this.fieldName = this.element.attr('field_name');
+      this.classFieldName = this.element.attr('field_name').replace(/_/g, '-');
+      this.settings = Drupal.settings.chunks.fields[this.fieldName];
+      this.langcode = this.element.attr('langcode');
+      this.chunksElements = $('.chunk-wrapper', this.element);
+      this.chunks = this.chunks || {};
+      this.activeChunk = this.activeChunk || null;
+      this.events = this.events || [];
+    };
 
     this.setActiveChunk = function(delta) {
       var active;
@@ -127,88 +121,110 @@
     };
 
     // Initiate event handlers.
-    this.initiateEventHandlers = function() {
+    this.initializeEventHandlers = function() {
       var currentEvent;
+
+      // Unbind the click event on the add before button so we can controll ajax
+      // behavior manually.
+      $(':input[name="' + this.fieldName + '-add-before"]', this.element).unbind('click');
+
+      // add here (before)
+      this.events.push({
+        'selector': ':input[name="' + this.fieldName + '-add-before"]',
+        'events': 'keyup.chunkAdd mousedown.chunkAdd',
+        'handler': function(e) {
+          if ((e.type === 'mousedown' && e.which === 1) || e.type === 'keyup' && e.keyCode === 13) {
+
+            // Show a throbber if we have no staged chunk to show.
+            if (thisField.settings.loadingStaged) {
+              if (thisField.settings.queueNext === false) {
+                $(this).after('<div class="ajax-progress ajax-progress-throbber nothing-staged"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
+                thisField.settings.queueNext = 0;
+              }
+              return;
+            }
+
+            // show the currently hidden staged chunk above every other chunk.
+            thisField.showStagedChunk('#' + thisField.fieldName + '-chunks-field .add-chunk-action-before-row');
+
+            // Set all chunks to inactive so focus doesn't jump around.
+            thisField.deactivateChunks();
+
+            // Manually request an ajax event response.
+            Drupal.ajax[this.id].eventResponse(this, e);
+
+            setTimeout(function() {
+              var newChunk = thisField.activeChunk;
+              $(':input[name="' + newChunk.namePrepend + '[instance]"]', newChunk.element).first().focus();
+            }, 0);
+
+            thisField.settings.loadingStaged = true;
+          }
+        }
+      });
+
+      // Buttons shouldn't submit the form or make an ajax call unless we say so.
+      this.events.push({
+        'selector': ':input[name="' + this.fieldName + '-add-before"]',
+        'events': 'click.chunksPreventDefault keydown.chunksPreventDefault',
+        'handler': function(e) {
+          if (e.type === 'click' || (e.type === 'keydown' && e.keyCode === 13)) {
+            e.preventDefault();
+          }
+        }
+      });
+
+      // Unbind all old events and bind new ones.
       for (var i = 0; i < this.events.length; i++) {
         currentEvent = this.events[i];
-
-        // Remove old event handler.
         $(currentEvent.selector, this.element).unbind(currentEvent.events);
-
-        // Bind the new events.
         $(currentEvent.selector, this.element).bind(currentEvent.events, currentEvent.handler);
       }
     };
 
-    /**
-     * Register event handlers.
-     */
+    // Retrieve chunks contained within this field.
+    this.retrieveChunks = function() {
 
-    // Unbind the click event on the add before button so we can controll ajax
-    // behavior manually.
-    $(':input[name="' + this.fieldName + '-add-before"]', this.element).unbind('click');
+      // Retrieve or create new Chunks for this field.
+      this.chunksElements.each(function() {
+        var delta, chunk;
 
-    // add here (before)
-    this.events.push({
-      'selector': ':input[name="' + this.fieldName + '-add-before"]',
-      'events': 'keyup.chunkAdd mousedown.chunkAdd',
-      'handler': function(e) {
-        if ((e.type === 'mousedown' && e.which === 1) || e.type === 'keyup' && e.keyCode === 13) {
+        delta = parseInt($(this).attr('delta'), 10);
+        chunk = thisField.chunks[delta];
 
-          var fieldSettings = Drupal.settings.chunks[thisField.fieldName];
-
-          // Show a throbber if we have no staged chunk to show.
-          if (fieldSettings.loadingStaged) {
-            if (fieldSettings.queueNext === false) {
-              $(this).after('<div class="ajax-progress ajax-progress-throbber nothing-staged"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
-              fieldSettings.queueNext = 0;
-            }
-            return;
+        if (typeof chunk === 'undefined') {
+          thisField.chunks[delta] = new Chunk(this, thisField, delta);
+        }
+        else if (chunk.needsReset && !chunk.previewLoading) {
+          chunk.setProperties(this, thisField, delta);
+          chunk.initializeEventHandlers();
+          if (chunk.errors.length > 0) {
+            chunk.setView('configuration');
+            chunk.errors.first().focus();
           }
-
-          // show the currently hidden staged chunk above every other chunk.
-          thisField.showStagedChunk('#' + thisField.fieldName + '-chunks-field .add-chunk-action-before-row');
-
-          // Set all chunks to inactive so focus doesn't jump around.
-          thisField.deactivateChunks();
-
-          // Manually request an ajax event response.
-          Drupal.ajax[this.id].eventResponse(this, e);
-
-          setTimeout(function() {
-            var newChunk = thisField.activeChunk;
-            $(':input[name="' + newChunk.namePrepend + '[instance]"]', newChunk.element).first().focus();
-          }, 0);
-
-          fieldSettings.loadingStaged = true;
+          else {
+            chunk.setView(chunk.view);
+            // If the user didn't interact with the form while the preview was
+            // loading, the focus is set to the body when the markup is
+            // inserted. Let's put them back where they were.
+            if (document.activeElement.tagName === 'BODY') {
+              chunk.addButton.focus();
+            }
+          }
+          chunk.needsReset = false;
         }
-      }
-    });
-
-    // Buttons shouldn't submit the form or make an ajax call unless we say so.
-    this.events.push({
-      'selector': ':input[name="' + this.fieldName + '-add-before"]',
-      'events': 'click.chunksPreventDefault keydown.chunksPreventDefault',
-      'handler': function(e) {
-        if (e.type === 'click' || (e.type === 'keydown' && e.keyCode === 13)) {
-          e.preventDefault();
-        }
-      }
-    });
+      });
+    };
 
 
     /**
      * Perform initial operations.
      */
 
-    // Initiate event handlers.
-    this.initiateEventHandlers();
+    this.setProperties(element);
+    this.initializeEventHandlers();
+    this.retrieveChunks();
 
-    // Retrieve chunks within this field.
-    this.chunksElements.each(function() {
-      var delta = parseInt($(this).attr('delta'), 10);
-      thisField.chunks[delta] = new Chunk(this, thisField, delta);
-    });
   };
 
 })(this, jQuery);

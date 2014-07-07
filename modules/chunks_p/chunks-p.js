@@ -18,7 +18,7 @@
 
         fieldName = $(this).attr('field_name');
         langcode = $(this).attr('langcode');
-        fieldSettings = settings.chunks[fieldName];
+        fieldSettings = settings.chunks.fields[fieldName];
 
         // Don't do anything if the Pen library isn't loaded.
         if (typeof Pen !== 'function') {
@@ -108,7 +108,7 @@
 
           // Only do anything if this instance of the chunk type is set to be
           // edited in-place.
-          if (Drupal.settings.chunks[fieldName].instances[chunkInstance].settings.edit_in_place) {
+          if (Drupal.settings.chunks.fields[fieldName].instances[chunkInstance].settings.edit_in_place) {
             var classFieldName, pConfig, configuration, configState, inPlaceEditor;
 
             classFieldName = fieldName.replace(/_/g, '-');
@@ -117,7 +117,7 @@
             // Make a copy of the configuration and add the edit_in_place
             // property so we can render a contenteditable paragraph chunk
             // without changing the configuration settings for the chunk.
-            configState = Drupal.settings.chunks[fieldName].chunks[delta].configuration[chunkInstance];
+            configState = Drupal.settings.chunks.fields[fieldName].chunks[delta].configuration[chunkInstance];
             configuration = {};
             for (var prop in configState) {
               configuration[prop] = configState[prop];

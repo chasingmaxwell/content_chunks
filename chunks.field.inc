@@ -364,8 +364,10 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // Prepare settings array for drupal_add_js.
   $js_settings = array(
     'chunks' => array(
-      $field_name => array(
-        'instances' => array(),
+      'fields' => array(
+        $field_name => array(
+          'instances' => array(),
+        ),
       ),
       'callbacks' => array(
         'initialize' => new stdClass,
@@ -382,7 +384,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   $form['#chunk_types'] = $chunk_types;
 
   // Force the list of chunks to be a dictionary instead of an array.
-  $js_settings['chunks'][$field_name]['chunks']['empty'] = '';
+  $js_settings['chunks']['fields'][$field_name]['chunks']['empty'] = '';
 
   // Process chunk instances.
   $chunk_instances = $instance['settings']['chunk_instances'];
@@ -401,7 +403,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     }
 
     // Store each chunk instance in JavaScript settings.
-    $js_settings['chunks'][$field_name]['instances'][$name] = $chunk_instance;
+    $js_settings['chunks']['fields'][$field_name]['instances'][$name] = $chunk_instance;
 
     // Check the current user's permission to edit the chunk instance.
     if (!user_access('use_' . $chunk_type->name . '_chunk') || !$chunk_type->isAllowed($chunk_instance['settings'], $field, $instance, $langcode)) {
@@ -551,10 +553,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     $row['#attached']['js'][] = array(
       'data' => array(
         'chunks' => array(
-          $field_name => array(
-            'chunks' => array(
-              $delta => $chunk_state,
-              'empty' => '',
+          'fields' => array(
+            $field_name => array(
+              'chunks' => array(
+                $delta => $chunk_state,
+                'empty' => '',
+              ),
             ),
           ),
         ),
@@ -847,9 +851,11 @@ function chunks_field_form_callback($form, $form_state) {
   $field['#attached']['js'][] = array(
     'data' => array(
       'chunks' => array(
-        $field['#field_name'] => array(
-          'chunks' => array(
-            'empty' => '',
+        'fields' => array(
+          $field['#field_name'] => array(
+            'chunks' => array(
+              'empty' => '',
+            ),
           ),
         ),
       ),
@@ -874,6 +880,19 @@ function chunks_field_preview_callback($form, $form_state) {
 
   // Add active class to chunk wrapper.
   $element['#prefix'] = '<div id="' . $element['#field_name'] . '-' . $delta . '-chunk' . '" class="chunk-wrapper active" delta="' . $delta . '">';
+
+  // Use JavaScript settings to inform the application of the loaded preview.
+  $element['#attached']['js'][] = array(
+    'data' => array(
+      'chunks' => array(
+        'previewLoaded' => array(
+          'fieldName' => $element['#field_name'],
+          'delta' => $delta,
+        ),
+      ),
+    ),
+    'type' => 'setting',
+  );
 
   return drupal_render($element);
 }
