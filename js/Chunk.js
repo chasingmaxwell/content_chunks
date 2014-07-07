@@ -221,7 +221,7 @@
       'selector': ':input[name="' + this.namePrepend + '[instance]"]',
       'events': 'keyup.chunkInstanceSelected click.chunkInstanceSelected',
       'handler': function(e) {
-        if (e.type === 'click' || e.type === 'keyup' && e.keyCode === 13) {
+        if (e.type === 'click' || (e.type === 'keyup' && e.keyCode === 13)) {
 
           // Make sure the proper radio is checked and the change event has
           // fired.
@@ -263,7 +263,7 @@
       'selector': this.classPrepend + 'preview-button',
       'events': 'keyup.chunkPreview mousedown.chunkPreview',
       'handler': function(e) {
-        if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+        if ((e.type === 'mousedown' && e.which === 1) || (e.type === 'keyup' && e.keyCode === 13)) {
           var preview;
 
           // Hide cancel button.
@@ -312,7 +312,7 @@
       'selector': this.classPrepend + 'edit-button',
       'events': 'keyup.chunkEdit mousedown.chunkEdit',
       'handler': function(e) {
-        if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+        if ((e.type === 'mousedown' && e.which === 1) || (e.type === 'keyup' && e.keyCode === 13)) {
           thisChunk.chunkInstance = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
           thisChunk.chunkType = Drupal.settings.chunks[thisChunk.field.fieldName].instances[thisChunk.chunkInstance].type;
 
@@ -342,7 +342,7 @@
       'selector': this.classPrepend + 'cancel-button',
       'events': 'keyup.chunkEditCancel mousedown.chunkEditCancel',
       'handler': function(e) {
-        if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+        if ((e.type === 'mousedown' && e.which === 1) || (e.type === 'keyup' && e.keyCode === 13)) {
 
           // Hide cancel button.
           $(this).hide();
@@ -373,7 +373,7 @@
       'selector': this.classPrepend + 'remove-button',
       'events': 'keyup.chunkRemove mousedown.chunkRemove',
       'handler': function(e) {
-        if (e.type === 'mousedown' || e.type === 'keyup' && e.keyCode === 13) {
+        if ((e.type === 'mousedown' && e.which === 1) || (e.type === 'keyup' && e.keyCode === 13)) {
 
           // Retrieve all currently visible chunks.
           var visibleChunks = $('.chunk-wrapper:visible', thisChunk.field.field);
@@ -421,7 +421,7 @@
       'selector': this.classPrepend + 'add-after-button',
       'events': 'keyup.chunkAdd mousedown.chunkAdd',
       'handler': function(e) {
-        if (e.type === 'mousedown' || (e.type === 'keyup' && e.keyCode === 13)) {
+        if ((e.type === 'mousedown' && e.which === 1) || (e.type === 'keyup' && e.keyCode === 13)) {
 
           var fieldSettings = Drupal.settings.chunks[thisChunk.field.fieldName];
 
@@ -429,7 +429,7 @@
           if (fieldSettings.loadingStaged) {
             if (fieldSettings.queueNext === false) {
               $(this).after('<div class="ajax-progress ajax-progress-throbber nothing-staged"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
-              fieldSettings.queueNext = thisChunk.delta;
+              fieldSettings.queueNext = thisChunk.delta + 1;
             }
             return;
           }
@@ -458,7 +458,7 @@
       'selector': this.classPrepend + 'preview-button, ' + this.classPrepend + 'edit-button, ' + this.classPrepend + 'cancel-button, ' + this.classPrepend + 'remove-button.unlimited, ' + this.classPrepend + 'add-after-button',
       'events': 'click.chunksPreventDefault keydown.chunksPreventDefault',
       'handler': function(e) {
-        if (e.type === 'click' || e.type === 'keydown' && e.keyCode === 13) {
+        if (e.type === 'click' || (e.type === 'keydown' && e.keyCode === 13)) {
           e.preventDefault();
         }
       }

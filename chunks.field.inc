@@ -422,13 +422,11 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   }
 
   // Set maximum number of items to display.
-  switch ($field['cardinality']) {
-    case FIELD_CARDINALITY_UNLIMITED:
-      $max = $field_state['items_count'] + 1;
-      break;
-    default:
-      $max = $field['cardinality'] - 1;
-      break;
+  if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+    $max = $field_state['items_count'] + 1;
+  }
+  else {
+    $max = $field['cardinality'] - 1;
   }
 
   $path = drupal_get_path('module', 'chunks');
@@ -468,13 +466,14 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#type' => 'submit',
         '#name' => $field_name . '-add-before',
         '#value' => t('+ Add here'),
-        '#submit' => array('chunks_field_add_before'),
+        '#submit' => array('chunks_field_form_submit'),
         '#op' => 'add_before',
         '#limit_validation_errors' => array(array($field_name)),
         '#weight' => 2,
         '#ajax' => array(
-          'callback' => 'chunks_field_form_callback',
-          'wrapper' => $wrapper_id,
+          'callback' => 'chunks_field_add_chunk_callback',
+          'event' => 'click',
+          'progress' => array('type' => 'none')
         ),
       ),
     );
@@ -830,19 +829,18 @@ function chunks_field_build_preview($element, &$form_state) {
 
 
 /**
- * Ajax callback for chunk operations.
+ * Ajax callback which returns the entire chunks field.
  */
 function chunks_field_form_callback($form, $form_state) {
   $triggering_element = $form_state['triggering_element'];
   $parents = $triggering_element['#array_parents'];
+
   // Retrieve and return the chunk field.
-  switch ($triggering_element['#op']) {
-    case 'add_before':
-      $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
-      break;
-    default:
-      $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
-      break;
+  if ($triggering_element['#op'] == 'add_before') {
+    $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
+  }
+  else {
+    $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
   }
 
   // Force the list of chunks to be a dictionary instead of an array.
@@ -886,7 +884,15 @@ function chunks_field_preview_callback($form, $form_state) {
 function chunks_field_add_chunk_callback($form, $form_state) {
   $triggering_element = $form_state['triggering_element'];
   $parents = $triggering_element['#array_parents'];
-  $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+
+  // Retrieve and return the chunk field.
+  if ($triggering_element['#op'] == 'add_before') {
+    $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
+  }
+  else {
+    $field = drupal_array_get_nested_value($form, array_slice($parents, 0, -3));
+  }
+
   $items = element_children($field);
   $delta = array_pop($items);
   $item = $field[$delta];
@@ -947,9 +953,17 @@ function chunks_field_form_submit($form, &$form_state) {
   $field_name = $element['#field_name'];
   $language = $element['#language'];
   $element_parents = $element['#field_parents'];
-  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -3));
-  $delta = $parents[count($parents)-3];
-  $chunk_state = &$items[$delta];
+  $depth = $triggering_element['#op'] == 'add_before' ? -2 : -3;
+  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, $depth));
+
+  // If the triggering element is performing operations on a specific chunk, get
+  // the delta and chunk state.
+  if ($triggering_element['#op'] != 'add_before') {
+    $delta = $parents[count($parents)-3];
+    $chunk_state = &$items[$delta];
+  }
+
+  // Retrieve the field state.
   $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
 
   // Remove the add_before_action section from items since it does not contain
@@ -973,6 +987,7 @@ function chunks_field_form_submit($form, &$form_state) {
         break;
 
       case 'remove':
+
         // Remove the chunk. Should only be run when javascript is disabled.
         unset($items[$delta]);
         $items = array_values($items);
@@ -1013,6 +1028,26 @@ function chunks_field_form_submit($form, &$form_state) {
         // Increment the items count and store the items in the field state.
         $field_state['items_count']++;
         break;
+
+      case 'add_before':
+
+        // Retrieve the lowest weight.
+        $weight = 0;
+        foreach ($items as $key => $item) {
+          if (isset($item['_weight']) && $weight >= $item['_weight']) {
+            $weight = $item['_weight'] - 1;
+          }
+        }
+
+        // Create empty chunk with the lowest weight.
+        $items[] = array(
+          '_weight' => $weight,
+          'chunk' => array(),
+        );
+
+        // Increment the items count and store the items in the field state.
+        $field_state['items_count']++;
+        break;
     }
   }
 
@@ -1021,80 +1056,8 @@ function chunks_field_form_submit($form, &$form_state) {
   field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
 
   // Save changes to the form state.
-  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -3), $items);
-  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -3), $items);
-
-  $form_state['rebuild'] = TRUE;
-}
-
-/**
- * Submission handler for adding chunks to the beginning of a chunk field.
- */
-function chunks_field_add_before($form, &$form_state) {
-  $triggering_element = $form_state['triggering_element'];
-  $parents = $triggering_element['#array_parents'];
-  $element = drupal_array_get_nested_value($form, array_slice($parents, 0, -2));
-  $field_name = $element['#field_name'];
-  $language = $element['#language'];
-  $element_parents = $element['#field_parents'];
-  $field_state = field_form_get_state($element_parents, $field_name, $language, $form_state);
-  $items = drupal_array_get_nested_value($form_state['values'], array_slice($parents, 0, -2));
-
-  // Remove the add_before_action section from items since it does not contain
-  // field values.
-  if (isset($items['add_before_action'])) {
-    unset($items['add_before_action']);
-  }
-
-  // Remove any chunks from the form_state which have been removed on the
-  // client side.
-  $items_copy = $items;
-  $removed = FALSE;
-  foreach ($items_copy as $key => $item) {
-    if ($item['view'] == 'removed') {
-      // remove the chunk.
-      unset($items[$key]);
-      $removed = TRUE;
-
-      // decrement the items count and store the items in the field state.
-      $field_state['items_count']--;
-    }
-  }
-  if ($removed) {
-    $items = array_values($items);
-  }
-
-  // Retrieve the lowest weight.
-  $weight = 0;
-  foreach ($items as $key => $item) {
-    if (isset($item['_weight']) && $weight >= $item['_weight']) {
-      $weight = $item['_weight'] - 1;
-    }
-  }
-
-  // Create empty chunk with the lowest weight.
-  $items[] = array(
-    '_weight' => $weight,
-    'chunk' => array(),
-  );
-
-  // Reset weights since the number of possible values (#delta) has
-  // changed and the current values might be out of scope.
-  usort($items, '_field_sort_items_helper');
-  foreach ($items as $key => $item) {
-    if (is_array($items[$key]) && isset($items[$key]['_weight'])) {
-      $items[$key]['_weight'] = $key;
-    }
-  }
-
-  // Increment the items count.
-  $field_state['items_count']++;
-  $field_state['items'] = $items;
-  field_form_set_state($element_parents, $field_name, $language, $form_state, $field_state);
-
-  // Save changes to the form state.
-  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, -2), $items);
-  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, -2), $items);
+  drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, $depth), $items);
+  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, $depth), $items);
 
   $form_state['rebuild'] = TRUE;
 }

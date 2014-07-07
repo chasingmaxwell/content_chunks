@@ -144,15 +144,54 @@
      * Register event handlers.
      */
 
+    // Unbind the click event on the add before button so we can controll ajax
+    // behavior manually.
+    $(':input[name="' + this.fieldName + '-add-before"]', this.element).unbind('click');
+
     // add here (before)
     this.events.push({
       'selector': ':input[name="' + this.fieldName + '-add-before"]',
-      'events': 'keyup.chunkadd mousedown.chunkadd',
+      'events': 'keyup.chunkAdd mousedown.chunkAdd',
       'handler': function(e) {
-        if (e.type === 'mousedown' || e.type === 'keyup' && e.keycode === 13) {
+        if ((e.type === 'mousedown' && e.which === 1) || e.type === 'keyup' && e.keyCode === 13) {
+
+          var fieldSettings = Drupal.settings.chunks[thisField.fieldName];
+
+          // Show a throbber if we have no staged chunk to show.
+          if (fieldSettings.loadingStaged) {
+            if (fieldSettings.queueNext === false) {
+              $(this).after('<div class="ajax-progress ajax-progress-throbber nothing-staged"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
+              fieldSettings.queueNext = 0;
+            }
+            return;
+          }
 
           // show the currently hidden staged chunk above every other chunk.
           thisField.showStagedChunk('#' + thisField.fieldName + '-chunks-field .add-chunk-action-before-row');
+
+          // Set all chunks to inactive so focus doesn't jump around.
+          thisField.deactivateChunks();
+
+          // Manually request an ajax event response.
+          Drupal.ajax[this.id].eventResponse(this, e);
+
+          setTimeout(function() {
+            var newChunk = thisField.activeChunk;
+            $(':input[name="' + newChunk.namePrepend + '[instance]"]', newChunk.element).first().focus();
+          }, 0);
+
+          fieldSettings.loadingStaged = true;
+        }
+      }
+    });
+
+    // Buttons shouldn't submit the form or make an ajax call unless we say so.
+    this.events.push({
+      'selector': ':input[name="' + this.fieldName + '-add-before"]',
+      'events': 'click.chunksPreventDefault keydown.chunksPreventDefault',
+      'handler': function(e) {
+        if (e.type === 'click' || (e.type === 'keydown' && e.keyCode === 13)) {
+          e.preventDefault();
         }
       }
     });

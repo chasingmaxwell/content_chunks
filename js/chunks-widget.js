@@ -43,7 +43,12 @@
         fieldSettings.loadingStaged = false;
         if (typeof fieldSettings.queueNext !== 'undefined' && fieldSettings.queueNext !== false) {
           $('.ajax-progress.nothing-staged', chunksField.element).remove();
-          chunksField.chunks[fieldSettings.queueNext].addButton.trigger('mousedown');
+          if (fieldSettings.queueNext > 0) {
+            chunksField.chunks[fieldSettings.queueNext - 1].addButton.trigger({type: 'mousedown', which: 1});
+          }
+          else {
+            $(':input[name="' + fieldName  + '-add-before"]', chunksField.element).trigger({type: 'mousedown', which: 1});
+          }
         }
         fieldSettings.queueNext = false;
 
