@@ -399,6 +399,24 @@
         }
       });
 
+      // Reset.
+      this.events.push({
+        'selector': this.classPrepend + 'reset-button',
+        'events': 'keyup.chunkReset mousedown.chunkReset',
+        'handler': function(e) {
+          if ((e.type === 'mousedown' && e.which === 1) || (e.type === 'keyup' && e.keyCode === 13)) {
+
+            // Remove settings and Chunk object.
+            delete thisChunk.field.settings.chunks[thisChunk.delta];
+            delete thisChunk.field.chunks[thisChunk.delta];
+
+            // Set active field to prevent focus from jumping to a different chunks
+            // field.
+            thisChunk.field.setActiveField();
+          }
+        }
+      });
+
       // Add here (after)
       this.events.push({
         'selector': this.classPrepend + 'add-after-button',

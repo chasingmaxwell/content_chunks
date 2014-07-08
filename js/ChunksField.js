@@ -220,6 +220,9 @@
           }
           chunk.needsReset = false;
         }
+        else {
+          chunk.setView(chunk.view);
+        }
       });
     };
 

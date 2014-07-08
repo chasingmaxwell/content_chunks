@@ -678,32 +678,41 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'class' => array('chunk-actions'),
       ),
       '#weight' => 1,
-      'remove' => array(
-        '#type' => 'submit',
-        '#name' => $id_prefix . '-' . $delta . '-remove',
-        '#submit' => array('chunks_field_form_submit'),
-        '#op' => 'remove',
-        '#weight' => 1,
-        '#limit_validation_errors' => array(array($field_name)),
-        '#attributes' => array(
-          'class' => array($class_prepend . 'remove-button'),
-        ),
-      ),
     );
 
     // Handle the remove button differently depending on the cardinality
     // settings.
     if ($field['cardinality'] != FIELD_CARDINALITY_UNLIMITED) {
-      $row['chunk_actions']['remove']['#ajax'] = array(
-        'callback' => 'chunks_field_form_callback',
-        'wrapper' => $wrapper_id,
+      $row['chunk_actions']['reset'] = array(
+        '#type' => 'submit',
+        '#name' => $id_prefix . '-' . $delta . '-reset',
+        '#submit' => array('chunks_field_form_submit'),
+        '#op' => 'reset',
+        '#value' => t('Reset'),
+        '#weight' => 1,
+        '#limit_validation_errors' => array(array($field_name)),
+        '#attributes' => array(
+          'class' => array($class_prepend . 'reset-button', 'limited'),
+        ),
+        '#ajax' => array(
+          'callback' => 'chunks_field_form_callback',
+          'wrapper' => $wrapper_id,
+        ),
       );
-      $row['chunk_actions']['remove']['#attributes']['class'][] = 'limited';
-      $row['chunk_actions']['remove']['#value'] = t('Reset');
     }
     else {
-      $row['chunk_actions']['remove']['#attributes']['class'][] = 'unlimited';
-      $row['chunk_actions']['remove']['#value'] = t('Remove');
+      $row['chunk_actions']['remove'] = array(
+        '#type' => 'submit',
+        '#name' => $id_prefix . '-' . $delta . '-remove',
+        '#submit' => array('chunks_field_form_submit'),
+        '#op' => 'remove',
+        '#value' => t('Remove'),
+        '#weight' => 1,
+        '#limit_validation_errors' => array(array($field_name)),
+        '#attributes' => array(
+          'class' => array($class_prepend . 'remove-button', 'unlimited'),
+        ),
+      );
     }
 
     // Display chunk editing actions if the current chunk is of an allowed
@@ -1007,19 +1016,11 @@ function chunks_field_form_submit($form, &$form_state) {
         break;
 
       case 'remove':
+      case 'reset':
 
         // Remove the chunk. Should only be run when javascript is disabled.
         unset($items[$delta]);
         $items = array_values($items);
-
-        // Reset weights since the number of possible values (#delta) has
-        // changed and the current values might be out of scope.
-        usort($items, '_field_sort_items_helper');
-        foreach ($items as $key => $item) {
-          if (is_array($items[$key]) && isset($items[$key]['_weight'])) {
-            $items[$key]['_weight'] = $key;
-          }
-        }
 
         // decrement the items count and store the items in the field state.
         $field_state['items_count']--;
@@ -1030,18 +1031,40 @@ function chunks_field_form_submit($form, &$form_state) {
         // Set weight for new chunk.
         $weight = $chunk_state['_weight'] + 1;
 
-        // Increase weights for all items with a weight equal to or higher than
-        // the new chunk so the new chunk will have a unique weight.
+        // Keep track of highest weight so we can use it to determine the weight
+        // of our new staged chunk.
+        $highest_weight = $weight;
+
         foreach ($items as $key => $item) {
+
+          // The staged item is the new item which will be shown to the user.
+          if ($item['view'] == 'staged') {
+            $items[$key]['view'] = 'instance_selection';
+            $items[$key]['_weight'] = (string) $weight;
+            continue;
+          }
+
+          // Do not continue if the current item has a weight less than $weight.
           if (!isset($items[$key]['_weight']) || $items[$key]['_weight'] < $weight) {
             continue;
           }
+
+          // Increment weights for all items with a weight equal to or higher
+          // than the new chunk.
           $items[$key]['_weight']++;
+
+          // Store heighest weight.
+          if ($items[$key]['_weight'] > $highest_weight) {
+            $highest_weight = $items[$key]['_weight'];
+          }
+
+          // Convert weights back to strings.
+          $items[$key]['_weight'] = (string) $items[$key]['_weight'];
         }
 
         // Add empty chunk now that it's weight is unique.
         $items[] = array(
-          '_weight' => $weight,
+          '_weight' => (string) $highest_weight + 1,
           'chunk' => array(),
         );
 
@@ -1051,17 +1074,33 @@ function chunks_field_form_submit($form, &$form_state) {
 
       case 'add_before':
 
-        // Retrieve the lowest weight.
-        $weight = 0;
+        $weight = $highest_weight = 0;
+
         foreach ($items as $key => $item) {
+
+          // Find the staged item.
+          if ($item['view'] == 'staged') {
+            $staged_item = &$items[$key];
+          }
+
+          // Store the lowest weight.
           if (isset($item['_weight']) && $weight >= $item['_weight']) {
             $weight = $item['_weight'] - 1;
           }
+
+          // Store heighest weight.
+          if ($items[$key]['_weight'] > $highest_weight) {
+            $highest_weight = $items[$key]['_weight'];
+          }
         }
+
+        // Change weight and view for staged chunk.
+        $staged_item['_weight'] = (string) $weight;
+        $staged_item['view'] = 'instance_selection';
 
         // Create empty chunk with the lowest weight.
         $items[] = array(
-          '_weight' => $weight,
+          '_weight' => (string) $highest_weight,
           'chunk' => array(),
         );
 
