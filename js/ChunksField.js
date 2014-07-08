@@ -199,7 +199,7 @@
         delta = parseInt($(this).attr('delta'), 10);
         chunk = thisField.chunks[delta];
 
-        if (typeof chunk === 'undefined') {
+        if (typeof chunk === 'undefined' || !thisField.settings.unlimited) {
           thisField.chunks[delta] = new Chunk(this, thisField, delta);
         }
         else if (chunk.needsReset && !chunk.previewLoading) {
@@ -219,9 +219,6 @@
             }
           }
           chunk.needsReset = false;
-        }
-        else {
-          chunk.setView(chunk.view);
         }
       });
     };

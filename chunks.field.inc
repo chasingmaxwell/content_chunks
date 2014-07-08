@@ -366,6 +366,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     'chunks' => array(
       'fields' => array(
         $field_name => array(
+          'unlimited' => $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED,
           'instances' => array(),
         ),
       ),
@@ -544,7 +545,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       $chunk_state['allowed'] = FALSE;
     }
 
-    if ($delta == $max && $field['cardinality'] !== '1') {
+    if ($delta == $max && $field['cardinality'] === FIELD_CARDINALITY_UNLIMITED) {
       // The last chunk should be hidden. It will appear when adding a new chunk
       // so that the editor will see an immediate response.
       $chunk_state['view'] = 'staged';

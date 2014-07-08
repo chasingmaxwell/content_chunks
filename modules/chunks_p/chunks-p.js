@@ -142,7 +142,7 @@
 
           // Only perform certain actions if the current chunk is not assigned
           // to a different type.
-          if (chunk.chunkType === '' || chunk.chunkType === 'p') {
+          if (chunk.field.settings.unlimited && (chunk.chunkType === '' || chunk.chunkType === 'p')) {
 
             // Add tip so users know about the shortcut.
             $('.p-chunk-type-configuration', chunk.element).append('<div class="description"><strong>Tip:</strong> press <em>Shift + Enter</em> to start writing a new paragraph below this one.</div>');
@@ -169,7 +169,7 @@
         // staged chunk as a paragraph chunk if the shortcut set in the
         // initialize callback was invoked.
         Drupal.settings.chunks.callbacks.stagedChunkShown.p = function(chunk) {
-          if (autoAddChunks.length > 0) {
+          if (chunk.field.settings.unlimited && autoAddChunks.length > 0) {
             var addedChunk = autoAddChunks.shift();
             $(':input[name="' + chunk.namePrepend + '[instance]"][value="' + addedChunk.chunkInstance + '"]', chunk.element).trigger('click.chunkInstanceSelected');
           }
