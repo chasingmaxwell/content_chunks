@@ -16,7 +16,7 @@ function chunks_p_chunk_types() {
         'p' => '',
       ),
       'default type settings' => array(
-        'edit_in_place' => 1,
+        'edit_in_place' => 0,
       ),
       'client themeable' => TRUE,
     ),
@@ -52,35 +52,41 @@ function chunks_p_libraries_info() {
 /**
  * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
  */
-function chunks_p_p_chunk_type_settings_form($field, $settings) {
-  $form = array();
+function chunks_p_p_chunk_type_settings_form($chunk_instance, $delta, $form, &$form_state) {
 
-  $form['edit_in_place'] = array(
+  $settings = $chunk_instance['settings'];
+
+  $instance_settings_form = array();
+
+  $instance_settings_form['edit_in_place'] = array(
     '#type' => 'checkbox',
     '#title' => t('Edit paragraphs in-place'),
     '#default_value' => $settings['edit_in_place'],
   );
 
-  $form['edit_in_place']['#description'] = t('This setting requires the libraries module (https://drupal.org/project/libraries) and the pen library (https://github.com/sofish/pen).');
-  $form['edit_in_place']['#description'] .= '<br>';
-  $form['edit_in_place']['#description'] .= t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when rendering an editable chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and thus supplying the data with which to generate the html.');
+  $instance_settings_form['edit_in_place']['#description'] = t('This setting requires the libraries module (https://drupal.org/project/libraries) and the pen library (https://github.com/sofish/pen).');
+  $instance_settings_form['edit_in_place']['#description'] .= '<br>';
+  $instance_settings_form['edit_in_place']['#description'] .= t('<strong>WARNING:</strong> This bypasses Drupal\'s server-side theming and input filtering processes when rendering an editable chunk. Any potential security vulnerability is mitigated by the fact that unfiltered html is only displayed to the user currently editing, and thus supplying the data with which to generate the html.');
 
   // Do not allow the edit_in_place setting to be configured if the pen library
   // does not exist.
   $library = module_exists('libraries') ? libraries_detect('pen') : array('installed' => FALSE);
   if (!$library['installed']) {
-    $form['edit_in_place']['#default_value'] = 0;
-    $form['edit_in_place']['#value'] = 0;
-    $form['edit_in_place']['#disabled'] = TRUE;
+    $instance_settings_form['edit_in_place']['#default_value'] = 0;
+    $instance_settings_form['edit_in_place']['#value'] = 0;
+    $instance_settings_form['edit_in_place']['#disabled'] = TRUE;
   }
 
-  return $form;
+  return $instance_settings_form;
 }
 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
-function chunks_p_p_chunk_form(&$configuration, $settings, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+function chunks_p_p_chunk_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+
+  $settings = $chunk_instance['settings'];
+
   $config_form = array();
 
   // This field holds the data and interacts with Drupal. It will be hidden if
@@ -110,9 +116,12 @@ function chunks_p_p_chunk_form(&$configuration, $settings, $form, &$form_state, 
         '#chunk_type' => $form['#chunk_types']['p'],
         '#chunk_configuration' => $configuration,
         '#instance_settings' => $settings,
+        '#entity' => $element['#entity'],
+        '#entity_type' => $element['#entity_type'],
         '#field_name' => $field['field_name'],
         '#langcode' => $langcode,
         '#delta' => $delta,
+        '#preview' => TRUE,
         '#attached' => array(
           'libraries_load' => array(
             array('pen'),

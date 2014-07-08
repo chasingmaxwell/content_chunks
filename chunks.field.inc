@@ -123,11 +123,13 @@ function chunks_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
   foreach ($instances as $delta => $instance) {
     $chunk_type = $chunk_types[$instance['type']];
 
+    $in_use = isset($instance['name']) && chunks_instance_in_use($instance['name'], $form['#instance']);
+
     // Provide defaults for any missing settings.
     $instance['settings'] = isset($instance['settings']) ? $instance['settings'] : array();
     $instance['settings'] += $chunk_type->default_type_settings;
 
-    $instance_form = $chunk_type->getTypeSettingsForm($form['#field'], $instance['settings']);
+    $instance_form = $chunk_type->getTypeSettingsForm($instance, $delta, $form, $form_state);
 
     // Provide the preview_on_client setting for any client-themeable chunk
     // type.
@@ -189,14 +191,36 @@ function chunks_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
           'callback' => 'chunks_field_retrieve_chunk_instances',
           'wrapper' => $instances_wrapper,
         ),
+        '#access' => !$in_use,
       ),
+      'remove_and_delete' => array(
+        '#type' => 'submit',
+        '#value' => t('Remove'),
+        '#limit_validation_errors' => array(
+          array('instance', 'settings', 'chunk_instances', 'add_instance'),
+        ),
+        '#submit' => array('chunks_field_remove_chunk_instance'),
+        '#name' => 'remove-and-delete-chunk-instance-' . $delta,
+        '#access' => $in_use,
+      ),
+      '#in_use' => $in_use,
+      '#instance_name' => isset($instance['name']) ? $instance['name'] : ''
     );
+
+    // Make the chunk instance form easier to reference.
+    $chunk_instance_form = &$form['instance']['settings']['chunk_instances']['instances'][$delta];
+
+    if ($in_use) {
+      $chunk_instance_form['name']['#value'] = $instance['name'];
+      $chunk_instance_form['name']['#disabled'] = TRUE;
+    }
 
     // Add #limit_validation_errors entries for each instance except for the
     // current one.
     for ($i = 0; $i < $instance_num; $i++) {
       if ($i !== $delta) {
-        $form['instance']['settings']['chunk_instances']['instances'][$delta]['remove']['#limit_validation_errors'][] = array('instance', 'settings', 'chunk_instances', 'instances', $i);
+        $chunk_instance_form['remove']['#limit_validation_errors'][] = array('instance', 'settings', 'chunk_instances', 'instances', $i);
+        $chunk_instance_form['remove_and_delete']['#limit_validation_errors'][] = array('instance', 'settings', 'chunk_instances', 'instances', $i);
       }
     }
   }
@@ -262,10 +286,24 @@ function chunks_field_add_chunk_instance($form, &$form_state) {
  * #submit callback for removing chunk instances from a field instance.
  */
 function chunks_field_remove_chunk_instance($form, &$form_state) {
+
   // Retrieve the index of the instance to remove.
   $parents = $form_state['triggering_element']['#array_parents'];
   end($parents);
   $delta = prev($parents);
+  $element = $form['instance']['settings']['chunk_instances']['instances'][$delta];
+  $field = $form['#field'];
+  $field_instance = $form['#instance'];
+
+  // If the instance has data, redirect the user to
+  // chunks_chunk_instance_remove_form() so existing chunks can be removed
+  // before removing the instance.
+  if ($element['#in_use']) {
+    $admin_path = _field_ui_bundle_admin_path($field_instance['entity_type'], $field_instance['bundle']);
+    $field_name = $field['field_name'];
+    $instance_name = $element['#instance_name'];
+    drupal_goto("$admin_path/fields/$field_name/chunk_instance_remove/$instance_name");
+  }
 
   // Remove the instance and reset the index.
   unset($form_state['values']['instance']['settings']['chunk_instances']['instances'][$delta]);
@@ -287,6 +325,11 @@ function chunks_field_chunk_instances_presave($form, &$form_state) {
   foreach ($form_state['values']['instance']['settings']['chunk_instances']['instances'] as $instance) {
     $chunk_instances[$instance['name']] = $instance;
   }
+
+  // Sort chunk instances by weight.
+  uasort($chunk_instances, 'drupal_sort_weight');
+
+  // Save chunk instances in the form_state.
   $form_state['values']['instance']['settings']['chunk_instances'] = $chunk_instances;
 }
 
@@ -351,6 +394,12 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     $chunk_type = $chunk_types[$chunk_instance['type']];
     $chunk_instance['chunk_type'] = $chunk_type;
     $chunk_instances[$name]['chunk_type'] = $chunk_type;
+
+    // Add default settings.
+    $chunk_instance['settings'] = isset($chunk_instance['settings']) ? $chunk_instance['settings'] : array();
+    if (isset($chunk_type->default_type_settings)) {
+      $chunk_instance['settings'] += $chunk_type->default_type_settings;
+    }
 
     // Store each chunk instance in JavaScript settings.
     $js_settings['chunks'][$field_name]['instances'][$name] = $chunk_instance;
@@ -602,7 +651,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
       else {
         $configuration = $chunk_type->default_configuration;
       }
-      $row['configuration'][$name] = $chunk_type->getForm($configuration, $chunk_instance['settings'], $form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
+      $row['configuration'][$name] = $chunk_type->getForm($configuration, $chunk_instance, $form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
       $row['configuration'][$name] += array(
         '#type' => 'container',
         '#attributes' => array(
@@ -628,6 +677,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         'class' => array(str_replace('_', '-', $field_name) . '-' . $delta . '-preview'),
       ),
       '#after_build' => array('chunks_field_build_preview'),
+      '#entity' => $element['#entity'],
+      '#entity_type' => $element['#entity_type'],
       '#chunk_instances' => $chunk_instances,
       '#field_name' => $field_name,
       '#langcode' => $langcode,
@@ -771,9 +822,12 @@ function chunks_field_build_preview($element, &$form_state) {
       '#theme' => 'chunk',
       '#chunk_type' => $chunk_type,
       '#chunk_configuration' => $chunk_state['configuration'][$chunk_state['instance']] + $chunk_type->default_configuration,
+      '#entity' => $element['#entity'],
+      '#entity_type' => $element['#entity_type'],
       '#field_name' => $element['#field_name'],
       '#langcode' => $element['#langcode'],
       '#delta' => $element['#delta'],
+      '#preview' => TRUE,
     );
 
     // Add instance settings if they exist.
@@ -1038,9 +1092,11 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
   if (!empty($item['instance']) && $item['view'] != 'removed') {
 
+    $chunk_instance = $element['#chunk_instances'][$item['instance']];
+
     // Make sure type exists.
     if (empty($item['type'])) {
-      $item['type'] = $element['#chunk_instances'][$item['instance']]['type'];
+      $item['type'] = $chunk_instance['type'];
     }
 
     $chunk_type = $form['#chunk_types'][$item['type']];
@@ -1073,7 +1129,7 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     // Validation for chunk type's configuration values.
     if ($validate_configuration) {
-      $chunk_type->validateConfiguration($element['configuration'][$item['instance']], $form_state, $form);
+      $chunk_type->validateConfiguration($element['configuration'][$item['instance']], $item, $chunk_instance, $form_state, $form);
     }
 
     // Save changes to the form state.
@@ -1119,6 +1175,7 @@ function chunks_field_formatter_view($entity_type, $entity, $field, $instance, $
       '#field_name' => $field['field_name'],
       '#langcode' => $langcode,
       '#delta' => $delta,
+      '#preview' => FALSE,
     );
 
     // Add instance settings if they exist.
@@ -1171,12 +1228,24 @@ function chunks_field_presave($entity_type, $entity, $field, $instance, $langcod
 
     foreach ($items as $delta => $item) {
 
+      // If we already have data as a serialized array and do not have
+      // configuration, unserialize data and set configuration. This handles
+      // cases, for instance, where entities are being saved programmatically.
+      if (isset($item['data']) && is_string($item['data']) && !isset($item['configuration'])) {
+        $data = unserialize($item['data']);
+        $configuration = $data['configuration'];
+      }
+      // We have data from the field widget form.
+      else {
+        $configuration = $item['configuration'][$item['instance']];
+      }
+
       $chunk_types = chunk_types_load();
 
       $chunk_type = $chunk_types[$item['type']];
 
       // Add any missing configuration values from default.
-      $configuration = $item['configuration'][$item['instance']] + $chunk_type->default_configuration;
+      $configuration = $configuration + $chunk_type->default_configuration;
 
       if (isset($instance['settings']['chunk_instances'][$item['instance']]['settings'])) {
         $instance_settings = $instance['settings']['chunk_instances'][$item['instance']]['settings'];
@@ -1204,6 +1273,70 @@ function chunks_field_presave($entity_type, $entity, $field, $instance, $langcod
       $items[$delta]['data'] = serialize($items[$delta]['data']);
     }
   }
+}
+
+/**
+ * Form constructor for the removal of a chunk isntance from a field instance.
+ */
+function chunks_chunk_instance_remove_form($form, &$form_state, $field_instance, $chunk_instance) {
+
+  // Build destination path.
+  $admin_path = _field_ui_bundle_admin_path($field_instance['entity_type'], $field_instance['bundle']);
+  $destination = $admin_path . '/fields/' . $field_instance['field_name'];
+
+  // Make sure this is an actual chunk instance.
+  if (!isset($field_instance['settings']['chunk_instances'][$chunk_instance])) {
+    drupal_goto($destination);
+  }
+
+  $form['entity_type'] = array('#type' => 'value', '#value' => $field_instance['entity_type']);
+  $form['field_instance'] = array('#type' => 'value', '#value' => $field_instance);
+  $form['chunk_instance'] = array('#type' => 'value', '#value' => $chunk_instance);
+
+  $output = confirm_form($form,
+    t('Are you sure you want to delete the %chunk_instance chunk instance from the %field_name field?', array(
+      '%chunk_instance' => $chunk_instance,
+      '%field_name' => $field_instance['field_name'],
+    )),
+    $destination,
+    t('There are chunks currently using this chunk instance. If you remmove the chunk instance, they will be deleted. This action cannot be undone.'),
+    t('Remove'), t('Cancel'),
+    'confirm'
+  );
+
+  return $output;
+}
+
+/**
+ * Submission handler for chunks_chunk_instance_remove_form().
+ *
+ * @TODO: This has the potential to be a pretty expensive operation. Consider
+ * making a cron job of it.
+ */
+function chunks_chunk_instance_remove_form_submit($form, &$form_state) {
+  $entity_type = $form_state['values']['entity_type'];
+  $field_instance = $form_state['values']['field_instance'];
+  $chunk_instance = $form_state['values']['chunk_instance'];
+
+  $deltas = chunks_entities_containing_chunks_of_instance($chunk_instance, $field_instance);
+  $entity_ids = array_keys($deltas);
+  $entities = entity_load($entity_type, $entity_ids);
+
+  // Remove all chunks of the given chunk instance.
+  foreach ($entities as $eid => $entity) {
+    $language = field_language($entity_type, $entity, $field_instance['field_name']);
+    $items = $entity->{$field_instance['field_name']}[$language];
+    foreach ($deltas[$eid] as $delta) {
+      unset($items[$delta]);
+    }
+    $items = array_values($items);
+    $entity->{$field_instance['field_name']}[$language] = $items;
+    entity_save($entity_type, $entity);
+  }
+
+  // Remove the chunk instance.
+  unset($field_instance['settings']['chunk_instances'][$chunk_instance]);
+  field_update_instance($field_instance);
 }
 
 /**
@@ -1347,6 +1480,9 @@ function theme_chunks_instances_form($variables) {
         ),
         'settings' => $element[$key]['settings'],
       );
+      if ($element[$key]['#in_use']) {
+        $settings['#suffix'] = '<div class="description">' . t('This chunk instances is being used by chunks on this field. Some settings may be unavailable.') . "</div>\n";
+      }
     }
     else {
       $settings = $element[$key]['settings'];
@@ -1374,7 +1510,7 @@ function theme_chunks_instances_form($variables) {
       ),
       array(
         'class' => array('fixed-medium'),
-        'data' => drupal_render($element[$key]['remove']),
+        'data' => drupal_render($element[$key]['remove']) . drupal_render($element[$key]['remove_and_delete']),
       ),
     );
 

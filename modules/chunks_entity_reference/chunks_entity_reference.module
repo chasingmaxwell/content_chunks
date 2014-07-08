@@ -1,0 +1,325 @@
+<?php
+
+/**
+ * @file
+ * Provide a entity reference chunk type.
+ */
+
+/**
+ * Implements hook_chunk_types().
+ */
+function chunks_entity_reference_chunk_types() {
+  return array(
+    'entity_reference' => array(
+      'title' => t('Entity reference'),
+      'default configuration' => array(
+        'reference' => '',
+        'eid' => '',
+      ),
+      'default type settings' => array(
+        'entity type' => '',
+        'bundles' => '',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
+ */
+function chunks_entity_reference_entity_reference_chunk_type_settings_form($chunk_instance, $delta, $form, &$form_state) {
+  $instance_settings_form = array();
+  $entities = array();
+  $bundles = array();
+  $view_modes = array();
+
+  $settings = $chunk_instance['settings'];
+
+  $in_use = chunks_instance_in_use($chunk_instance['name'], $form['#instance']);
+
+  foreach (entity_get_info() as $key => $entity) {
+    $entities[$key] = $entity['label'];
+    $bundles[$key] = array();
+
+    foreach ($entity['bundles'] as $bkey => $bundle) {
+      $bundles[$key][$bkey] = $bundle['label'];
+    }
+
+    foreach ($entity['view modes'] as $vmkey => $vmode) {
+      $view_modes[$key][$vmkey] = $vmode['label'];
+    }
+  }
+
+  $instance_settings_form['entity type'] = array(
+    '#type' => 'select',
+    '#title' => t('Entity Type'),
+    '#options' => $entities,
+    '#default_value' => $settings['entity type'],
+  );
+
+  // Do not allow configuration if data exists.
+  if ($in_use) {
+    $instance_settings_form['entity type']['#value'] = $settings['entity type'];
+    $instance_settings_form['entity type']['#disabled'] = TRUE;
+  }
+
+  foreach ($bundles as $type => $type_bundles) {
+    $instance_settings_form['bundles'][$type] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Bundles'),
+      '#options' => $type_bundles,
+      '#default_value' => isset($settings['bundles'][$type]) ? $settings['bundles'][$type] : array(),
+      '#states' => array(
+        'visible' => array(
+          ':input[name="instance[settings][chunk_instances][instances][' . $delta . '][settings][entity type]"]' => array('value' => $type),
+        ),
+      ),
+    );
+
+    // Do not allow configuration if data exists.
+    if ($in_use) {
+      $instance_settings_form['bundles'][$type]['#disabled'] = TRUE;
+    }
+  }
+
+  foreach ($view_modes as $type => $type_view_modes) {
+    $instance_settings_form['view mode'][$type] = array(
+      '#type' => 'select',
+      '#title' => t('View Mode'),
+      '#options' => $type_view_modes,
+      '#default_value' => isset($settings['view mode'][$type]) ? $settings['view mode'][$type] : '',
+      '#states' => array(
+        'visible' => array(
+          ':input[name="instance[settings][chunk_instances][instances][' . $delta . '][settings][entity type]"]' => array('value' => $type),
+        ),
+      ),
+    );
+  }
+
+  foreach ($view_modes as $type => $type_view_modes) {
+    $instance_settings_form['view mode preview'][$type] = array(
+      '#type' => 'select',
+      '#title' => t('View Mode Preview'),
+      '#options' => $type_view_modes,
+      '#default_value' => isset($settings['view mode preview'][$type]) ? $settings['view mode preview'][$type] : '',
+      '#states' => array(
+        'visible' => array(
+          ':input[name="instance[settings][chunk_instances][instances][' . $delta . '][settings][entity type]"]' => array('value' => $type),
+        ),
+      ),
+    );
+  }
+
+  $instance_settings_form['#element_validate'] = array('chunks_entity_reference_type_settings_validate');
+
+  return $instance_settings_form;
+}
+
+/**
+ * #element_validate handler for the entity reference instance settings form.
+ */
+function chunks_entity_reference_type_settings_validate($element, &$form_state) {
+  $element_state = drupal_array_get_nested_value($form_state['values'], $element['#array_parents']);
+
+  // Remove all the settings for unselected entities.
+  $bundles = $element_state['bundles'];
+  foreach ($bundles as $type => $type_bundles) {
+    if ($type !== $element_state['entity type']) {
+      unset($element_state['bundles'][$type]);
+    }
+  }
+
+  $view_modes = $element_state['view mode'];
+  foreach ($view_modes as $type => $type_view_modes) {
+    if ($type !== $element_state['entity type']) {
+      unset($element_state['view mode'][$type]);
+    }
+  }
+
+  $view_modes_preview = $element_state['view mode preview'];
+  foreach ($view_modes_preview as $type => $type_view_modes) {
+    if ($type !== $element_state['entity type']) {
+      unset($element_state['view mode preview'][$type]);
+    }
+  }
+
+  drupal_array_set_nested_value($form_state['values'], $element['#array_parents'], $element_state);
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form().
+ */
+function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+
+  $bundles = array();
+
+  $settings = $chunk_instance['settings'];
+
+  foreach ($settings['bundles'][$settings['entity type']] as $bundle) {
+    if($bundle) {
+      $bundles[] = $bundle;
+    }
+  }
+
+  $eid = null;
+
+  if (isset($configuration['reference']['entity_id'])) {
+    $entity = entity_load($settings['entity type'], array($configuration['reference']['entity_id']));
+    if ($entity) {
+      $eid = $configuration['reference']['entity_id'];
+    }
+  }
+
+  // Prepare a list of bundles in text form.
+  $bundle_description = $bundles;
+  $last_bundle = array_pop($bundle_description);
+  $bundle_description = count($bundle_description) ? implode(', ', $bundle_description) . ' or ' . $last_bundle : $last_bundle;
+
+  $config_form = array();
+  $config_form['reference'] = array(
+    '#type' => 'entityreference',
+    '#title' => check_plain($chunk_instance['label']),
+    '#default_value' => $eid,
+    '#description' => t('Search for %bundles.', array('%bundles' => $bundle_description)),
+    '#era_entity_type' => $settings['entity type'],
+  );
+
+  // The entityreference element type strips away configuration values when it
+  // updates the values for the element. Use this form element to keep a
+  // persistent record of the eid.
+  $config_form['eid'] = array(
+    '#type' => 'hidden',
+    '#value' => $configuration['eid'],
+  );
+
+  if(count($bundles > 0)) {
+    $config_form['reference']['#era_bundles'] = $bundles;
+  }
+
+  return $config_form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form_validate().
+ */
+function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+
+  $config_state = &$chunk_state['configuration'][$chunk_instance['name']];
+
+  // Do not allow the reference field to be empty.
+  if (empty($configuration['reference']['#value']['labels'])) {
+    form_error($configuration['reference'], t('Please select a %instance_name.', array('%instance_name' => $chunk_instance['name'])));
+    return FALSE;
+  }
+
+  // Do not allow the current entity to be referenced.
+  if ($form['#entity'] && $form['#entity_type']) {
+    $current_id = array_shift(entity_extract_ids($form['#entity_type'], $form['#entity']));
+    if (preg_match("/.+\((\d+)\)/", $configuration['reference']['#value']['labels'], $matches)) {
+      $reference_id = $matches[1];
+      if ($reference_id === $current_id) {
+        form_error($configuration['reference'], t('You can not reference the current entity.'));
+        return FALSE;
+      }
+    }
+  }
+
+  // Set eid value.
+  $config_state['eid'] = isset($config_state['reference']['entity_id']) ? $config_state['reference']['entity_id'] : '';
+
+  return TRUE;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_empty().
+ */
+function chunks_entity_reference_entity_reference_chunk_is_empty($configuration, $item, $field) {
+  if (!$configuration['reference']) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_preprocess_chunk().
+ *
+ * Preprocess variables for chunk--entity-reference.tpl.php.
+ *
+ * @see template_preprocess_chunk()
+ * @see chunk--entity-reference.tpl.php
+ */
+function chunks_entity_reference_preprocess_chunk(&$variables, $hook) {
+
+  if ($variables['chunk_type']->name == 'entity_reference') {
+
+    $settings = $variables['instance_settings'];
+    $entity_type = $settings['entity type'];
+    $view_mode = $variables['preview'] ? $settings['view mode preview'][$entity_type] : $settings['view mode'][$entity_type];
+    $config = $variables['configuration'];
+    $eid = $config['reference']['entity_id'];
+
+    // Detect and prevent recursive rendering.
+    static $original_parent = 0;
+    static $depth = 0;
+    static $references = array();
+    if ($parent_id = array_shift(entity_extract_ids($variables['entity_type'], $variables['entity']))) {
+      $depth++;
+      $references[$parent_id] = $parent_id;
+      if ($depth === 1) {
+        $original_parent = $parent_id;
+      }
+      if ($depth > variable_get('chunks_entity_reference_maximum_depth', 3) || isset($references[$eid])) {
+        $message = 'Recursive rendering detected when rendering entity @entity_type(@entity_id). Aborting rendering.';
+        $message_vars = array(
+          '@entity_type' => $variables['entity_type'],
+          '@entity_id' => $parent_id,
+        );
+        throw new ChunksEntityReferenceRecursiveRenderingException(t($message, $message_vars));
+      }
+    }
+
+    // Load referenced entity.
+    $entity = entity_load($entity_type, array($eid));
+
+    // If the referenced entity exists, use it to populate the proper variables.
+    if ($entity) {
+      // Store entities render array.
+      $variables['referenced_entity_view'] = entity_view($entity_type, $entity, $view_mode);
+
+      // Render the entity and store the output. This is necessary in the
+      // preprocess step because it must happen before we reset the recursion
+      // detection.
+      $variables['referenced_entity'] = render($variables['referenced_entity_view']);
+    }
+    // The referenced entity does not exist, log it in watchdog and populate the
+    // proper variables with placeholders.
+    else {
+      $message = '@type(@id) has an entity reference chunk referencing @target_type(@target_id) which no longer exists.';
+      $vars = array(
+        '@type' => $variables['entity_type'],
+        '@id' => array_shift(entity_extract_ids($variables['entity_type'], $variables['entity'])),
+        '@target_type' => $settings['entity type'],
+        '@target_id' => $config['eid'],
+      );
+      watchdog('chunks_entity_reference', $message, $vars, WATCHDOG_WARNING);
+
+      $variables['referenced_entity_view'] = array();
+
+      $message = 'The referenced @type (@id) has been deleted. Please edit or remove this content.';
+      $vars = array('@type' => $settings['entity type'], '@id' => $config['eid']);
+      $variables['referenced_entity'] = t($message, $vars);
+    }
+
+    // Reset recursion detection.
+    if ($parent_id === $original_parent) {
+      $references = array();
+    }
+    $depth--;
+  }
+}
+
+/**
+ * Exception thrown when the entity view renderer goes into a potentially
+ * infinite loop.
+ */
+class ChunksEntityReferenceRecursiveRenderingException extends Exception {}

@@ -1,5 +1,5 @@
-name = Chunks Entity reference
-description = Provides an node reference chunk type
+name = Chunks entity reference
+description = Provides an entity reference chunk type
 core = 7.x
 dependencies[] = chunks
 dependencies[] = field
