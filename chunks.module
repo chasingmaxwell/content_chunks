@@ -7,7 +7,6 @@
  * @TODO:
  *   - When you interact with the image widget it doesn't set the current chunk
  *     to active.
- *   - Tip is being added about shift+enter shortcut multiple times per chunk.
  */
 
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';
