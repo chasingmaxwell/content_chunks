@@ -168,7 +168,6 @@ function chunks_list_list_chunk_form(&$configuration, $chunk_instance, $form, &$
           break;
         }
       }
-      $configuration['list'] = !$empty ? $configuration['list'] : array('Enter list items here...');
 
       $config_form['inplace_items'] = array(
         '#theme' => 'chunk',
@@ -191,6 +190,23 @@ function chunks_list_list_chunk_form(&$configuration, $chunk_instance, $form, &$
           ),
         ),
       );
+
+      // Attach inline styles for edit-in-place placeholders, but only do it
+      // once.
+      static $css_attached = FALSE;
+      if (!$css_attached) {
+        $placeholder_styles = <<<EOT
+.list-chunk-type-configuration .list-chunk[contenteditable] li:only-child:empty:after {
+  content: 'Enter text here...';
+}
+.list-chunk-type-configuration .list-chunk[contenteditable]:focus li:only-child:after {
+  content: '';
+}
+EOT;
+        $config_form['inplace_items']['#attached']['css'][] = array('data' => $placeholder_styles, 'type' => 'inline');
+
+        $css_attached = TRUE;
+      }
     }
   }
 
@@ -275,7 +291,7 @@ function chunks_list_list_chunk_form_validate($configuration, &$chunk_state, $ch
 function chunks_list_list_chunk_is_empty($configuration, $item, $field) {
   // If any list item contains data, this chunk is not empty.
   foreach ($configuration['list'] as $list_item) {
-    if (!empty($list_item)) {
+    if (!empty($list_item) || $list_item === '<br>') {
       return FALSE;
     }
   }
@@ -289,7 +305,7 @@ function chunks_list_list_chunk_presave(&$item) {
   // Don't save any empty list items.
   $list_items = $item['data']['configuration']['list'];
   foreach ($list_items as $key => $list_item) {
-    if (empty($list_item)) {
+    if (empty($list_item) || $list_item === '<br>') {
       unset($item['data']['configuration']['items'][$key]);
     }
   }
@@ -304,9 +320,11 @@ function chunks_list_preprocess_chunk(&$variables) {
     $config = $variables['configuration'];
 
     // Do not show empty list items.
-    foreach ($config['list'] as $key => $item) {
-      if (empty($item)) {
-        unset($variables['configuration']['list'][$key]);
+    if (count($config['list']) > 1) {
+      foreach ($config['list'] as $key => $item) {
+        if (empty($item) || $item === '<br>') {
+          unset($variables['configuration']['list'][$key]);
+        }
       }
     }
   }

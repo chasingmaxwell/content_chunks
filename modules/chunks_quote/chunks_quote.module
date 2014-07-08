@@ -121,11 +121,6 @@ function chunks_quote_quote_chunk_form(&$configuration, $chunk_instance, $form, 
 
       $configuration['edit_in_place'] = TRUE;
 
-      // Provide default values if the configuration is empty so the
-      // contenteditable element will be visible on the page.
-      $configuration['quote'] = !empty($configuration['quote']) ? $configuration['quote'] : t('Enter the quotation here...');
-      $configuration['attribution'] = !empty($configuration['attribution']) ? $configuration['attribution'] : t('Enter attribution here...');
-
       $config_form['editor'] = array(
         '#theme' => 'chunk',
         '#chunk_type' => $form['#chunk_types']['quote'],
@@ -144,6 +139,42 @@ function chunks_quote_quote_chunk_form(&$configuration, $chunk_instance, $form, 
         ),
       );
 
+      // Attach inline styles for edit-in-place placeholders, but only do it
+      // once.
+      static $css_attached = FALSE;
+      if (!$css_attached) {
+        $placeholder_styles = <<<EOT
+/* Fallback for when :empty is not supported. */
+.quote-chunk-type-configuration .quote-chunk p[contenteditable],
+.quote-chunk-type-configuration .quote-chunk cite[contenteditable] {
+  border: 1px dashed #ccc;
+}
+/* Override fallback when :empty is supported. */
+.quote-chunk-type-configuration .quote-chunk p[contenteditable]:empty,
+.quote-chunk-type-configuration .quote-chunk p[contenteditable]:not(:empty),
+.quote-chunk-type-configuration .quote-chunk cite[contenteditable]:empty,
+.quote-chunk-type-configuration .quote-chunk cite[contenteditable]:not(:empty) {
+  border: 0;
+}
+/* Prevent the cite element from disappearing when it's empty */
+.quote-chunk-type-configuration .quote-chunk cite[contenteditable] {
+  display: block;
+}
+.quote-chunk-type-configuration .quote-chunk p[contenteditable]:empty:after {
+  content: 'Enter quote here...';
+}
+.quote-chunk-type-configuration .quote-chunk cite[contenteditable]:empty:after {
+  content: 'Enter attribution here... ';
+}
+.quote-chunk-type-configuration .quote-chunk p[contenteditable]:focus:after,
+.quote-chunk-type-configuration .quote-chunk cite[contenteditable]:focus:after {
+  content: '';
+}
+EOT;
+        $config_form['editor']['#attached']['css'][] = array('data' => $placeholder_styles, 'type' => 'inline');
+
+        $css_attached = TRUE;
+      }
     }
   }
 
