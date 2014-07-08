@@ -79,7 +79,7 @@
           // Prevent <div></div> tags from being added when user presses
           // "Enter".
           $(this).bind('keydown.chunksPNoDiv', function(e) {
-            if (e.keyCode === 13) {
+            if (e.keyCode === 13 && !e.shiftKey) {
               document.execCommand('insertHTML', false, '<br><br>');
               return false;
             }
@@ -150,13 +150,14 @@
             // Listen for the shortcut.
             $('.p-chunk-type-configuration .p-chunk[contenteditable], .p-chunk-type-configuration textarea', chunk.element).bind('keydown.chunksPShortcut', function(e) {
               if (event.keyCode === 13 && event.shiftKey) {
-                e.preventDefault();
-
                 // Queue the staged chunk to be added automatically as a
                 // paragraph chunk.
                 autoAddChunks.push({chunkInstance: chunk.chunkInstance});
                 chunk.addButton.trigger({type: 'mousedown', which: 1});
                 $(this).trigger('blur');
+
+                e.preventDefault();
+                return false;
               }
             });
           }
