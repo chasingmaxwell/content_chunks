@@ -236,7 +236,7 @@ function chunks_list_text_to_items($element, $input = FALSE, $form_state) {
 
   // Trim items and add them to the return array if they contain data.
   // '<p><br></p>' is the markup output by Pen when a line is empty.
-  foreach ($items as $key => $list_item) {
+  foreach ((array) $items as $key => $list_item) {
     $list_item = trim($list_item);
     if (!empty($list_item) && $list_item !== '<p><br></p>') {
       $return[] = $list_item;
