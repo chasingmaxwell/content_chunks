@@ -275,7 +275,9 @@ function chunks_image_preprocess_chunk(&$variables, $hook) {
 
       $item = array_merge((array) $file, $config['image']);
 
-      if ($config['image_link'] == 'content' && $variables['entity'] && $variables['entity_type']) {
+      $eid = array_shift(entity_extract_ids($variables['entity_type'], $variables['entity']));
+
+      if ($config['image_link'] == 'content' && $eid !== NULL) {
         $uri = entity_uri($variables['entity_type'], $variables['entity']);
       }
       elseif ($config['image_link'] == 'file') {
