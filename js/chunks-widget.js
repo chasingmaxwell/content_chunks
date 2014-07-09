@@ -67,7 +67,7 @@
       });
 
       // Register when a preview has been loaded via ajax.
-      if (typeof settings.chunks.previewLoaded !== 'undefined') {
+      if (typeof settings.chunks !== 'undefined' && typeof settings.chunks.previewLoaded !== 'undefined') {
         var fieldName, delta;
         fieldName = settings.chunks.previewLoaded.fieldName;
         delta = settings.chunks.previewLoaded.delta;
