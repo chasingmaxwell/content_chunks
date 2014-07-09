@@ -15,7 +15,7 @@
 
         fieldName = $(this).attr('field_name');
         langcode = $(this).attr('langcode');
-        fieldSettings = settings.chunks[fieldName];
+        fieldSettings = settings.chunks.fields[fieldName];
         initializePen = false;
 
         // Don't do anything if the Pen library isn't loaded.
@@ -82,13 +82,18 @@
 
             chunkWrapper = $(this).parents('.chunk-wrapper');
             delta = parseInt(chunkWrapper.attr('delta'), 10);
-            listConfig = $(this).parents('.list-chunk-configuration');
+            listConfig = $(this).parents('.list-chunk-type-configuration');
 
             // Retrieve the configuration state from the form.
             configuration = Drupal.chunks.fields[fieldName].chunks[delta].getConfigState();
 
             // Add edit_in_place configuration property.
             configuration.edit_in_place = true;
+
+            // Make sure we have a placeholder if the list is empty.
+            if (configuration.list.length < 1) {
+              configuration.list = 'Enter list items here...';
+            }
 
             // Generate the new markup.
             inPlaceEditor = Drupal.theme.prototype.chunk__list(configuration, fieldName, langcode, delta);
@@ -119,12 +124,12 @@
     attach: function(context, settings) {
 
       // No need to do anything if we've already created the callback.
-      if (typeof Drupal.settings.chunks.callbacks.list.restoreConfig !== 'undefined') {
+      if (typeof Drupal.settings.chunks.callbacks.restoreConfig.list !== 'undefined') {
         return;
       }
 
       // Implements the restoreConfig callback to restore list configuration.
-      Drupal.settings.chunks.callbacks.list.restoreConfig = function(fieldName, langcode, delta) {
+      Drupal.settings.chunks.callbacks.restoreConfig.list = function(fieldName, langcode, delta) {
         var chunkInstance;
 
         // Retrieve the chunk instance.
@@ -132,16 +137,16 @@
 
         // Only do anything if this instance of the chunk is set to be edited
         // in-place.
-        if (Drupal.settings.chunks[fieldName].instances[chunkInstance].settings.edit_in_place) {
+        if (Drupal.settings.chunks.fields[fieldName].instances[chunkInstance].settings.edit_in_place) {
           var classFieldName, listConfig, configState, configuration, inPlaceEditor;
 
           classFieldName = fieldName.replace(/_/g, '-');
-          listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-configuration');
+          listConfig = $('#' + fieldName + '-' + delta + '-chunk .list-chunk-type-configuration');
 
           // Make a copy of the configuration and add the edit_in_place
           // property so we can render a contenteditable list chunk
           // without changing the configuration settings for the chunk.
-          configState = Drupal.settings.chunks[fieldName].chunks[delta].configuration[chunkInstance];
+          configState = Drupal.settings.chunks.fields[fieldName].chunks[delta].configuration[chunkInstance];
           configuration = {};
           for (var prop in configState) {
             configuration[prop] = configState[prop];
@@ -186,7 +191,7 @@
     for (var key in configuration.list) {
 
       // If the format is plain text, run the text through chunkPlain
-      if (Drupal.settings.chunks[fieldName].instances[chunkInstance].settings.format === 'plain_text') {
+      if (Drupal.settings.chunks.fields[fieldName].instances[chunkInstance].settings.format === 'plain_text') {
         list_item = Drupal.checkPlain(configuration.list[key]);
       }
       // Otherwise don't do anything at all.

@@ -3,11 +3,6 @@
 /**
  * @file
  * Allow content to be edited in structured and reusable chunks.
- *
- * @TODO:
- *   - When you interact with the image widget it doesn't set the current chunk
- *     to active.
- *   - Make chunks work with only 1 value (even though that's weird).
  */
 
 require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'chunks') . '/chunks.field.inc';

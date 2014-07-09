@@ -107,10 +107,6 @@ function chunks_p_p_chunk_form(&$configuration, $chunk_instance, $form, &$form_s
 
       $configuration['edit_in_place'] = TRUE;
 
-      // Provide default values if the configuration is empty so the
-      // contenteditable element will be visible on the page.
-      $configuration['p'] = !empty($configuration['p']) ? $configuration['p'] : t('Enter your paragraph here...');
-
       $config_form['editor'] = array(
         '#theme' => 'chunk',
         '#chunk_type' => $form['#chunk_types']['p'],
@@ -128,6 +124,32 @@ function chunks_p_p_chunk_form(&$configuration, $chunk_instance, $form, &$form_s
           ),
         ),
       );
+
+      // Attach inline styles for edit-in-place placeholders, but only do it
+      // once.
+      static $css_attached = FALSE;
+      if (!$css_attached) {
+        $placeholder_styles = <<<EOT
+/* Fallback for when :empty is not supported. */
+.p-chunk-type-configuration .p-chunk[contenteditable] {
+  border: 1px dashed #ccc;
+}
+/* Override fallback when :empty is supported. */
+.p-chunk-type-configuration .p-chunk[contenteditable]:empty,
+.p-chunk-type-configuration .p-chunk[contenteditable]:not(:empty) {
+  border: 0;
+}
+.p-chunk-type-configuration .p-chunk[contenteditable]:empty:after {
+  content: 'Enter text here...';
+}
+.p-chunk-type-configuration .p-chunk[contenteditable]:focus:after {
+  content: '';
+}
+EOT;
+        $config_form['editor']['#attached']['css'][] = array('data' => $placeholder_styles, 'type' => 'inline');
+
+        $css_attached = TRUE;
+      }
 
     }
   }
