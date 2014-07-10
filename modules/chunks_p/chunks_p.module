@@ -174,3 +174,15 @@ function chunks_p_p_chunk_is_empty($configuration, $item, $field) {
   }
   return FALSE;
 }
+
+/**
+ * Implements hook_preprocess_chunk().
+ */
+function chunks_p_preprocess_chunk(&$variables) {
+  if ($variables['chunk_type']->name == 'p') {
+    // Make sure edit_in_place exists in the configuration.
+    if (!isset($variables['configuration']['edit_in_place'])) {
+      $variables['configuration']['edit_in_place'] = FALSE;
+    }
+  }
+}

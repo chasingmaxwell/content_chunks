@@ -15,7 +15,6 @@ function chunks_list_chunk_types() {
       'default configuration' => array(
         'style' => 'ul',
         'list' => array(''),
-        'edit_in_place' => 0,
       ),
       'default type settings' => array(
         'edit_in_place' => 0,
@@ -326,6 +325,11 @@ function chunks_list_preprocess_chunk(&$variables) {
           unset($variables['configuration']['list'][$key]);
         }
       }
+    }
+
+    // Make sure edit_in_place exists in the configuration.
+    if (!isset($config['edit_in_place'])) {
+      $variables['configuration']['edit_in_place'] = FALSE;
     }
   }
 }
