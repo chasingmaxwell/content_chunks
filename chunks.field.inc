@@ -382,8 +382,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   // Retrieve all chunk_types for use later.
   $chunk_types = chunk_types_load();
 
-  // Save chunk types in the form so they can be accessed easily later.
-  $form['#chunk_types'] = $chunk_types;
+  // Store chunk types so they can be accessed easily later.
+  $form['#chunk_types'] = array();
 
   // Force the list of chunks to be a dictionary instead of an array.
   $js_settings['chunks']['fields'][$field_name]['chunks']['empty'] = '';
@@ -397,6 +397,9 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     $chunk_type = $chunk_types[$chunk_instance['type']];
     $chunk_instance['chunk_type'] = $chunk_type;
     $chunk_instances[$name]['chunk_type'] = $chunk_type;
+
+    // Save chunk type in the form so it can be accessed easily later.
+    $form['#chunk_types'][$chunk_type->name] = $chunk_type;
 
     // Add default settings.
     $chunk_instance['settings'] = isset($chunk_instance['settings']) ? $chunk_instance['settings'] : array();
@@ -446,6 +449,8 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
     '#max_delta' => $max,
     '#prefix' => '<div class="chunks-field" field_name="' . $field_name . '" langcode="' . $langcode . '" id="' . $wrapper_id . '">',
     '#suffix' => '</div>',
+    '#process' => array('chunks_field_widget_include_files'),
+    '#chunk_types' => $form['#chunk_types'],
     '#attached' => array(
       'css' => array(
         $path . '/css/chunks-widget.css',
@@ -803,6 +808,15 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
   );
 
   return $elements;
+}
+
+/**
+ * #process handler for the chunks field to make sure all necessary files are
+ * included.
+ */
+function chunks_field_widget_include_files($element) {
+  _chunks_include_files($element['#chunk_types']);
+  return $element;
 }
 
 /**
