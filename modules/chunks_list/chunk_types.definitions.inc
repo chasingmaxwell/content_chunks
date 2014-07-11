@@ -103,7 +103,6 @@ function chunks_list_text_to_definitions($element, $input = FALSE, $form_state) 
   $group = 0;
   $new_group = true;
   foreach ((array) $items as $key => $item) {
-    $item = trim($item);
     if (empty($item)) {
       continue;
     }
@@ -112,10 +111,10 @@ function chunks_list_text_to_definitions($element, $input = FALSE, $form_state) 
         $group = $key;
         $new_group = false;
       }
-      $definitions[$group]['terms'][] = $item;
+      $definitions[$group]['terms'][] = trim($item);
     }
     else {
-      $definitions[$group]['definitions'][] = substr($item, 1);
+      $definitions[$group]['definitions'][] = trim(substr($item, 1));
       $new_group = true;
     }
   }
