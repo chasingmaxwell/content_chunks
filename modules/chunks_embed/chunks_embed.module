@@ -1,0 +1,62 @@
+<?php
+
+/**
+ * @file
+ * Provide an embed chunk type for embeding content in an iframe.
+ */
+
+/**
+ * Implements hook_chunk_types().
+ */
+function chunks_embed_chunk_types() {
+  return array(
+    'embed' => array(
+      'title' => t('Embed'),
+      'default configuration' => array(
+        'embed_code' => '',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form().
+ */
+function chunks_embed_embed_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+
+  $config_form = array();
+
+  return $config_form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form_validate().
+ */
+function chunks_embed_embed_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+
+  $config_state = &$chunk_state['configuration'][$chunk_instance['name']];
+
+  return TRUE;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_empty().
+ */
+function chunks_embed_embed_chunk_is_empty($configuration, $item, $field) {
+  return FALSE;
+}
+
+/**
+ * Implements hook_preprocess_chunk().
+ *
+ * Preprocess variables for chunk--embed.tpl.php.
+ *
+ * @see template_preprocess_chunk()
+ * @see chunk--embed.tpl.php
+ */
+function chunks_embed_preprocess_chunk(&$variables, $hook) {
+
+  if ($variables['chunk_type']->name == 'embed') {
+
+  }
+}
