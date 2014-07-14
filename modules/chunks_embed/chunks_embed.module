@@ -11,7 +11,7 @@
 function chunks_embed_chunk_types() {
   return array(
     'embed' => array(
-      'title' => t('Embed'),
+      'title' => t('Embedded media'),
       'default configuration' => array(
         'embed_code' => '',
       ),
@@ -25,6 +25,13 @@ function chunks_embed_chunk_types() {
 function chunks_embed_embed_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
 
   $config_form = array();
+
+  $config_form['embed_code'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Embed code'),
+    '#default_value' => $configuration['embed_code'],
+    '#description' => t('Enter the embed code exactly as it is provided by the third party provider.')
+  );
 
   return $config_form;
 }
