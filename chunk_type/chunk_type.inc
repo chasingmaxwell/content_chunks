@@ -108,9 +108,7 @@ class ChunkType {
    *   TRUE if chunk type is allowed in the given context. Otherwise, FALSE.
    */
   public function isAllowed($settings, $field, $instance, $langcode) {
-    if (isset($this->file)) {
       $this->file_include();
-    }
 
     // If any implementation of hook_CHUNK_TYPE_chunk_is_allowed returns false,
     // the chunk type is not allowed in this context.
@@ -160,9 +158,7 @@ class ChunkType {
    * @see chunks_field_widget_form().
    */
   public function getForm(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-    if (isset($this->file)) {
-      $this->file_include();
-    }
+    $this->file_include();
 
     $function = $this->form_id;
     return $function($configuration, $chunk_instance, $form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
@@ -197,9 +193,7 @@ class ChunkType {
 
     $instance_settings_form = array();
 
-    if (isset($this->file)) {
-      $this->file_include();
-    }
+    $this->file_include();
 
     $function = $this->module . '_' . $this->name . '_chunk_type_settings_form';
     if (function_exists($function)) {
@@ -238,9 +232,8 @@ class ChunkType {
    * @see chunks_field_widget_values_validate().
    */
   public function validateConfiguration($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
-    if (isset($this->file)) {
-      $this->file_include();
-    }
+    $this->file_include();
+
     foreach(module_implements($this->name . '_chunk_form_validate') as $module) {
       $function = $module . '_' . $this->name . '_chunk_form_validate';
       $valid = $function($configuration, $chunk_state, $chunk_instance, $form_state, $form);
@@ -272,9 +265,8 @@ class ChunkType {
    * @see chunks_field_is_empty().
    */
   public function configurationIsEmpty($configuration, $item, $field) {
-    if (isset($this->file)) {
-      $this->file_include();
-    }
+    $this->file_include();
+
     foreach(module_implements($this->name . '_chunk_is_empty') as $module) {
       $function = $module . '_' . $this->name . '_chunk_is_empty';
       $empty = $function($configuration, $item, $field);
@@ -304,9 +296,8 @@ class ChunkType {
    * @see chunks_field_presave().
    */
   public function presave(&$item, $entity_type, $entity, $field, $instance, $langcode) {
-    if (isset($this->file)) {
-      $this->file_include();
-    }
+    $this->file_include();
+
     foreach(module_implements($this->name . '_chunk_presave') as $module) {
       $function = $module . '_' . $this->name . '_chunk_presave';
       $function($item, $entity_type, $entity, $field, $instance, $langcode);
@@ -317,7 +308,9 @@ class ChunkType {
    * Include the file which provides the necessary hooks for this chunk type.
    */
   public function file_include() {
-    require_once DRUPAL_ROOT . '/' . $this->file_path . '/' . $this->file;
+    if (isset($this->file)) {
+      require_once DRUPAL_ROOT . '/' . $this->file_path . '/' . $this->file;
+    }
   }
 }
 

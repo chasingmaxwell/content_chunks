@@ -90,11 +90,6 @@
             // Add edit_in_place configuration property.
             configuration.edit_in_place = true;
 
-            // Make sure we have a placeholder if the list is empty.
-            if (configuration.list.length < 1) {
-              configuration.list = 'Enter list items here...';
-            }
-
             // Generate the new markup.
             inPlaceEditor = Drupal.theme.prototype.chunk__list(configuration, fieldName, langcode, delta);
 
@@ -167,7 +162,7 @@
 
   // Provide a client-side theme implementation for list chunks.
   Drupal.theme.prototype.chunk__list = function(configuration, fieldName, langcode, delta) {
-    var list, output, list_item, contentEditable, chunkInstance;
+    var list, output, list_item, contentEditable, chunkInstance, reg;
 
     // Retrieve the chunk instance.
     chunkInstance = Drupal.chunks.fields[fieldName].chunks[delta].chunkInstance;
@@ -199,9 +194,9 @@
         list_item = configuration.list[key];
       }
 
-      // Do not display empty strings.
-      // '<p><br></p>' is the merkup output by Pen when a line is empty.
-      if (list_item === '' || list_item == '<p><br></p>') {
+      // Skip empty list items.
+      reg = /^(<p>|<br>|<\/p>)+$/;
+      if (configuration.list.length > 1 && (list_item === '' || reg.test(list_item))) {
         continue;
       }
 
