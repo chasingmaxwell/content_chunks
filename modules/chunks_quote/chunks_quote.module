@@ -221,5 +221,10 @@ function chunks_quote_preprocess_chunk(&$variables) {
   if ($variables['chunk_type']->name == 'quote') {
     $attribution_location = check_plain(url($variables['configuration']['attribution_location']));
     $variables['cite_attribute'] = !empty($attribution_location) ? ' cite="' . $attribution_location . '"' : '';
+
+    // Make sure edit_in_place exists in the configuration.
+    if (!isset($variables['configuration']['edit_in_place'])) {
+      $variables['configuration']['edit_in_place'] = FALSE;
+    }
   }
 }
