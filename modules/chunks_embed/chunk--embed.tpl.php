@@ -9,7 +9,9 @@
  *   template_preprocess().
  * - $configuration: The associative array representing the chunk's
  *   configuration.
- *   - embed_code: Embed code markup as a string.
+ *   - embed_code: The external url associated with the embedded media.
+ *   - fid: The file id associated with the embedded media.
+ * - $media: A rendereable array which builds the embedded media output.
  * - $instance_settings: An associative array representing the chunk instance
  *   settings
  *   connected to the chunk field's instance.
@@ -31,4 +33,4 @@
 
 ?>
 
-<div class="<?php print $classes; ?>"><?php print filter_xss($configuration['embed_code'], array('iframe')); ?></div>
+<div class="<?php print $classes; ?>"><?php print render($media); ?></div>
