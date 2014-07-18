@@ -76,11 +76,9 @@
             }, 0);
           });
 
-          // Prevent <div></div> tags from being added when user presses
-          // "Enter".
+          // Prevent new lines from being added when user presses "Enter".
           $(this).bind('keydown.chunksPNoDiv', function(e) {
-            if (e.keyCode === 13 && !e.shiftKey) {
-              document.execCommand('insertHTML', false, '<br><br>');
+            if (e.keyCode === 13) {
               return false;
             }
           });
@@ -101,14 +99,14 @@
       if (typeof Drupal.settings.chunks.callbacks.restoreConfig.p === 'undefined') {
         // Implements the restoreConfig callback to restore saved configuration.
         Drupal.settings.chunks.callbacks.restoreConfig.p = function(fieldName, langcode, delta) {
-          var chunkInstance;
+          var chunk;
 
-          // Retrieve the chunk instance.
-          chunkInstance = Drupal.chunks.fields[fieldName].chunks[delta].chunkInstance;
+          // Retrieve the Chunk object.
+          chunk = Drupal.chunks.fields[fieldName].chunks[delta];
 
           // Only do anything if this instance of the chunk type is set to be
           // edited in-place.
-          if (Drupal.settings.chunks.fields[fieldName].instances[chunkInstance].settings.edit_in_place) {
+          if (chunk.chunkInstance.settings.edit_in_place) {
             var classFieldName, pConfig, configuration, configState, inPlaceEditor;
 
             classFieldName = fieldName.replace(/_/g, '-');
@@ -117,7 +115,7 @@
             // Make a copy of the configuration and add the edit_in_place
             // property so we can render a contenteditable paragraph chunk
             // without changing the configuration settings for the chunk.
-            configState = Drupal.settings.chunks.fields[fieldName].chunks[delta].configuration[chunkInstance];
+            configState = chunk.config.get();
             configuration = {};
             for (var prop in configState) {
               configuration[prop] = configState[prop];
@@ -147,13 +145,15 @@
             // Add tip so users know about the shortcut.
             $('.p-chunk-type-configuration', chunk.element).append('<div class="description"><strong>Tip:</strong> press <em>Shift + Enter</em> to start writing a new paragraph below this one.</div>');
 
-            // Listen for the shortcut.
+            // Listen for shift+enter shortcut.
             $('.p-chunk-type-configuration .p-chunk[contenteditable], .p-chunk-type-configuration textarea', chunk.element).bind('keydown.chunksPShortcut', function(e) {
-              if (event.keyCode === 13 && event.shiftKey) {
+              if (e.keyCode === 13 && e.shiftKey) {
+
                 // Queue the staged chunk to be added automatically as a
                 // paragraph chunk.
-                autoAddChunks.push({chunkInstance: chunk.chunkInstance});
-                chunk.addButton.trigger({type: 'mousedown', which: 1});
+                autoAddChunks.push({instanceName: chunk.instanceName, prevChunk: chunk});
+
+                chunk.buttons.add.trigger({type: 'mousedown', which: 1});
                 $(this).trigger('blur');
 
                 e.preventDefault();
@@ -168,10 +168,10 @@
         // Implements the stagedChunkShown callback to automatically add the
         // staged chunk as a paragraph chunk if the shortcut set in the
         // initialize callback was invoked.
-        Drupal.settings.chunks.callbacks.stagedChunkShown.p = function(chunk) {
-          if (chunk.field.settings.unlimited && autoAddChunks.length > 0) {
+        Drupal.settings.chunks.callbacks.stagedChunkShown.p = function(chunk, prevChunk) {
+          if (prevChunk !== false && chunk.field.settings.unlimited && autoAddChunks.length > 0 && autoAddChunks[0].prevChunk.delta === prevChunk.delta) {
             var addedChunk = autoAddChunks.shift();
-            $(':input[name="' + chunk.namePrepend + '[instance]"][value="' + addedChunk.chunkInstance + '"]', chunk.element).trigger('click.chunkInstanceSelected');
+            $(':input[name="' + chunk.namePrepend + '[instance]"][value="' + addedChunk.instanceName + '"]', chunk.element).trigger('click.chunkInstanceSelected');
           }
         };
       }

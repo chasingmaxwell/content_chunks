@@ -114,13 +114,12 @@
 
       // Implements the restoreConfig callback to restore saved configuration.
       Drupal.settings.chunks.callbacks.restoreConfig.quote = function(fieldName, langcode, delta) {
-        var chunkInstance;
 
-        // Retrieve the chunk instance.
-        chunkInstance = Drupal.chunks.fields[fieldName].chunks[delta].chunkInstance;
+        // Retrieve the Chunk object.
+        var chunk = Drupal.chunks.fields[fieldName].chunks[delta];
 
         // Only do anything if this instance is set to be edited in-place.
-        if (Drupal.settings.chunks.fields[fieldName].instances[chunkInstance].settings.edit_in_place) {
+        if (chunk.chunkInstance.settings.edit_in_place) {
           var classFieldName, quoteConfig, configuration, configState, inPlaceEditor;
 
           classFieldName = fieldName.replace(/_/g, '-');
@@ -129,7 +128,7 @@
           // Make a copy of the configuration and add the edit_in_place
           // property so we can render a contenteditable quote chunk
           // without changing the configuration settings for the chunk.
-          configState = Drupal.settings.chunks.fields[fieldName].chunks[delta].configuration[chunkInstance];
+          configState = chunk.config.get();
           configuration = {};
           for (var prop in configState) {
             configuration[prop] = configState[prop];

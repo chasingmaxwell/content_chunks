@@ -12,6 +12,17 @@
     fields: {}
   };
 
+  // Provide helper for determining whether there is a Drupal.ajax managed ajax
+  // request in progress.
+  Drupal.ajaxInProgress = function() {
+    for (var id in Drupal.ajax) {
+      if (Drupal.ajax[id].ajaxing === true) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   // Initialize all behavior necessary for chunks.
   Drupal.behaviors.chunksWidget = {
     attach: function(context, settings) {
@@ -42,27 +53,16 @@
           chunksField.setProperties(this);
           chunksField.retrieveChunks();
 
-          // Prep any new staged chunks.
-          $('tr.staged.ajax-loaded', e).once(function() {
-            var chunksTable = Drupal.tableDrag[chunksField.classFieldName + '-values'];
-            chunksTable.makeDraggable(this);
-            if ($.cookie('Drupal.tableDrag.showWeight') != 1) {
-              chunksTable.hideColumns();
-            }
-          });
+          // Run the next queued action when ajax stops.
+          $(document).bind('ajaxStop.runNextQueuedAction', function() {
 
-          // Do we need to load another staged chunk?
-          fieldSettings.loadingStaged = false;
-          if (typeof fieldSettings.queueNext !== 'undefined' && fieldSettings.queueNext !== false) {
-            $('.ajax-progress.nothing-staged', chunksField.element).remove();
-            if (fieldSettings.queueNext > 0) {
-              chunksField.chunks[fieldSettings.queueNext - 1].addButton.trigger({type: 'mousedown', which: 1});
-            }
-            else {
-              $(':input[name="' + fieldName  + '-add-before"]', chunksField.element).trigger({type: 'mousedown', which: 1});
-            }
-          }
-          fieldSettings.queueNext = false;
+            // Only do this once.
+            $(document).unbind('ajaxStop.runNextQueuedAction');
+
+            setTimeout(function() {
+              chunksField.actions.runNext();
+            }, 0);
+          });
         }
       });
 

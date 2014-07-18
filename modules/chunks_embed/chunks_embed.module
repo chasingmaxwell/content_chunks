@@ -1,0 +1,171 @@
+<?php
+
+/**
+ * @file
+ * Provide an embed chunk type for embeding content in an iframe.
+ */
+
+/**
+ * Implements hook_chunk_types().
+ */
+function chunks_embed_chunk_types() {
+
+  // Build default settings for providers.
+  $providers = array();
+  foreach(media_internet_get_providers() as $key => $provider) {
+    if (!isset($provider['hidden']) || !$provider['hidden']) {
+      $providers[] = $key;
+    }
+  }
+
+  return array(
+    'embed' => array(
+      'title' => t('Embedded media'),
+      'default configuration' => array(
+        'embed_code' => '',
+        'fid' => '',
+        'display' => 1,
+      ),
+      'default type settings' => array(
+        'providers' => $providers,
+        'view_mode' => 'media_original',
+        'size' => 60,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_type_settings_form().
+ */
+function chunks_embed_embed_chunk_type_settings_form($chunk_instance, $delta, $form, &$form_state) {
+
+  $settings = $chunk_instance['settings'];
+
+  $instance_settings_form = array();
+
+  $instance_settings_form['view_mode'] = array(
+    '#title' => t('View mode'),
+    '#type' => 'select',
+    '#options' => file_entity_view_mode_labels(),
+    '#default_value' => $settings['view_mode'],
+  );
+
+  $instance_settings_form['size'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Size of textfield'),
+    '#default_value' => $settings['size'],
+    '#required' => TRUE,
+    '#element_validate' => array('element_validate_integer_positive'),
+  );
+
+  $providers = array();
+  foreach(media_internet_get_providers() as $key => $provider) {
+    if (!isset($provider['hidden']) || !$provider['hidden']) {
+      $providers[$key] = $provider['title'];
+    }
+  }
+
+  $instance_settings_form['providers'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Available providers'),
+    '#options' => $providers,
+    '#default_value' => $settings['providers'],
+  );
+
+  return $instance_settings_form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form().
+ */
+function chunks_embed_embed_chunk_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+
+  $all_providers = media_internet_get_providers();
+  $providers = array_intersect_key($all_providers, array_filter($chunk_instance['settings']['providers']));
+  $provider_titles = array();
+  foreach ($providers as $provider) {
+    $provider_titles[] = $provider['title'];
+  }
+  $provider_list = '<ul><li>' . implode('</li><li>', $provider_titles) . '</li></ul>';
+
+  $config_form['embed_code'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Embed code or URL'),
+    '#default_value' => $configuration['embed_code'],
+    '#size' => $chunk_instance['settings']['size'],
+    '#maxlength' => 1024,
+    '#description' => t('<strong>Supported services:</strong> !provider_list.', array('!provider_list' => $provider_list)),
+  );
+
+  $config_form['fid'] = array(
+    '#type' => 'hidden',
+    '#default_value' => $configuration['fid'],
+  );
+
+  $config_form['display'] = array(
+    '#type' => 'value',
+    '#value' => 1,
+  );
+
+  return $config_form;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_form_validate().
+ */
+function chunks_embed_embed_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+  $embed_code = $configuration['embed_code']['#value'];
+  $fid = NULL;
+
+  $providers = array_filter($chunk_instance['settings']['providers']);
+
+  if (!empty($embed_code)) {
+
+    // Get the fid of a referencable file from the entered url.
+    try {
+      $provider = media_internet_get_provider($embed_code, $providers);
+    }
+    catch (Exception $error) {
+      form_error($configuration['embed_code'], t('Found no valid media with that url.'));
+      return FALSE;
+    }
+
+    $file = $provider->save();
+    $fid = $file->fid;
+    $chunk_state['configuration'][$chunk_instance['name']]['embed_code'] = file_create_url($file->uri);
+  }
+
+  $chunk_state['configuration'][$chunk_instance['name']]['fid'] = $fid;
+
+  return TRUE;
+}
+
+/**
+ * Implements hook_CHUNK_TYPE_chunk_is_empty().
+ */
+function chunks_embed_embed_chunk_is_empty($configuration, $item, $field) {
+  if (empty($configuration['fid'])) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_preprocess_chunk().
+ *
+ * Preprocess variables for chunk--embed.tpl.php.
+ *
+ * @see template_preprocess_chunk()
+ * @see chunk--embed.tpl.php
+ */
+function chunks_embed_preprocess_chunk(&$variables, $hook) {
+  if ($variables['chunk_type']->name == 'embed') {
+    if ($variables['file'] = file_load($variables['configuration']['fid'])) {
+      $variables['media'] = file_view($variables['file'], $variables['instance_settings']['view_mode']);
+    }
+    else {
+      $variables['media'] = array('#markup' => t('The referenced file was unable to be loaded.', array('%fid' => $variables['configuration']['fid'])));
+    }
+  }
+}

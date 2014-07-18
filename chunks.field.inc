@@ -698,7 +698,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#weight' => 1,
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array($class_prepend . 'reset-button', 'limited'),
+          'class' => array('chunk-button', 'chunk-reset-button', $class_prepend . 'reset-button', 'limited'),
         ),
         '#ajax' => array(
           'callback' => 'chunks_field_form_callback',
@@ -716,7 +716,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#weight' => 1,
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array($class_prepend . 'remove-button', 'unlimited'),
+          'class' => array('chunk-button', 'chunk-remove-button', $class_prepend . 'remove-button', 'unlimited'),
         ),
       );
     }
@@ -733,7 +733,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#op' => 'edit',
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array('chunk-edit-button', $class_prepend . 'edit-button'),
+          'class' => array('chunk-button', 'chunk-edit-button', $class_prepend . 'edit-button'),
         ),
       );
 
@@ -745,7 +745,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#op' => 'preview',
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array('chunk-preview-button', $class_prepend . 'preview-button'),
+          'class' => array('chunk-button', 'chunk-preview-button', $class_prepend . 'preview-button'),
         ),
         '#ajax' => array(
           'callback' => 'chunks_field_preview_callback',
@@ -763,7 +763,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
         '#weight' => -1,
         '#limit_validation_errors' => array(array($field_name)),
         '#attributes' => array(
-          'class' => array('chunk-cancel-button', $class_prepend . 'cancel-button'),
+          'class' => array('chunk-button', 'chunk-cancel-button', $class_prepend . 'cancel-button'),
           'style' => 'display: none;',
         ),
       );
@@ -786,7 +786,7 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
           '#op' => 'add_after',
           '#limit_validation_errors' => array(array($field_name)),
           '#attributes' => array(
-            'class' => array($class_prepend . 'add-after-button'),
+            'class' => array('chunk-button', 'chunk-add-after-button', $class_prepend . 'add-after-button'),
           ),
           '#weight' => 2,
           '#ajax' => array(
@@ -1080,7 +1080,6 @@ function chunks_field_form_submit($form, &$form_state) {
         // Add empty chunk now that it's weight is unique.
         $items[] = array(
           '_weight' => (string) $highest_weight + 1,
-          'chunk' => array(),
         );
 
         // Increment the items count and store the items in the field state.
