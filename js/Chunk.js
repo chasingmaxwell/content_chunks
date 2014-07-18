@@ -24,23 +24,32 @@
 
     this.setProperties = function(element, field, delta) {
       thisChunk = this;
+      var buttons = $('.chunk-button', element);
+
       this.element = $(element);
       this.field = field;
       this.delta = delta;
       this.classPrepend = '.' + field.classFieldName + '-' + delta + '-';
       this.namePrepend =  field.fieldName + '[' + field.langcode + '][' + delta + ']';
-      this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
+      this.instanceName = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
+      this.chunkInstance = this.field.settings.instances[this.instanceName];
       this.chunkType = $(':input[name="' + this.namePrepend + '[type]"]').val();
       this.viewElement = $(':input[name="' + this.namePrepend + '[view]"]');
       this.view = this.viewElement.val();
       this.active = $(element).hasClass('active');
-      this.addButton = $(':input[name="' + field.fieldName + '-' + delta + '-add-after"]');
       this.viewWrappers = {
         'instance_selection': $('> .form-item-' + field.classFieldName + '-' + field.langcode + '-' + this.delta + '-instance', this.element),
         'configuration': $(this.classPrepend + 'configuration', this.element),
         'preview': $(this.classPrepend + 'preview', this.element),
       };
-      this.conditionalButtons = $('.chunk-edit-button, .chunk-preview-button, .chunk-cancel-button', this.element);
+      this.buttons = {
+        reset: buttons.filter('.chunk-reset-button'),
+        remove: buttons.filter('.chunk-remove-button'),
+        edit: buttons.filter('.chunk-edit-button'),
+        preview: buttons.filter('.chunk-preview-button'),
+        cancel: buttons.filter('.chunk-cancel-button'),
+        add: buttons.filter('.chunk-add-after-button'),
+      };
       this.events = this.events || [];
       this.errors = $(this.classPrepend + 'configuration :input.error', this.element);
       this.needsReset = this.needsReset || false;
@@ -57,53 +66,67 @@
       }
     };
 
-    this.getConfigState = function() {
-      var configuration = {};
-      this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
-      this.chunkType = this.field.settings.instances[this.chunkInstance].type;
+    // Method for retrieving and performing actions against chunk configuration.
+    this.config = (function() {
 
-      $('[name^="' + this.namePrepend + '[configuration][' + this.chunkInstance + ']"]').each(function(i, element) {
-        var name = $(element).attr('name');
-        var configProp = name.match(/[^\[]*(?=]$)/)[0];
-        configuration[configProp] = $(element).val();
-      });
+      var reset = function() {
+        thisChunk.instanceName = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
+        thisChunk.chunkInstance = thisChunk.field.settings.instances[thisChunk.instanceName];
+        thisChunk.chunkType = thisChunk.chunkInstance.type;
+      };
 
-      return configuration;
-    };
+      return {
+        get: function(fromInput) {
+          reset();
 
-    this.saveConfig = function() {
-      this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
-      this.chunkType = this.field.settings.instances[this.chunkInstance].type;
+          var configuration = {};
 
-      $('[name^="' + this.namePrepend + '[configuration][' + this.chunkInstance + ']"]').each(function(i, element) {
-        var name = $(element).attr('name');
-        var configProp = name.match(/[^\[]*(?=]$)/)[0];
-        thisChunk.field.settings.chunks[delta].configuration[thisChunk.chunkInstance][configProp] = $(element).val();
-      });
+          // Retrieve configuration either from user input or static settings.
+          if (fromInput) {
+            $('[name^="' + thisChunk.namePrepend + '[configuration][' + thisChunk.instanceName + ']"]').each(function(i, element) {
+              var name = $(element).attr('name');
+              var configProp = name.match(/[^\[]*(?=]$)/)[0];
+              configuration[configProp] = $(element).val();
+            });
+          }
+          else {
+            configuration = thisChunk.field.settings.chunks[thisChunk.delta].configuration[thisChunk.instanceName];
+          }
 
-      // Provide a callback with which to perform actions against the saved
-      // configuration.
-      if (typeof Drupal.settings.chunks.callbacks.saveConfig[this.chunkType] === 'function') {
-        Drupal.settings.chunks.callbacks.saveConfig[this.chunkType](field.fieldName, field.langcode, delta);
-      }
-    };
+          return configuration;
+        },
+        save: function() {
+          reset();
 
-    this.restoreConfig = function() {
-      this.chunkInstance = $(':input[name="' + this.namePrepend + '[instance]"]:checked').val();
-      this.chunkType = this.field.settings.instances[this.chunkInstance].type;
+          $('[name^="' + thisChunk.namePrepend + '[configuration][' + thisChunk.instanceName + ']"]').each(function(i, element) {
+            var name = $(element).attr('name');
+            var configProp = name.match(/[^\[]*(?=]$)/)[0];
+            thisChunk.field.settings.chunks[thisChunk.delta].configuration[thisChunk.instanceName][configProp] = $(element).val();
+          });
 
-      $('[name^="' + this.namePrepend + '[configuration]"]').each(function(i, element) {
-        var name = $(element).attr('name');
-        var configProp = name.match(/[^\[]*(?=]$)/)[0];
-        $(element).val(thisChunk.field.settings.chunks[delta].configuration[thisChunk.chunkInstance][configProp]);
-      });
+          // Provide a callback with which to perform actions against the saved
+          // configuration.
+          if (typeof Drupal.settings.chunks.callbacks.saveConfig[thisChunk.chunkType] === 'function') {
+            Drupal.settings.chunks.callbacks.saveConfig[thisChunk.chunkType](field.fieldName, field.langcode, thisChunk.delta);
+          }
+        },
+        restore: function() {
+          reset();
 
-      // Provide a callback with which to perform actions against the
-      // restored configuration.
-      if (typeof Drupal.settings.chunks.callbacks.restoreConfig[this.chunkType] === 'function') {
-        Drupal.settings.chunks.callbacks.restoreConfig[this.chunkType](field.fieldName, field.langcode, delta);
-      }
-    };
+          $('[name^="' + thisChunk.namePrepend + '[configuration]"]').each(function(i, element) {
+            var name = $(element).attr('name');
+            var configProp = name.match(/[^\[]*(?=]$)/)[0];
+            $(element).val(thisChunk.field.settings.chunks[thisChunk.delta].configuration[thisChunk.instanceName][configProp]);
+          });
+
+          // Provide a callback with which to perform actions against the
+          // restored configuration.
+          if (typeof Drupal.settings.chunks.callbacks.restoreConfig[thisChunk.chunkType] === 'function') {
+            Drupal.settings.chunks.callbacks.restoreConfig[thisChunk.chunkType](field.fieldName, field.langcode, thisChunk.delta);
+          }
+        }
+      };
+    })();
 
     this.setView = function(view) {
       this.view = view;
@@ -111,7 +134,9 @@
       this.viewElement.trigger('change');
 
       // Hide all conditionally visible buttons.
-      this.conditionalButtons.hide();
+      this.buttons.edit.hide();
+      this.buttons.preview.hide();
+      this.buttons.cancel.hide();
 
       switch (view) {
         case 'staged':
@@ -125,23 +150,23 @@
         case 'configuration':
           // Save configuration so it can be restored later if the edit is
           // cancelled.
-          this.saveConfig();
+          this.config.save();
 
           // Hide unused configuration forms.
-          if (typeof this.chunkInstance !== 'undefined') {
+          if (typeof this.instanceName !== 'undefined') {
             $('.fieldset-wrapper > div', this.viewWrappers.configuration).hide();
-            $('.' + this.chunkInstance + '-chunk-instance-configuration', this.viewWrappers.configuration).show();
+            $('.' + this.instanceName + '-chunk-instance-configuration', this.viewWrappers.configuration).show();
           }
 
           // Show preview button. The cancel button is handled by the event
           // handler for the "Edit" button to avoid showing the cancel button
           // upon instance selection.
-          this.conditionalButtons.filter('.chunk-preview-button').show();
+          this.buttons.preview.show();
           break;
 
         case 'preview':
           // Show edit button.
-          this.conditionalButtons.filter('.chunk-edit-button').show();
+          this.buttons.edit.show();
           break;
       }
 
@@ -209,19 +234,19 @@
             this.checked = true;
             $(this).trigger('change');
 
-            // Update chunkInstance.
-            thisChunk.chunkInstance = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
-            thisChunk.chunkType = thisChunk.field.settings.instances[thisChunk.chunkInstance].type;
+            // Update instanceName.
+            thisChunk.instanceName = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
+            thisChunk.chunkType = thisChunk.field.settings.instances[thisChunk.instanceName].type;
 
             // Prepare form if the chunk instance is to be themed on the client.
-            if (thisChunk.field.settings.instances[thisChunk.chunkInstance].settings.preview_on_client) {
+            if (thisChunk.field.settings.instances[thisChunk.instanceName].settings.preview_on_client) {
 
               // Prevent default actions on preview button if we are theming on
               // the client.
-              $(thisChunk.classPrepend + 'preview-button', element).unbind('click').unbind('keypress').bind('keypress', false);
+              thisChunk.buttons.preview.unbind('click').unbind('keypress').bind('keypress', false);
 
               // Set module value since it may not be set in a form rebuild.
-              $('[name^="' + thisChunk.namePrepend + '[module]"]').val(thisChunk.field.settings.instances[thisChunk.chunkInstance].chunk_type.module);
+              $('[name^="' + thisChunk.namePrepend + '[module]"]').val(thisChunk.field.settings.instances[thisChunk.instanceName].chunk_type.module);
             }
 
             // Switch to configuration view.
@@ -248,28 +273,42 @@
             var preview;
 
             // Hide cancel button.
-            $(thisChunk.classPrepend + 'cancel-button', element).hide();
+            thisChunk.buttons.cancel.hide();
 
-            // Update chunkInstance and chunkType.
-            thisChunk.chunkInstance = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
-            thisChunk.chunkType = thisChunk.field.settings.instances[thisChunk.chunkInstance].type;
+            // Update instanceName and chunkType.
+            thisChunk.instanceName = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
+            thisChunk.chunkType = thisChunk.field.settings.instances[thisChunk.instanceName].type;
 
             // If we should be using a client-side theme implementation,
             // prevent the ajax call and build the preview.
-            if (typeof thisChunk.chunkInstance !== 'undefined' && thisChunk.field.settings.instances[thisChunk.chunkInstance].settings.preview_on_client) {
+            if (typeof thisChunk.instanceName !== 'undefined' && thisChunk.field.settings.instances[thisChunk.instanceName].settings.preview_on_client) {
 
               // Save configuration data.
-              thisChunk.saveConfig();
+              thisChunk.config.save();
 
               // Build preview.
-              preview = Drupal.theme('chunk__' + thisChunk.chunkType, thisChunk.field.settings.chunks[thisChunk.delta].configuration[thisChunk.chunkInstance], thisChunk.field.fieldName, thisChunk.field.langcode, thisChunk.delta);
+              preview = Drupal.theme('chunk__' + thisChunk.chunkType, thisChunk.config.get(), thisChunk.field.fieldName, thisChunk.field.langcode, thisChunk.delta);
               $(thisChunk.classPrepend + 'preview')[0].innerHTML = preview;
             }
             else {
-              // Manually request an ajax event response.
-              Drupal.ajax[this.id].eventResponse(this, e);
-              thisChunk.needsReset = true;
-              thisChunk.previewLoading = true;
+              if (Drupal.ajaxInProgress()) {
+                $(this).addClass('progress-disabled').attr('disabled', true);
+                $(this).after('<div class="ajax-progress ajax-progress-throbber preview-queued"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
+                thisChunk.field.actions.queue('preview', function() {
+                  var button = thisChunk.buttons.preview.get(0);
+                  // Manually request an ajax event response.
+                  Drupal.ajax[button.id].eventResponse(button, e);
+                  thisChunk.needsReset = true;
+                  thisChunk.previewLoading = true;
+                  $('.preview-queued', thisChunk.element).remove();
+                });
+              }
+              else {
+                // Manually request an ajax event response.
+                Drupal.ajax[this.id].eventResponse(this, e);
+                thisChunk.needsReset = true;
+                thisChunk.previewLoading = true;
+              }
             }
 
             // Switch to preview view.
@@ -281,7 +320,7 @@
 
             // Set focus to add chunk button.
             setTimeout(function() {
-              thisChunk.addButton.focus();
+              thisChunk.buttons.add.focus();
             }, 0);
 
             // Remove active state on button.
@@ -296,14 +335,14 @@
         'events': 'keyup.chunkEdit mousedown.chunkEdit',
         'handler': function(e) {
           if ((e.type === 'mousedown' && e.which === 1) || (e.type === 'keyup' && e.keyCode === 13)) {
-            thisChunk.chunkInstance = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
-            thisChunk.chunkType = thisChunk.field.settings.instances[thisChunk.chunkInstance].type;
+            thisChunk.instanceName = $(':input[name="' + thisChunk.namePrepend + '[instance]"]:checked').val();
+            thisChunk.chunkType = thisChunk.field.settings.instances[thisChunk.instanceName].type;
 
             // Switch to configuration view.
             thisChunk.setView('configuration');
 
             // Show cancel button.
-            thisChunk.conditionalButtons.filter('.chunk-cancel-button').show();
+            thisChunk.buttons.cancel.show();
 
             // Set active field to prevent focus from jumping to a different chunks
             // field.
@@ -341,11 +380,11 @@
             thisChunk.removeActiveElementState(this);
 
             // Restore configuration.
-            thisChunk.restoreConfig();
+            thisChunk.config.restore();
 
             // Set focus to add chunk button.
             setTimeout(function() {
-              thisChunk.addButton.focus();
+              thisChunk.buttons.add.focus();
             }, 0);
           }
         }
@@ -424,30 +463,36 @@
         'handler': function(e) {
           if ((e.type === 'mousedown' && e.which === 1) || (e.type === 'keyup' && e.keyCode === 13)) {
 
-            // Show a throbber if we have no staged chunk to show.
-            if (thisChunk.field.settings.loadingStaged) {
-              if (thisChunk.field.settings.queueNext === false) {
-                $(this).after('<div class="ajax-progress ajax-progress-throbber nothing-staged"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
-                thisChunk.field.settings.queueNext = thisChunk.delta + 1;
-              }
-              return;
+            if (Drupal.ajaxInProgress()) {
+              $(this).addClass('progress-disabled').attr('disabled', true);
+              thisChunk.field.actions.queue('add_after', function() {
+                var button = thisChunk.buttons.add.get(0);
+                // Manually request an ajax event response.
+                Drupal.ajax[button.id].eventResponse(button, e);
+                // Remove throbber.
+                $('.staged-chunk-queued', thisChunk.element).remove();
+                thisChunk.field.stagedChunk.redeem(thisChunk.delta);
+              });
+            }
+            else {
+              // Manually request an ajax event response.
+              Drupal.ajax[this.id].eventResponse(this, e);
             }
 
-            // Show the currently hidden staged chunk after the current one.
-            thisChunk.field.showStagedChunk('#' + thisChunk.field.fieldName + '-' + thisChunk.delta + '-chunk-row');
+            // Claim the next staged chunk, then see if we can immediately
+            // redeem it.
+            thisChunk.field.stagedChunk.claim(thisChunk.delta);
+            if (!thisChunk.field.stagedChunk.redeem(thisChunk.delta)) {
+              $(this).after('<div class="ajax-progress ajax-progress-throbber staged-chunk-queued"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
+            }
 
             // Set all chunks to inactive so focus doesn't jump around.
             thisChunk.field.deactivateChunks();
-
-            // Manually request an ajax event response.
-            Drupal.ajax[this.id].eventResponse(this, e);
 
             setTimeout(function() {
               var newChunk = thisChunk.field.activeChunk;
               $(':input[name="' + newChunk.namePrepend + '[instance]"]', newChunk.element).first().focus();
             }, 0);
-
-            thisChunk.field.settings.loadingStaged = true;
           }
         }
       });

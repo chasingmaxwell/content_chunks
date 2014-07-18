@@ -8,10 +8,10 @@
 
   // Provide a client-side theme implementation for definitions chunks.
   Drupal.theme.prototype.chunk__definitions = function(configuration, fieldName, langcode, delta) {
-    var chunkInstance, output, items, item, type;
+    var chunk, output, items, item, type;
 
-    // Retrieve the chunk instance.
-    chunkInstance = Drupal.chunks.fields[fieldName].chunks[delta].chunkInstance;
+    // Retrieve the Chunk object.
+    chunk = Drupal.chunks.fields[fieldName].chunks[delta];
 
     output = '<dl class="chunk definitions-chunk">';
 
@@ -36,7 +36,7 @@
       }
 
       // If the format is plain text, run the text through chunkPlain
-      if (Drupal.settings.chunks.fields[fieldName].instances[chunkInstance].settings.format === 'plain_text') {
+      if (chunk.chunkInstance.settings.format === 'plain_text') {
         item = Drupal.checkPlain(item);
       }
 

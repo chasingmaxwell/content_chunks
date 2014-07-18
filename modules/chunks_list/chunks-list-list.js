@@ -85,7 +85,7 @@
             listConfig = $(this).parents('.list-chunk-type-configuration');
 
             // Retrieve the configuration state from the form.
-            configuration = Drupal.chunks.fields[fieldName].chunks[delta].getConfigState();
+            configuration = Drupal.chunks.fields[fieldName].chunks[delta].config.get(true);
 
             // Add edit_in_place configuration property.
             configuration.edit_in_place = true;
@@ -125,14 +125,13 @@
 
       // Implements the restoreConfig callback to restore list configuration.
       Drupal.settings.chunks.callbacks.restoreConfig.list = function(fieldName, langcode, delta) {
-        var chunkInstance;
 
-        // Retrieve the chunk instance.
-        chunkInstance = Drupal.chunks.fields[fieldName].chunks[delta].chunkInstance;
+        // Retrieve the Chunk object.
+        var chunk = Drupal.chunks.fields[fieldName].chunks[delta];
 
         // Only do anything if this instance of the chunk is set to be edited
         // in-place.
-        if (Drupal.settings.chunks.fields[fieldName].instances[chunkInstance].settings.edit_in_place) {
+        if (chunk.chunkInstance.settings.edit_in_place) {
           var classFieldName, listConfig, configState, configuration, inPlaceEditor;
 
           classFieldName = fieldName.replace(/_/g, '-');
@@ -141,7 +140,7 @@
           // Make a copy of the configuration and add the edit_in_place
           // property so we can render a contenteditable list chunk
           // without changing the configuration settings for the chunk.
-          configState = Drupal.settings.chunks.fields[fieldName].chunks[delta].configuration[chunkInstance];
+          configState = chunk.config.get();
           configuration = {};
           for (var prop in configState) {
             configuration[prop] = configState[prop];
@@ -162,10 +161,10 @@
 
   // Provide a client-side theme implementation for list chunks.
   Drupal.theme.prototype.chunk__list = function(configuration, fieldName, langcode, delta) {
-    var list, output, list_item, contentEditable, chunkInstance, reg;
+    var chunk, list, output, list_item, contentEditable, reg;
 
-    // Retrieve the chunk instance.
-    chunkInstance = Drupal.chunks.fields[fieldName].chunks[delta].chunkInstance;
+    // Retrieve the Chunk object.
+    chunk = Drupal.chunks.fields[fieldName].chunks[delta];
 
     // Break configuration.list into an array if it's value is coming from the
     // textarea element.
@@ -186,7 +185,7 @@
     for (var key in configuration.list) {
 
       // If the format is plain text, run the text through chunkPlain
-      if (Drupal.settings.chunks.fields[fieldName].instances[chunkInstance].settings.format === 'plain_text') {
+      if (chunk.chunkInstance.settings.format === 'plain_text') {
         list_item = Drupal.checkPlain(configuration.list[key]);
       }
       // Otherwise don't do anything at all.
