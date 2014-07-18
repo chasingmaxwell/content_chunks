@@ -81,11 +81,21 @@ function chunks_embed_embed_chunk_type_settings_form($chunk_instance, $delta, $f
  */
 function chunks_embed_embed_chunk_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
 
+  $all_providers = media_internet_get_providers();
+  $providers = array_intersect_key($all_providers, array_filter($chunk_instance['settings']['providers']));
+  $provider_titles = array();
+  foreach ($providers as $provider) {
+    $provider_titles[] = $provider['title'];
+  }
+  $provider_list = '<ul><li>' . implode('</li><li>', $provider_titles) . '</li></ul>';
+
   $config_form['embed_code'] = array(
     '#type' => 'textfield',
+    '#title' => t('Embed code or URL'),
     '#default_value' => $configuration['embed_code'],
     '#size' => $chunk_instance['settings']['size'],
     '#maxlength' => 1024,
+    '#description' => t('<strong>Supported services:</strong> !provider_list.', array('!provider_list' => $provider_list)),
   );
 
   $config_form['fid'] = array(
@@ -108,12 +118,7 @@ function chunks_embed_embed_chunk_form_validate($configuration, &$chunk_state, $
   $embed_code = $configuration['embed_code']['#value'];
   $fid = NULL;
 
-  $providers = array();
-  foreach ($chunk_instance['settings']['providers'] as $key => $value) {
-    if (!empty($value)) {
-      $providers[] = $key;
-    }
-  }
+  $providers = array_filter($chunk_instance['settings']['providers']);
 
   if (!empty($embed_code)) {
 
