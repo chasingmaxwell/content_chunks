@@ -26,7 +26,10 @@
       this.settings = Drupal.settings.chunks.fields[this.fieldName];
       this.langcode = this.element.attr('langcode');
       this.chunksElements = $('.chunk-wrapper', this.element);
+      // @TODO: turn this.chunks into a module (the javascript pattern) with
+      // methods for getting, updating, activating, deactivating, etc.
       this.chunks = this.chunks || {};
+      this.chunksRetrievedCount = this.chunksRetrievedCount || 0;
       this.activeChunk = this.activeChunk || null;
       this.events = this.events || [];
     };
@@ -65,20 +68,39 @@
           return false;
         },
         show: function(stagedChunk, prevSibling, prevChunk) {
-          var stagedRow;
+          var chunksTable, stagedRow;
 
           prevChunk = prevChunk || false;
 
           stagedChunk = this.retrieve();
 
+          chunksTable = Drupal.tableDrag[thisField.classFieldName + '-values'];
+          if ($.cookie('Drupal.tableDrag.showWeight') != 1) {
+            chunksTable.hideColumns();
+          }
+
           // Change view to instance_selection.
           stagedChunk.setView('instance_selection');
+
+          // Retrieve parent row of staged chunk, process it, and move it to the
+          // correct location.
           stagedRow = stagedChunk.element.parents('tr.staged');
+          if ($('td:first > .tabledrag-handle', stagedRow).length === 0) {
+            chunksTable.makeDraggable(stagedRow.get(0));
+          }
           stagedRow.removeClass('staged');
           stagedRow.insertAfter(prevSibling);
+
+          // Reset weight inputs.
           thisField.resetWeights();
+
+          // Show the parent row.
           stagedRow.show();
+
+          // Set active chunk so focus is handled correctly.
           thisField.setActiveChunk(stagedChunk.delta);
+
+          // Reset striping on visible chunk rows.
           thisField.resetStripes();
 
           // Provide a callback reacting against the showing of a staged chunk.
@@ -111,14 +133,24 @@
           // Show the currently hidden staged chunk after it's redeemer.
           if (delta >= 0) {
             this.show(stagedChunk, '#' + thisField.fieldName + '-' + delta + '-chunk-row', thisField.chunks[delta]);
+            // Remove throbber.
+            $('.staged-chunk-queued', thisField.chunks[delta].element).remove();
           }
           else {
             this.show(stagedChunk, '#' + thisField.fieldName + '-chunks-field .add-chunk-action-before-row');
+            // Remove throbber.
+            $('.staged-chunk-queued-before', thisField.element).remove();
           }
 
           // Redemption successful!
           return true;
         },
+        redeemNext: function() {
+          if (stagedClaims.length > 0) {
+            return this.redeem(stagedClaims[0]);
+          }
+          return false;
+        }
       };
     })();
 
@@ -209,9 +241,6 @@
                 var button = $(':input[name="' + thisField.fieldName + '-add-before"]', thisField.element).get(0);
                 // Manually request an ajax event response.
                 Drupal.ajax[button.id].eventResponse(button, e);
-                // Remove throbber.
-                $('.staged-chunk-queued-before', thisField.element).remove();
-                thisField.stagedChunk.redeem(-1);
               });
             }
             else {
@@ -259,6 +288,8 @@
     // Retrieve chunks contained within this field.
     this.retrieveChunks = function() {
 
+      this.chunksRetrievedCount++;
+
       // Retrieve or create new Chunks for this field.
       this.chunksElements.each(function() {
         var delta, chunk;
@@ -267,7 +298,10 @@
         chunk = thisField.chunks[delta];
 
         if (typeof chunk === 'undefined' || !thisField.settings.unlimited) {
-          thisField.chunks[delta] = new Chunk(this, thisField, delta);
+          thisField.chunks[delta] = chunk = new Chunk(this, thisField, delta);
+          if (thisField.chunksRetrievedCount > 1) {
+            thisField.stagedChunk.redeemNext();
+          }
         }
         else if (chunk.needsReset && !chunk.previewLoading) {
           chunk.setProperties(this, thisField, delta);

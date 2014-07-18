@@ -53,15 +53,6 @@
           chunksField.setProperties(this);
           chunksField.retrieveChunks();
 
-          // Prep any new staged chunks.
-          $('tr.staged.ajax-loaded', e).once(function() {
-            var chunksTable = Drupal.tableDrag[chunksField.classFieldName + '-values'];
-            chunksTable.makeDraggable(this);
-            if ($.cookie('Drupal.tableDrag.showWeight') != 1) {
-              chunksTable.hideColumns();
-            }
-          });
-
           // Run the next queued action when ajax stops.
           $(document).bind('ajaxStop.runNextQueuedAction', function() {
 

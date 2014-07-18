@@ -469,9 +469,6 @@
                 var button = thisChunk.buttons.add.get(0);
                 // Manually request an ajax event response.
                 Drupal.ajax[button.id].eventResponse(button, e);
-                // Remove throbber.
-                $('.staged-chunk-queued', thisChunk.element).remove();
-                thisChunk.field.stagedChunk.redeem(thisChunk.delta);
               });
             }
             else {
