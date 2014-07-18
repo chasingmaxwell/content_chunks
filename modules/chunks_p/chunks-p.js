@@ -76,11 +76,9 @@
             }, 0);
           });
 
-          // Prevent <div></div> tags from being added when user presses
-          // "Enter".
+          // Prevent new lines from being added when user presses "Enter".
           $(this).bind('keydown.chunksPNoDiv', function(e) {
-            if (e.keyCode === 13 && !e.shiftKey) {
-              document.execCommand('insertHTML', false, '<br><br>');
+            if (e.keyCode === 13) {
               return false;
             }
           });
@@ -147,9 +145,9 @@
             // Add tip so users know about the shortcut.
             $('.p-chunk-type-configuration', chunk.element).append('<div class="description"><strong>Tip:</strong> press <em>Shift + Enter</em> to start writing a new paragraph below this one.</div>');
 
-            // Listen for the shortcut.
+            // Listen for shift+enter shortcut.
             $('.p-chunk-type-configuration .p-chunk[contenteditable], .p-chunk-type-configuration textarea', chunk.element).bind('keydown.chunksPShortcut', function(e) {
-              if (event.keyCode === 13 && event.shiftKey) {
+              if (e.keyCode === 13 && e.shiftKey) {
 
                 // Queue the staged chunk to be added automatically as a
                 // paragraph chunk.
