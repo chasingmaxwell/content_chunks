@@ -62,11 +62,11 @@
             }
           });
 
-          // Do we need to load another staged chunk?
-          $(document).bind('ajaxStop.loadQueuedStagedChunk', function() {
+          // Run the next queued action when ajax stops.
+          $(document).bind('ajaxStop.runNextQueuedAction', function() {
 
             // Only do this once.
-            $(document).unbind('ajaxStop.loadQueuedStagedChunk');
+            $(document).unbind('ajaxStop.runNextQueuedAction');
 
             setTimeout(function() {
               chunksField.actions.runNext();
