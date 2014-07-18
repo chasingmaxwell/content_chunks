@@ -9,6 +9,15 @@
  * Implements hook_chunk_types().
  */
 function chunks_embed_chunk_types() {
+
+  // Build default settings for providers.
+  $providers = array();
+  foreach(media_internet_get_providers() as $key => $provider) {
+    if (!isset($provider['hidden']) || !$provider['hidden']) {
+      $providers[] = $key;
+    }
+  }
+
   return array(
     'embed' => array(
       'title' => t('Embedded media'),
@@ -18,6 +27,7 @@ function chunks_embed_chunk_types() {
         'display' => 1,
       ),
       'default type settings' => array(
+        'providers' => $providers,
         'view_mode' => 'media_original',
         'size' => 60,
       ),
@@ -49,6 +59,20 @@ function chunks_embed_embed_chunk_type_settings_form($chunk_instance, $delta, $f
     '#element_validate' => array('element_validate_integer_positive'),
   );
 
+  $providers = array();
+  foreach(media_internet_get_providers() as $key => $provider) {
+    if (!isset($provider['hidden']) || !$provider['hidden']) {
+      $providers[$key] = $provider['title'];
+    }
+  }
+
+  $instance_settings_form['providers'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Available providers'),
+    '#options' => $providers,
+    '#default_value' => $settings['providers'],
+  );
+
   return $instance_settings_form;
 }
 
@@ -56,9 +80,6 @@ function chunks_embed_embed_chunk_type_settings_form($chunk_instance, $delta, $f
  * Implements hook_CHUNK_TYPE_chunk_form().
  */
 function chunks_embed_embed_chunk_form(&$configuration, $chunk_instance, $form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-  $config_form = array(
-    '#element_validate' => array('_chunks_embed_validate'),
-  );
 
   $config_form['embed_code'] = array(
     '#type' => 'textfield',
@@ -81,29 +102,38 @@ function chunks_embed_embed_chunk_form(&$configuration, $chunk_instance, $form, 
 }
 
 /**
- * #validate handler for the embed chunk configuration element.
+ * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function _chunks_embed_validate($element, &$form_state, $form) {
-  $embed_code = $element['embed_code']['#value'];
+function chunks_embed_embed_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+  $embed_code = $configuration['embed_code']['#value'];
   $fid = NULL;
+
+  $providers = array();
+  foreach ($chunk_instance['settings']['providers'] as $key => $value) {
+    if (!empty($value)) {
+      $providers[] = $key;
+    }
+  }
 
   if (!empty($embed_code)) {
 
     // Get the fid of a referencable file from the entered url.
     try {
-      $provider = media_internet_get_provider($embed_code);
+      $provider = media_internet_get_provider($embed_code, $providers);
     }
     catch (Exception $error) {
-      form_error($element['embed_code'], t('Found no valid media with that url.'));
-      return;
+      form_error($configuration['embed_code'], t('Found no valid media with that url.'));
+      return FALSE;
     }
 
     $file = $provider->save();
     $fid = $file->fid;
-    form_set_value($element['embed_code'], file_create_url($file->uri), $form_state);
+    $chunk_state['configuration'][$chunk_instance['name']]['embed_code'] = file_create_url($file->uri);
   }
 
-  form_set_value($element['fid'], $fid, $form_state);
+  $chunk_state['configuration'][$chunk_instance['name']]['fid'] = $fid;
+
+  return TRUE;
 }
 
 /**
@@ -130,7 +160,7 @@ function chunks_embed_preprocess_chunk(&$variables, $hook) {
       $variables['media'] = file_view($variables['file'], $variables['instance_settings']['view_mode']);
     }
     else {
-      $variables['media'] = array('#markup' => t('The referenced file (fid: %fid) was unable to be loaded.', array('%fid' => $variables['configuration']['fid'])));
+      $variables['media'] = array('#markup' => t('The referenced file was unable to be loaded.', array('%fid' => $variables['configuration']['fid'])));
     }
   }
 }
