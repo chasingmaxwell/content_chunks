@@ -37,6 +37,8 @@ function chunks_field_info() {
 function chunks_field_instance_settings_form($field, $instance) {
   $settings = $instance['settings'];
 
+  $form = array();
+
   if ($field['type'] == 'chunks') {
 
     $chunk_types = chunk_types_load();
