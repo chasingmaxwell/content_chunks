@@ -14,7 +14,9 @@ function chunks_entity_reference_chunk_types() {
       'title' => t('Entity reference'),
       'default configuration' => array(
         'reference' => '',
-        'eid' => '',
+        'entity_id' => '',
+        'entity_type' => '',
+        'entity_bundle' => '',
       ),
       'default type settings' => array(
         'entity type' => '',
@@ -185,11 +187,21 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
   );
 
   // The entityreference element type strips away configuration values when it
-  // updates the values for the element. Use this form element to keep a
-  // persistent record of the eid.
-  $config_form['eid'] = array(
+  // updates the values for the element. Use the below form element to keep a
+  // persistent record of the values.
+  $config_form['entity_id'] = array(
     '#type' => 'hidden',
-    '#value' => $configuration['eid'],
+    '#value' => $configuration['entity_id'],
+  );
+
+  $config_form['entity_type'] = array(
+    '#type' => 'hidden',
+    '#value' => $configuration['entity_type'],
+  );
+
+  $config_form['entity_bundle'] = array(
+    '#type' => 'hidden',
+    '#value' => $configuration['entity_bundle'],
   );
 
   if(count($bundles > 0)) {
@@ -202,20 +214,20 @@ function chunks_entity_reference_entity_reference_chunk_form(&$configuration, $c
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+function chunks_entity_reference_entity_reference_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, $item_element, &$form_state, $form) {
 
   $config_state = &$chunk_state['configuration'][$chunk_instance['name']];
 
   // Do not allow the reference field to be empty.
-  if (empty($configuration['reference']['#value']['labels'])) {
+  if (empty($configuration['reference']['#value'])) {
     form_error($configuration['reference'], t('Please select a %instance_name.', array('%instance_name' => $chunk_instance['name'])));
     return FALSE;
   }
 
   // Do not allow the current entity to be referenced.
-  if ($form['#entity'] && $form['#entity_type']) {
-    $current_id = array_shift(entity_extract_ids($form['#entity_type'], $form['#entity']));
-    if (preg_match("/.+\((\d+)\)/", $configuration['reference']['#value']['labels'], $matches)) {
+  if ($item_element['#entity'] && $item_element['#entity_type']) {
+    $current_id = array_shift(entity_extract_ids($item_element['#entity_type'], $item_element['#entity']));
+    if (preg_match("/.+\((\d+)\)/", $configuration['reference']['#value'], $matches)) {
       $reference_id = $matches[1];
       if ($reference_id === $current_id) {
         form_error($configuration['reference'], t('You can not reference the current entity.'));
@@ -224,8 +236,10 @@ function chunks_entity_reference_entity_reference_chunk_form_validate($configura
     }
   }
 
-  // Set eid value.
-  $config_state['eid'] = isset($config_state['reference']['entity_id']) ? $config_state['reference']['entity_id'] : '';
+  // Set persistent values.
+  $config_state['entity_id'] = isset($config_state['reference']['entity_id']) ? $config_state['reference']['entity_id'] : '';
+  $config_state['entity_type'] = isset($config_state['reference']['entity_type']) ? $config_state['reference']['entity_type'] : '';
+  $config_state['entity_bundle'] = isset($config_state['reference']['entity_bundle']) ? $config_state['reference']['entity_bundle'] : '';
 
   return TRUE;
 }
@@ -256,7 +270,7 @@ function chunks_entity_reference_preprocess_chunk(&$variables, $hook) {
     $entity_type = $settings['entity type'];
     $view_mode = $variables['preview'] ? $settings['view mode preview'][$entity_type] : $settings['view mode'][$entity_type];
     $config = $variables['configuration'];
-    $eid = $config['reference']['entity_id'];
+    $eid = $config['entity_id'];
 
     // Detect and prevent recursive rendering.
     static $original_parent = 0;
@@ -299,14 +313,14 @@ function chunks_entity_reference_preprocess_chunk(&$variables, $hook) {
         '@type' => $variables['entity_type'],
         '@id' => array_shift(entity_extract_ids($variables['entity_type'], $variables['entity'])),
         '@target_type' => $settings['entity type'],
-        '@target_id' => $config['eid'],
+        '@target_id' => $config['entity_id'],
       );
       watchdog('chunks_entity_reference', $message, $vars, WATCHDOG_WARNING);
 
       $variables['referenced_entity_view'] = array();
 
       $message = 'The referenced @type (@id) has been deleted. Please edit or remove this content.';
-      $vars = array('@type' => $settings['entity type'], '@id' => $config['eid']);
+      $vars = array('@type' => $settings['entity type'], '@id' => $config['entity_id']);
       $variables['referenced_entity'] = t($message, $vars);
     }
 

@@ -1132,7 +1132,6 @@ function chunks_field_form_submit($form, &$form_state) {
 
   // Save changes to the form state.
   drupal_array_set_nested_value($form_state['values'], array_slice($parents, 0, $depth), $items);
-  drupal_array_set_nested_value($form_state['input'], array_slice($parents, 0, $depth), $items);
 
   $form_state['rebuild'] = TRUE;
 }
@@ -1183,12 +1182,11 @@ function chunks_field_widget_values_validate($element, &$form_state, $form) {
 
     // Validation for chunk type's configuration values.
     if ($validate_configuration) {
-      $chunk_type->validateConfiguration($element['configuration'][$item['instance']], $item, $chunk_instance, $form_state, $form);
+      $chunk_type->validateConfiguration($element['configuration'][$item['instance']], $item, $chunk_instance, $element, $form_state, $form);
     }
 
     // Save changes to the form state.
     drupal_array_set_nested_value($form_state['values'], $element['#array_parents'], $item);
-    drupal_array_set_nested_value($form_state['input'], $element['#array_parents'], $item);
   }
 }
 
@@ -1608,4 +1606,3 @@ EOT;
 
   return theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => $table_id, 'class' => array('chunk-instances'))));
 }
-

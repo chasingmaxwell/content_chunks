@@ -220,6 +220,8 @@ class ChunkType {
    *   - type: The name of the chunk type associated with the chunk instance.
    *   - settings: An associative array of settings for the chunk type instance.
    *     An empty array if no settings exist.
+   * @param $item_element
+   *   The form element for the field item for the current chunk.
    * @param $form_state
    *   An associative array representing the current state of the entity's edit
    *   form.
@@ -231,12 +233,12 @@ class ChunkType {
    *
    * @see chunks_field_widget_values_validate().
    */
-  public function validateConfiguration($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+  public function validateConfiguration($configuration, &$chunk_state, $chunk_instance, $item_element, &$form_state, $form) {
     $this->file_include();
 
     foreach(module_implements($this->name . '_chunk_form_validate') as $module) {
       $function = $module . '_' . $this->name . '_chunk_form_validate';
-      $valid = $function($configuration, $chunk_state, $chunk_instance, $form_state, $form);
+      $valid = $function($configuration, $chunk_state, $chunk_instance, $item_element, $form_state, $form);
       if (!$valid) {
         return FALSE;
       }

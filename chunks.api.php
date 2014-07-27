@@ -187,6 +187,8 @@ function hook_CHUNK_TYPE_chunk_form(&$configuration, $chunk_instance, $form, &$f
   *   - type: The name of the chunk type associated with the chunk instance.
   *   - settings: An associative array of settings for the chunk type instance.
   *     An empty array if no settings exist.
+  * @param $item_element
+  *   The form element for the field item for the current chunk.
   * @param $form_state
   *   An associative array representing the current state of the entity's edit
   *   form.
@@ -198,7 +200,7 @@ function hook_CHUNK_TYPE_chunk_form(&$configuration, $chunk_instance, $form, &$f
   *
   * @see chunks_field_widget_values_validate().
   */
-function hook_CHUNK_TYPE_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+function hook_CHUNK_TYPE_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, $item_element, &$form_state, $form) {
   if ($configuration['text']['#value'] == 'chunks') {
     form_error($configuration['text'], t('Enough chunks!'));
     return FALSE;

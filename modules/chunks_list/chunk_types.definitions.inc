@@ -154,7 +154,7 @@ function chunks_list_definitions_to_text($element) {
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_list_definitions_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+function chunks_list_definitions_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, $item_element, &$form_state, $form) {
 
   // The first line should not be a definition.
   if ($configuration['definitions']['#value'][0] == '-') {

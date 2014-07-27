@@ -205,7 +205,7 @@ function chunks_quote_quote_chunk_is_empty($configuration, $item, $field) {
  * This is the source of our dependency on link.module because we're reusing
  * their validation function.
  */
-function chunks_quote_quote_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+function chunks_quote_quote_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, $item_element, &$form_state, $form) {
   if (trim($configuration['attribution_location']['#value']) != '' &&
     link_validate_url(trim($configuration['attribution_location']['#value'])) == FALSE) {
     form_error($configuration['attribution_location'], t('The URL for your attribution location is not valid.'));

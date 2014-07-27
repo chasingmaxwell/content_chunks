@@ -289,8 +289,16 @@
               // Build preview.
               preview = Drupal.theme('chunk__' + thisChunk.chunkType, thisChunk.config.get(), thisChunk.field.fieldName, thisChunk.field.langcode, thisChunk.delta);
               $(thisChunk.classPrepend + 'preview')[0].innerHTML = preview;
+
+              // Switch to preview view.
+              thisChunk.setView('preview');
+
             }
             else {
+
+              // Switch to preview view.
+              thisChunk.setView('preview');
+
               if (Drupal.ajaxInProgress()) {
                 $(this).addClass('progress-disabled').attr('disabled', true);
                 $(this).after('<div class="ajax-progress ajax-progress-throbber preview-queued"><div class="throbber">&nbsp;</div><div class="message">Please wait...</div></div>');
@@ -310,9 +318,6 @@
                 thisChunk.previewLoading = true;
               }
             }
-
-            // Switch to preview view.
-            thisChunk.setView('preview');
 
             // Set active class on the last chunk previewed.
             thisChunk.field.setActiveChunk(thisChunk.delta);

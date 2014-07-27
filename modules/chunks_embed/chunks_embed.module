@@ -114,7 +114,7 @@ function chunks_embed_embed_chunk_form(&$configuration, $chunk_instance, $form, 
 /**
  * Implements hook_CHUNK_TYPE_chunk_form_validate().
  */
-function chunks_embed_embed_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, &$form_state, $form) {
+function chunks_embed_embed_chunk_form_validate($configuration, &$chunk_state, $chunk_instance, $item_element, &$form_state, $form) {
   $embed_code = $configuration['embed_code']['#value'];
   $fid = NULL;
 
