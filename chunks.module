@@ -212,12 +212,7 @@ function chunks_permission() {
  * @return
  *   An array of entity id's keyed by id or FALSE if none were found.
  */
-function chunks_entities_containing_chunks_of_type($type, $fields = array()) {
-
-  // Don't do anything if we received improper input.
-  if (!is_string($type) || !is_array($fields)) {
-    return FALSE;
-  }
+function chunks_entities_containing_chunks_of_type($type, array $fields = array()) {
 
   $entities = array();
 
@@ -271,12 +266,7 @@ function chunks_entities_containing_chunks_of_type($type, $fields = array()) {
  * @return
  *   An array of deltas keyed by entity id or FALSE if none were found.
  */
-function chunks_entities_containing_chunks_of_instance($chunk_instance, $field_instance) {
-
-  // Don't do anything if we received improper input.
-  if (!is_string($chunk_instance) || !is_array($field_instance)) {
-    return FALSE;
-  }
+function chunks_entities_containing_chunks_of_instance($chunk_instance, array $field_instance) {
 
   $field = field_info_field($field_instance['field_name']);
 
