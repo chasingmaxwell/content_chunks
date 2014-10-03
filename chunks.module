@@ -251,9 +251,7 @@ function chunks_entities_containing_chunks_of_type($type, $fields = array()) {
       ->condition($name . '_type', $type)
       ->distinct()
       ->execute();
-    while ($record = $result->fetchField()) {
-      $entities[$record] = $record;
-    }
+    $entities += $result->fetchAllKeyed(0, 0);
   }
 
   // Return array of entity id's or FALSE if none were found.
