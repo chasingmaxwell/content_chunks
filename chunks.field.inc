@@ -392,6 +392,15 @@ function chunks_field_widget_form(&$form, &$form_state, $field, $instance, $lang
 
   // Process chunk instances.
   $chunk_instances = $instance['settings']['chunk_instances'];
+
+  if (!$chunk_instances) {
+    $admin_path = _field_ui_bundle_admin_path($element['#entity_type'], $element['#bundle']);
+    $message = 'There are no chunk instances configured for %field_name. You can create them !link.';
+    $variables = array('%field_name' => $field_name, '!link' => l('here', $admin_path . '/fields/' . $field_name));
+    drupal_set_message(t($message, $variables), 'warning');
+    return array();
+  }
+
   foreach ($chunk_instances as $name => $chunk_instance) {
 
     // Allow easy reference to the ChunkType object associated with the
