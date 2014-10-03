@@ -152,10 +152,6 @@ function chunk_types_load() {
         // Create new ChunkType so we can continue validation.
         $chunk_type = new ChunkType($name, $data, $module);
 
-        if (isset($data['file'])) {
-          $chunk_type->file_include();
-        }
-
         // Check if the configuration form exists.
         if (!function_exists($module . '_' . $name . '_chunk_form')) {
           $message = 'The %module module does not provide a configuration form for the %name chunk type.';
