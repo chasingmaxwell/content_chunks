@@ -307,12 +307,7 @@ function chunks_entities_containing_chunks_of_instance($chunk_instance, array $f
  * @return
  *   TRUE if data was found and FALSE otherwise.
  */
-function chunks_type_in_use($type, $fields = array()) {
-
-  // Don't do anything if we received improper input.
-  if (!is_string($type) || !is_array($fields)) {
-    return FALSE;
-  }
+function chunks_type_in_use($type, array $fields = array()) {
 
   $chunk_types = chunk_types_load();
 
@@ -365,12 +360,7 @@ function chunks_type_in_use($type, $fields = array()) {
  * @return
  *   TRUE if data was found and FALSE otherwise.
  */
-function chunks_instance_in_use($chunk_instance, $field_instance) {
-
-  // Don't do anything if we received improper input.
-  if (!is_string($chunk_instance) || !is_array($field_instance)) {
-    return FALSE;
-  }
+function chunks_instance_in_use($chunk_instance, array $field_instance) {
 
   $field = field_info_field($field_instance['field_name']);
 
@@ -390,7 +380,7 @@ function chunks_instance_in_use($chunk_instance, $field_instance) {
     ->condition('bundle', $field_instance['bundle'])
     ->range(0,1)
     ->execute();
-  while ($record = $result->fetchField()) {
+  while ($result->fetchField()) {
     // We have data!
     return TRUE;
   }
