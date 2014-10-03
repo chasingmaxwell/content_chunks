@@ -1370,20 +1370,21 @@ function chunks_chunk_instance_remove_form_submit($form, &$form_state) {
   $field_instance = $form_state['values']['field_instance'];
   $chunk_instance = $form_state['values']['chunk_instance'];
 
-  $deltas = chunks_entities_containing_chunks_of_instance($chunk_instance, $field_instance);
-  $entity_ids = array_keys($deltas);
-  $entities = entity_load($entity_type, $entity_ids);
+  // Remove any chunks of the given chunk instance.
+  if ($deltas = chunks_entities_containing_chunks_of_instance($chunk_instance, $field_instance)) {
+    $entity_ids = array_keys($deltas);
+    $entities = entity_load($entity_type, $entity_ids);
 
-  // Remove all chunks of the given chunk instance.
-  foreach ($entities as $eid => $entity) {
-    $language = field_language($entity_type, $entity, $field_instance['field_name']);
-    $items = $entity->{$field_instance['field_name']}[$language];
-    foreach ($deltas[$eid] as $delta) {
-      unset($items[$delta]);
+    foreach ($entities as $eid => $entity) {
+      $language = field_language($entity_type, $entity, $field_instance['field_name']);
+      $items = $entity->{$field_instance['field_name']}[$language];
+      foreach ($deltas[$eid] as $delta) {
+        unset($items[$delta]);
+      }
+      $items = array_values($items);
+      $entity->{$field_instance['field_name']}[$language] = $items;
+      entity_save($entity_type, $entity);
     }
-    $items = array_values($items);
-    $entity->{$field_instance['field_name']}[$language] = $items;
-    entity_save($entity_type, $entity);
   }
 
   // Remove the chunk instance.
