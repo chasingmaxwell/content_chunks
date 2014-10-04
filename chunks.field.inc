@@ -321,18 +321,22 @@ function chunks_field_remove_chunk_instance($form, &$form_state) {
  * chunk instances.
  */
 function chunks_field_chunk_instances_presave($form, &$form_state) {
+  $old_chunk_instances = $form_state['values']['instance']['settings']['chunk_instances'];
+  $new_chunk_instances = array();
+
   // Save chunk_instances as an array of chunk instances keyed by the chunk
   // instance name.
-  $chunk_instances = array();
-  foreach ($form_state['values']['instance']['settings']['chunk_instances']['instances'] as $instance) {
-    $chunk_instances[$instance['name']] = $instance;
+  if (isset($old_chunk_instances['instances'])) {
+    foreach ($old_chunk_instances['instances'] as $instance) {
+      $new_chunk_instances[$instance['name']] = $instance;
+    }
+
+    // Sort chunk instances by weight.
+    uasort($new_chunk_instances, 'drupal_sort_weight');
   }
 
-  // Sort chunk instances by weight.
-  uasort($chunk_instances, 'drupal_sort_weight');
-
   // Save chunk instances in the form_state.
-  $form_state['values']['instance']['settings']['chunk_instances'] = $chunk_instances;
+  $form_state['values']['instance']['settings']['chunk_instances'] = $new_chunk_instances;
 }
 
 /**
